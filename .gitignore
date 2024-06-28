@@ -1,0 +1,7 @@
+.vs
+bin
+lib
+obj
+*.aps
+*.cs
+!extern/lib
