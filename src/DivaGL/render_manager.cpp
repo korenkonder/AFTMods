@@ -462,7 +462,8 @@ namespace rndr {
         rndr::Render* rend = render;
         extern bool reflect_full;
         if (reflect_full && pass_sw[rndr::RND_PASSID_REFLECT]
-            && disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS)) {
+            && draw_pass_reflect_get_obj_reflect_surface()
+            && disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS) && reflect_full_ptr) {
             gl_state_begin_event("reflect");
             reflect_draw = true;
 
@@ -647,9 +648,6 @@ namespace rndr {
             draw_pass_reflect_full(*this);
             return;
         }
-
-        extern RenderTexture* reflect_tex;
-        reflect_tex = 0;
 
         gl_state_begin_event("pass_reflect");
         RenderTexture& refl_tex = render_manager.get_render_texture(0);
@@ -2050,8 +2048,6 @@ static void draw_pass_3d_translucent_has_objects(bool* arr, mdl::ObjType type) {
         }
 }
 
-RenderTexture* reflect_tex;
-
 static void draw_pass_reflect_full(rndr::RenderManager& render_manager) {
     gl_state_begin_event("pass_reflect");
     RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
@@ -2063,8 +2059,6 @@ static void draw_pass_reflect_full(rndr::RenderManager& render_manager) {
         || disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSPARENT)
         || disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS)
         || disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT))) {
-        reflect_tex = &refl_tex;
-
         refl_tex.SetViewport();
 
         draw_pass_set_camera();
