@@ -255,11 +255,11 @@ static const int32_t simple_fpt_unival_max[] = {
 };
 
 static const int32_t silhouette_vpt_unival_max[] = {
-    1, 1,
+    1, 1, 0,
 };
 
 static const int32_t silhouette_fpt_unival_max[] = {
-    0, 0,
+    0, 0, 1,
 };
 
 static const int32_t lambert_vpt_unival_max[] = {
@@ -1020,6 +1020,7 @@ static const uniform_name SIMPLE_uniform[] = {
 static const uniform_name SIL_uniform[] = {
     U_SKINNING,
     U_MORPH,
+    U_ALPHA_TEST,
 };
 
 static const uniform_name LAMBERT_uniform[] = {
