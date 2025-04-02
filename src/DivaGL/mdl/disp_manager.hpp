@@ -74,14 +74,17 @@ namespace mdl {
         OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3,
         OBJ_TYPE_USER,
         OBJ_TYPE_MAX,
-        OBJ_TYPE_OPAQUE_LOCAL = OBJ_TYPE_MAX,
-        OBJ_TYPE_TRANSLUCENT_LOCAL,
-        OBJ_TYPE_TRANSPARENT_LOCAL,
-        OBJ_TYPE_OPAQUE_ALPHA_ORDER_2_LOCAL,
-        OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL,
-        OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL,
-        OBJ_TYPE_LOCAL_MAX,
-        OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS = OBJ_TYPE_LOCAL_MAX,
+    };
+
+    enum ObjTypeLocal {
+        OBJ_TYPE_LOCAL_OPAQUE = 0,
+        OBJ_TYPE_LOCAL_TRANSLUCENT,
+        OBJ_TYPE_LOCAL_TRANSPARENT,
+        OBJ_TYPE_LOCAL_MAX
+    };
+
+    enum ObjTypeReflect {
+        OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS = 0,
         OBJ_TYPE_REFLECT_MAX,
     };
 }
@@ -381,18 +384,26 @@ namespace mdl {
         ObjData* alloc_obj_data(ObjKind kind);
         mat4* alloc_mat4_array(int32_t count);
         void buffer_reset();
-        void calc_obj_radius(mat4* view, mdl::ObjType type);
+        void calc_obj_radius(mat4* view, ObjType type);
+        void calc_obj_radius(mat4* view, ObjTypeLocal type);
+        void calc_obj_radius(mat4* view, ObjTypeReflect type);
         void check_index_buffer(GLuint buffer);
         void check_vertex_arrays();
         void check_vertex_buffer(GLuint buffer);
-        void draw(mdl::ObjType type, int32_t depth_mask = 0, bool reflect_texture_mask = true, int32_t alpha = -1);
+        void draw(ObjType type, int32_t depth_mask = 0, bool reflect_texture_mask = true, int32_t alpha = -1);
+        void draw(ObjTypeLocal type, int32_t depth_mask = 0);
+        void draw(ObjTypeReflect type, int32_t depth_mask = 0);
         /*void draw_show_vector(mdl::ObjType type, int32_t show_vector);*/
         void entry_list(ObjType type, ObjData* data);
+        void entry_list(ObjTypeLocal type, ObjData* data);
+        void entry_list(ObjTypeReflect type, ObjData* data);
         bool entry_obj(const ::obj* obj, const mat4& mat, obj_mesh_vertex_buffer_divagl* obj_vert_buf,
             obj_mesh_index_buffer* obj_index_buf, const prj::vector<GLuint>* textures, const vec4* blend_color,
             const mat4* bone_mat, const ::obj* obj_morph, obj_mesh_vertex_buffer_divagl* obj_morph_vert_buf,
             int32_t instances_count, const mat4* instances_mat,
-            draw_func func, const ObjSubMeshArgs* func_data, bool enable_bone_mat, bool local = false);
+            draw_func func, const ObjSubMeshArgs* func_data, bool enable_bone_mat);
+        bool entry_obj_local(const ::obj* obj, const mat4& mat, obj_mesh_vertex_buffer_divagl* obj_vert_buf,
+            obj_mesh_index_buffer* obj_index_buf, const prj::vector<GLuint>* textures, const vec4* blend_color);
 #if SHARED_OBJECT_BUFFER
         void entry_obj_by_obj(const mat4& mat,
             const ::obj* obj, prj::vector<GLuint>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
@@ -401,29 +412,33 @@ namespace mdl {
         void entry_obj_by_obj(const mat4& mat,
             const ::obj* obj, prj::vector<GLuint>* textures, obj_mesh_vertex_buffer_divagl* obj_vert_buf,
             obj_mesh_index_buffer* obj_index_buf, const mat4* bone_mat, float_t alpha);
-
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info, const mat4* bone_mat);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info,
             const vec4* blend_color, const mat4* bone_mat, int32_t instances_count, const mat4* instances_mat,
-            void(*func)(const ObjSubMeshArgs*), const ObjSubMeshArgs* func_data, bool enable_bone_mat, bool local = false);
+            void(*func)(const ObjSubMeshArgs*), const ObjSubMeshArgs* func_data, bool enable_bone_mat);
+        bool entry_obj_by_object_info_local(const mat4& mat, object_info obj_info, const vec4* blend_color);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info, float_t alpha, const mat4* bone_mat = 0);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info,
-            float_t r, float_t g, float_t b, float_t a, const mat4* bone_mat = 0, bool local = false);
+            float_t r, float_t g, float_t b, float_t a, const mat4* bone_mat = 0);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info,
-            const vec4* blend_color, const mat4* bone_mat = 0, bool local = false);
+            const vec4* blend_color, const mat4* bone_mat = 0);
         void entry_obj_by_object_info_object_skin(object_info obj_info,
             prj::vector<texture_pattern_struct>* texture_pattern, texture_data_struct* texture_data, float_t alpha,
             const mat4* matrices, const mat4* ex_data_matrices, const mat4* mat, const mat4& global_mat);
-        void entry_obj_etc(const mat4& mat, const EtcObj& etc, bool local = false);
+        void entry_obj_etc(const mat4& mat, const EtcObj& etc);
         void entry_obj_user(const mat4& mat, UserArgsFunc func, void* data, ObjType type);
         GLuint get_vertex_array(const ObjSubMeshArgs* args);
-        GLuint get_vertex_array(const mdl::EtcObj* etc);
+        GLuint get_vertex_array(const EtcObj* etc);
         bool get_chara_color();
-        mdl::ObjList& get_obj_list(mdl::ObjType type);
+        ObjList& get_obj_list(ObjType type);
+        ObjList& get_obj_list(ObjTypeLocal type);
+        ObjList& get_obj_list(ObjTypeReflect type);
         void get_morph(object_info& object, float_t& weight);
-        void get_obj_center(mat4& mat, const mdl::ObjSubMeshArgs* args, vec3& center);
+        void get_obj_center(mat4& mat, const ObjSubMeshArgs* args, vec3& center);
         int32_t get_obj_count(ObjType type);
+        int32_t get_obj_count(ObjTypeLocal type);
+        int32_t get_obj_count(ObjTypeReflect type);
         ObjFlags get_obj_flags();
         shadow_type_enum get_shadow_type();
         void get_texture_color_coeff(vec4& value);
@@ -434,6 +449,8 @@ namespace mdl {
         void get_texture_transform(int32_t& count, texture_transform_struct*& value);
         float_t get_wet_param();
         void obj_sort(mat4* view, ObjType type, int32_t compare_func, bool a3 = false);
+        void obj_sort(mat4* view, ObjTypeLocal type, int32_t compare_func, bool a3 = false);
+        void obj_sort(mat4* view, ObjTypeReflect type, int32_t compare_func, bool a3 = false);
         void refresh();
         void set_chara_color(bool value = false);
         void set_culling_func(bool(FASTCALL* func)(const obj_bounding_sphere*) = 0);

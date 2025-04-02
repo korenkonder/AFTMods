@@ -1848,7 +1848,7 @@ namespace mdl {
         buff_offset = 0;
     }
 
-    void DispManager::calc_obj_radius(mat4* view, mdl::ObjType type) {
+    void DispManager::calc_obj_radius(mat4* view, ObjType type) {
         prj::vector<vec3> alpha_center;
         prj::vector<vec3> mat_center;
 
@@ -1930,6 +1930,88 @@ namespace mdl {
             }
     }
 
+    void DispManager::calc_obj_radius(mat4* view, ObjTypeLocal type) {
+        for (ObjData*& i : get_obj_list(type)) {
+            vec3 center = 0.0f;
+            bool v50 = false;
+            switch (i->kind) {
+            case OBJ_KIND_NORMAL: {
+                mat4 mat = i->mat;
+                if (i->args.sub_mesh.mesh->attrib.m.billboard)
+                    model_mat_face_camera_view(view, &mat, &mat);
+                else if (i->args.sub_mesh.mesh->attrib.m.billboard_y_axis)
+                    model_mat_face_camera_position(view, &mat, &mat);
+
+                get_obj_center(mat, &i->args.sub_mesh, center);
+
+                v50 = !!i->args.sub_mesh.material->material.attrib.m.flag_30;
+                i->radius = i->args.sub_mesh.mesh->bounding_sphere.radius;
+            } break;
+            case OBJ_KIND_TRANSLUCENT:
+                vec3 center_sum = 0.0f;
+                for (int32_t j = 0; j < i->args.translucent.count; j++) {
+                    vec3 _center = 0.0f;
+                    get_obj_center(i->mat, i->args.translucent.sub_mesh[j], _center);
+                    if (i->args.translucent.sub_mesh[j]->material->material.attrib.m.flag_30) {
+                        v50 = true;
+                        break;
+                    }
+
+                    center_sum += _center;
+                }
+
+                if (!v50)
+                    center = center_sum * (1.0f / (float_t)i->args.translucent.count);
+                break;
+            }
+
+            mat4_transform_point(view, &center, &center);
+            i->view_z = center.z;
+        }
+
+    }
+
+    void DispManager::calc_obj_radius(mat4* view, ObjTypeReflect type) {
+        for (ObjData*& i : get_obj_list(type)) {
+            vec3 center = 0.0f;
+            bool v50 = false;
+            switch (i->kind) {
+            case OBJ_KIND_NORMAL: {
+                mat4 mat = i->mat;
+                if (i->args.sub_mesh.mesh->attrib.m.billboard)
+                    model_mat_face_camera_view(view, &mat, &mat);
+                else if (i->args.sub_mesh.mesh->attrib.m.billboard_y_axis)
+                    model_mat_face_camera_position(view, &mat, &mat);
+
+                get_obj_center(mat, &i->args.sub_mesh, center);
+
+                v50 = !!i->args.sub_mesh.material->material.attrib.m.flag_30;
+                i->radius = i->args.sub_mesh.mesh->bounding_sphere.radius;
+            } break;
+            case OBJ_KIND_TRANSLUCENT:
+                vec3 center_sum = 0.0f;
+                for (int32_t j = 0; j < i->args.translucent.count; j++) {
+                    vec3 _center = 0.0f;
+                    get_obj_center(i->mat, i->args.translucent.sub_mesh[j], _center);
+                    if (i->args.translucent.sub_mesh[j]->material->material.attrib.m.flag_30) {
+                        v50 = true;
+                        break;
+                    }
+
+                    center_sum += _center;
+                }
+
+                if (!v50)
+                    center = center_sum * (1.0f / (float_t)i->args.translucent.count);
+                break;
+            }
+
+            mat4_transform_point(view, &center, &center);
+            i->view_z = center.z;
+        }
+
+    }
+
     void DispManager::check_index_buffer(GLuint buffer) {
         for (DispManager::vertex_array& i : vertex_array_cache)
             if (i.alive_time > 0 && i.index_buffer == buffer)
@@ -1960,7 +2042,7 @@ namespace mdl {
     }
 
     void DispManager::draw(ObjType type, int32_t depth_mask, bool reflect_texture_mask, int32_t alpha) {
-        if (type < 0 || type >= OBJ_TYPE_REFLECT_MAX || get_obj_count(type) < 1)
+        if (type < 0 || type >= OBJ_TYPE_MAX || get_obj_count(type) < 1)
             return;
 
         int32_t alpha_test = 0;
@@ -1980,7 +2062,6 @@ namespace mdl {
         switch (type) {
         case OBJ_TYPE_TRANSLUCENT:
         case OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS:
-        case OBJ_TYPE_TRANSLUCENT_LOCAL:
             if (depth_mask)
                 func = draw_sub_mesh_translucent;
             else
@@ -1991,7 +2072,6 @@ namespace mdl {
             alpha_threshold = 0.0f;
             break;
         case OBJ_TYPE_TRANSPARENT:
-        case OBJ_TYPE_TRANSPARENT_LOCAL:
             alpha_test = 1;
             min_alpha = 0.1f;
             alpha_threshold = 0.5f;
@@ -2098,7 +2178,6 @@ namespace mdl {
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3:
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL:
             alpha_test = 1;
             min_alpha = 0.1f;
             alpha_threshold = 0.5f;
@@ -2106,7 +2185,6 @@ namespace mdl {
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL:
             gl_state_set_depth_mask(GL_FALSE);
 
             alpha_test = 1;
@@ -2115,18 +2193,6 @@ namespace mdl {
             break;
         case OBJ_TYPE_USER:
             func = draw_sub_mesh_translucent;
-            break;
-        case OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS:
-            if (depth_mask)
-                func = draw_sub_mesh_translucent;
-            else
-                gl_state_set_depth_mask(GL_FALSE);
-
-            alpha_test = 1;
-            min_alpha = 0.0f;
-            alpha_threshold = 0.0f;
-
-            gl_state_set_cull_face_mode(GL_FRONT);
             break;
         }
         rctx->set_batch_alpha_threshold(alpha_threshold);
@@ -2215,8 +2281,133 @@ namespace mdl {
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
             gl_state_set_depth_mask(GL_TRUE);
             break;
+        }
+
+        uniform_value_reset();
+        gl_state_bind_vertex_array(0);
+        shader::unbind();
+        gl_state_set_blend_func(GL_ONE, GL_ZERO);
+        for (int32_t i = 0; i < 5; i++)
+            gl_state_bind_sampler(i, 0);
+    }
+
+    void DispManager::draw(mdl::ObjTypeLocal type, int32_t depth_mask) {
+        if (type < 0 || type >= OBJ_TYPE_LOCAL_MAX || get_obj_count(type) < 1)
+            return;
+
+        int32_t alpha_test = 0;
+        float_t min_alpha = 1.0f;
+        float_t alpha_threshold = 0.0f;
+        void(*func)(const ObjSubMeshArgs * args) = draw_sub_mesh_default;
+
+        for (int32_t i = 0; i < 5; i++)
+            gl_state_active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
+        gl_state_active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
+        gl_state_active_texture(0);
+        gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        uniform_value_reset();
+        gl_state_get();
+
+        switch (type) {
+        case OBJ_TYPE_LOCAL_TRANSLUCENT:
+            if (depth_mask)
+                func = draw_sub_mesh_translucent;
+            else
+                gl_state_set_depth_mask(GL_FALSE);
+
+            alpha_test = 1;
+            min_alpha = 0.0f;
+            alpha_threshold = 0.0f;
+            break;
+        case OBJ_TYPE_LOCAL_TRANSPARENT:
+            alpha_test = 1;
+            min_alpha = 0.1f;
+            alpha_threshold = 0.5f;
+            break;
+        }
+        rctx->set_batch_alpha_threshold(alpha_threshold);
+        rctx->set_batch_min_alpha(min_alpha);
+        uniform->arr[U_ALPHA_TEST] = alpha_test;
+
+        for (ObjData*& i : get_obj_list(type)) {
+            switch (i->kind) {
+            case OBJ_KIND_NORMAL: {
+                draw_sub_mesh(&i->args.sub_mesh, &i->mat, func);
+            } break;
+            case OBJ_KIND_TRANSLUCENT: {
+                for (int32_t j = 0; j < i->args.translucent.count; j++)
+                    draw_sub_mesh(i->args.translucent.sub_mesh[j], &i->mat, func);
+            } break;
+            }
+        }
+
+        switch (type) {
+        case OBJ_TYPE_LOCAL_TRANSLUCENT:
+            if (!depth_mask)
+                gl_state_set_depth_mask(GL_TRUE);
+            break;
+        }
+
+        uniform_value_reset();
+        gl_state_bind_vertex_array(0);
+        shader::unbind();
+        gl_state_set_blend_func(GL_ONE, GL_ZERO);
+        for (int32_t i = 0; i < 5; i++)
+            gl_state_bind_sampler(i, 0);
+    }
+
+    void DispManager::draw(mdl::ObjTypeReflect type, int32_t depth_mask) {
+        if (type < 0 || type >= OBJ_TYPE_REFLECT_MAX || get_obj_count(type) < 1)
+            return;
+
+        int32_t alpha_test = 0;
+        float_t min_alpha = 1.0f;
+        float_t alpha_threshold = 0.0f;
+        bool reflect = uniform->arr[U_REFLECT] == 1;
+        void(*func)(const ObjSubMeshArgs * args) = draw_sub_mesh_default;
+
+        for (int32_t i = 0; i < 5; i++)
+            gl_state_active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
+        gl_state_active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
+        gl_state_active_texture(0);
+        gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        uniform_value_reset();
+        gl_state_get();
+
+        switch (type) {
         case OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS:
-            gl_state_set_cull_face_mode(GL_BACK);
+            if (depth_mask)
+                func = draw_sub_mesh_translucent;
+            else
+                gl_state_set_depth_mask(GL_FALSE);
+
+            alpha_test = 1;
+            min_alpha = 0.0f;
+            alpha_threshold = 0.0f;
+
+            gl_state_set_cull_face_mode(GL_FRONT);
+            break;
+        }
+        rctx->set_batch_alpha_threshold(alpha_threshold);
+        rctx->set_batch_min_alpha(min_alpha);
+        uniform->arr[U_ALPHA_TEST] = alpha_test;
+
+        for (ObjData*& i : get_obj_list(type)) {
+            switch (i->kind) {
+            case OBJ_KIND_NORMAL: {
+                draw_sub_mesh(&i->args.sub_mesh, &i->mat, func);
+            } break;
+            case OBJ_KIND_TRANSLUCENT: {
+                for (int32_t j = 0; j < i->args.translucent.count; j++)
+                    draw_sub_mesh(i->args.translucent.sub_mesh[j], &i->mat, func);
+            } break;
+            }
+        }
+
+        switch (type) {
+        case OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS:
+            if (!depth_mask)
+                gl_state_set_cull_face_mode(GL_BACK);
             break;
         }
 
@@ -2259,6 +2450,14 @@ namespace mdl {
     }*/
 
     void DispManager::entry_list(ObjType type, ObjData* data) {
+        get_obj_list(type).push_back(data);
+    }
+
+    void DispManager::entry_list(ObjTypeLocal type, ObjData* data) {
+        get_obj_list(type).push_back(data);
+    }
+
+    void DispManager::entry_list(ObjTypeReflect type, ObjData* data) {
         get_obj_list(type).push_back(data);
     }
 
@@ -2362,7 +2561,7 @@ namespace mdl {
         obj_mesh_index_buffer* obj_index_buf, const prj::vector<GLuint>* textures, const vec4* blend_color,
         const mat4* bone_mat, const ::obj* obj_morph, obj_mesh_vertex_buffer_divagl* obj_morph_vert_buf,
         int32_t instances_count, const mat4* instances_mat,
-        draw_func func, const ObjSubMeshArgs* func_data, bool enable_bone_mat, bool local) {
+        draw_func func, const ObjSubMeshArgs* func_data, bool enable_bone_mat) {
         if (!obj_vert_buf || !obj_index_buf)
             return false;
 
@@ -2373,7 +2572,7 @@ namespace mdl {
             mat4_transpose(&_mat, &_mat);
         }
 
-        if (!local && object_culling && !instances_count && !bone_mat && (!obj
+        if (object_culling && !instances_count && !bone_mat && (!obj
             || !obj_bounding_sphere_check_visibility(obj->bounding_sphere, mat)
             && !(mdl::obj_reflect_enable
                 && obj_bounding_sphere_check_visibility(obj->bounding_sphere, _mat)))) {
@@ -2393,7 +2592,7 @@ namespace mdl {
                     mesh_morph = &obj_morph->mesh_array[i];
             }
 
-            if (!local && object_culling && !instances_count && !bone_mat
+            if (object_culling && !instances_count && !bone_mat
                 && !obj_bounding_sphere_check_visibility(mesh->bounding_sphere, mat)
                 && (!mesh_morph || !obj_bounding_sphere_check_visibility(mesh_morph->bounding_sphere, mat))) {
                 culling.culled.meshes++;
@@ -2410,7 +2609,7 @@ namespace mdl {
                 if (sub_mesh->attrib.m.cloth)
                     continue;
 
-                if (!local && object_culling && !instances_count && !bone_mat) {
+                if (object_culling && !instances_count && !bone_mat) {
                     int32_t v32 = obj_bounding_sphere_check_visibility(sub_mesh->bounding_sphere, mat);
                     if (v32 != 2 || (!mesh->attrib.m.billboard && !mesh->attrib.m.billboard_y_axis
                         && !mesh->attrib.m.disable_aabb_culling)) {
@@ -2582,8 +2781,7 @@ namespace mdl {
                                 if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
                                     entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_1, data);
                                 else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
-                                    entry_list(local ? OBJ_TYPE_OPAQUE_ALPHA_ORDER_2_LOCAL
-                                        : OBJ_TYPE_OPAQUE_ALPHA_ORDER_2, data);
+                                    entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_2, data);
                                 else
                                     entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_3, data);
                             }
@@ -2591,8 +2789,7 @@ namespace mdl {
                                 if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
                                     entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1, data);
                                 else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
-                                    entry_list(local ? OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL
-                                        : OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2, data);
+                                    entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2, data);
                                 else
                                     entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3, data);
                             }
@@ -2600,14 +2797,18 @@ namespace mdl {
                             if (obj_flags & mdl::OBJ_SSS)
                                 entry_list(OBJ_TYPE_SSS, data);
                         }
-
-                        if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
-                            entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
-                        else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
-                            entry_list(local ? OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL
-                                : OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
-                        else
-                            entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, data);
+                        else {
+                            if (!attrib.translucent_priority) {
+                                if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
+                                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
+                                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
+                                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
+                                else
+                                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, data);
+                            }
+                            else if (translucent_priority_count < 40)
+                                translucent_priority[translucent_priority_count++] = &data->args.sub_mesh;
+                        }
                     }
                 }
                 else {
@@ -2622,8 +2823,7 @@ namespace mdl {
 
                         if (attrib.punch_through) {
                             if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
-                                entry_list(local ? OBJ_TYPE_TRANSPARENT_LOCAL
-                                    : OBJ_TYPE_TRANSPARENT, data);
+                                entry_list(OBJ_TYPE_TRANSPARENT, data);
 
                             if (obj_flags & mdl::OBJ_CHARA_REFLECT)
                                 entry_list(OBJ_TYPE_REFLECT_CHARA_OPAQUE, data);
@@ -2636,8 +2836,7 @@ namespace mdl {
                         }
                         else {
                             if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
-                                entry_list(local ? OBJ_TYPE_OPAQUE_LOCAL
-                                    : OBJ_TYPE_OPAQUE, data);
+                                entry_list(OBJ_TYPE_OPAQUE, data);
 
                             if (obj_flags & mdl::OBJ_20)
                                 entry_list(OBJ_TYPE_TYPE_6, data);
@@ -2658,9 +2857,7 @@ namespace mdl {
                     }
                     else if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
                         if (!attrib.translucent_priority)
-                            if (local)
-                                entry_list(OBJ_TYPE_TRANSLUCENT_LOCAL, data);
-                            else if (mesh->attrib.m.translucent_sort_by_radius
+                            if (mesh->attrib.m.translucent_sort_by_radius
                                 || obj_flags & mdl::OBJ_TRANSLUCENT_SORT_BY_RADIUS) {
                                 entry_list(OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS, data);
                             }
@@ -2713,16 +2910,14 @@ namespace mdl {
             if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
                 entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
             else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
-                entry_list(local ? OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL
-                    : OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
+                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
             else if (obj_flags & mdl::OBJ_ALPHA_ORDER_3)
                 entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, data);
             else
-                entry_list(local ? OBJ_TYPE_TRANSLUCENT_LOCAL
-                    : OBJ_TYPE_TRANSLUCENT, data);
+                entry_list(OBJ_TYPE_TRANSLUCENT, data);
         }
 
-        if (local || (obj_flags & mdl::OBJ_SHADOW_OBJECT)
+        if ((obj_flags & mdl::OBJ_SHADOW_OBJECT)
             || (obj_flags & (mdl::OBJ_ALPHA_ORDER_1 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_3)
                 && blend_color && blend_color->w < 1.0f))
             return true;
@@ -2959,10 +3154,108 @@ namespace mdl {
                     translucent_args.count++;
                 }
 
-            ObjData* data = DispManager::alloc_obj_data(mdl::OBJ_KIND_TRANSLUCENT);
+            ObjData* data = alloc_obj_data(mdl::OBJ_KIND_TRANSLUCENT);
             if (data) {
                 data->init_translucent(mat, translucent_args);
                 DispManager::entry_list(OBJ_TYPE_TRANSLUCENT, data);
+            }
+        }
+
+        return true;
+    }
+
+    bool DispManager::entry_obj_local(const ::obj* obj, const mat4& mat, obj_mesh_vertex_buffer_divagl* obj_vert_buf,
+        obj_mesh_index_buffer* obj_index_buf, const prj::vector<GLuint>* textures, const vec4* blend_color) {
+        if (!obj_vert_buf || !obj_index_buf)
+            return false;
+
+        culling.passed.objects++;
+
+        for (int32_t i = 0; i < obj->num_mesh; i++) {
+            const obj_mesh* mesh = &obj->mesh_array[i];
+
+            culling.passed.meshes++;
+
+            ObjSubMeshArgs* translucent_priority[40];
+            int32_t translucent_priority_count = 0;
+
+            for (int32_t j = 0; j < mesh->num_submesh; j++) {
+                const obj_sub_mesh* sub_mesh = &mesh->submesh_array[j];
+                if (sub_mesh->attrib.m.cloth)
+                    continue;
+
+                culling.passed.sub_meshes++;
+
+                obj_material_data* material = &obj->material_array[sub_mesh->material_index];
+                ObjData* data = alloc_obj_data(OBJ_KIND_NORMAL);
+                if (!data)
+                    continue;
+
+                GLuint index_buffer = 0;
+                if (obj_index_buf)
+                    index_buffer = obj_index_buf[i].buffer;
+
+                GLuint vertex_buffer = 0;
+                size_t vertex_buffer_offset = 0;
+                if (obj_vert_buf) {
+                    vertex_buffer = obj_vert_buf[i].get_buffer();
+                    vertex_buffer_offset = obj_vert_buf[i].get_offset();
+                }
+
+                if (!vertex_buffer || !index_buffer)
+                    continue;
+
+                vec4 _blend_color = 1.0f;
+                if (blend_color)
+                    _blend_color = *blend_color;
+                vec4 _emission = material->material.color.emission;
+
+                data->init_sub_mesh(mat, obj->bounding_sphere.radius, sub_mesh, mesh, material, textures,
+                    0, 0, vertex_buffer, vertex_buffer_offset, index_buffer, _blend_color, _emission,
+                    0, 0, 0, 0, 0, 0);
+
+                const obj_material_attrib_member attrib = material->material.attrib.m;
+                if (attrib.flag_28 || data->args.sub_mesh.blend_color.w >= 1.0f
+                    && (attrib.punch_through || !(attrib.alpha_texture | attrib.alpha_material))
+                    && !sub_mesh->attrib.m.translucent) {
+                    if (attrib.punch_through) {
+                        if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
+                            entry_list(OBJ_TYPE_LOCAL_TRANSPARENT, data);
+                    }
+                    else {
+                        if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
+                            entry_list(OBJ_TYPE_LOCAL_OPAQUE, data);
+                    }
+                    continue;
+                }
+                else if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
+                    if (!attrib.translucent_priority)
+                        entry_list(OBJ_TYPE_LOCAL_TRANSLUCENT, data);
+                    else if (translucent_priority_count < 40)
+                        translucent_priority[translucent_priority_count++] = &data->args.sub_mesh;
+                }
+            }
+
+            if (!translucent_priority_count)
+                continue;
+
+            ObjTranslucentArgs translucent_args;
+            translucent_args.count = 0;
+            for (int32_t j = 62; j; j--)
+                for (int32_t k = 0; k < translucent_priority_count; k++) {
+                    ObjSubMeshArgs* sub_mesh = translucent_priority[k];
+                    if (sub_mesh->material->material.attrib.m.translucent_priority != j)
+                        continue;
+
+                    translucent_args.sub_mesh[translucent_args.count] = sub_mesh;
+                    translucent_args.count++;
+                }
+
+            ObjData* data = alloc_obj_data(OBJ_KIND_TRANSLUCENT);
+            if (data) {
+                data->init_translucent(mat, translucent_args);
+
+                entry_list(OBJ_TYPE_TRANSLUCENT, data);
             }
         }
 
@@ -3008,7 +3301,7 @@ namespace mdl {
 
         vec4* blend_color_ptr = alpha < 1.0f ? &blend_color : 0;
         entry_obj(obj, mat, _obj_vert_buf, obj_index_buf,
-            textures, blend_color_ptr, bone_mat, 0, 0, 0, 0, 0, 0, 0, !!bone_mat);
+            textures, blend_color_ptr, bone_mat, 0, 0, 0, 0, 0, 0, !!bone_mat);
         _operator_delete(_obj_vert_buf);
     }
 #pragma warning(pop)
@@ -3037,8 +3330,7 @@ namespace mdl {
 
     bool DispManager::entry_obj_by_object_info(const mat4& mat, object_info obj_info,
         const vec4* blend_color, const mat4* bone_mat, int32_t instances_count, const mat4* instances_mat,
-        void(*func)(const ObjSubMeshArgs*), const ObjSubMeshArgs* func_data,
-        bool enable_bone_mat, bool local) {
+        void(*func)(const ObjSubMeshArgs*), const ObjSubMeshArgs* func_data, bool enable_bone_mat) {
         if (obj_info.id == (uint16_t)-1 && obj_info.set_id == (uint16_t)-1)
             return false;
 
@@ -3061,25 +3353,41 @@ namespace mdl {
 
         return entry_obj(obj, mat, obj_vert_buffer, obj_index_buffer,
             textures, blend_color, bone_mat, obj_morph, obj_morph_vert_buffer,
-            instances_count, instances_mat, func, func_data, enable_bone_mat, local);
+            instances_count, instances_mat, func, func_data, enable_bone_mat);
+    }
+
+    bool DispManager::entry_obj_by_object_info_local(const mat4& mat, object_info obj_info, const vec4* blend_color) {
+        if (obj_info.id == (uint16_t)-1 && obj_info.set_id == (uint16_t)-1)
+            return false;
+
+        ::obj* obj = objset_info_storage_get_obj(obj_info);
+        if (!obj)
+            return false;
+
+        prj::vector<GLuint>* textures = objset_info_storage_get_set_gentex(obj_info.set_id);
+        obj_mesh_vertex_buffer_divagl* obj_vert_buffer = (obj_mesh_vertex_buffer_divagl*)
+            objset_info_storage_get_obj_mesh_vertex_buffer(obj_info, 0);
+        obj_mesh_index_buffer* obj_index_buffer = objset_info_storage_get_obj_mesh_index_buffer(obj_info, 0);
+
+        return entry_obj_local(obj, mat, obj_vert_buffer, obj_index_buffer, textures, blend_color);
     }
 
     bool DispManager::entry_obj_by_object_info(const mat4& mat,
         object_info obj_info, float_t alpha, const mat4* bone_mat) {
         vec4 blend_color = 1.0f;
         blend_color.w = alpha;
-        return entry_obj_by_object_info(mat, obj_info, &blend_color, bone_mat, 0, 0, 0, 0, true);
+        return entry_obj_by_object_info(mat, obj_info, &blend_color, bone_mat, 0, 0, 0, 0, !!bone_mat);
     }
 
     bool DispManager::entry_obj_by_object_info(const mat4& mat, object_info obj_info,
-        float_t r, float_t g, float_t b, float_t a, const mat4* bone_mat, bool local) {
+        float_t r, float_t g, float_t b, float_t a, const mat4* bone_mat) {
         vec4 blend_color = { r, g, b, a };
-        return entry_obj_by_object_info(mat, obj_info, &blend_color, bone_mat, 0, 0, 0, 0, true, local);
+        return entry_obj_by_object_info(mat, obj_info, &blend_color, bone_mat, 0, 0, 0, 0, !!bone_mat);
     }
 
     bool DispManager::entry_obj_by_object_info(const mat4& mat, object_info obj_info,
-        const vec4* blend_color, const mat4* bone_mat, bool local) {
-        return entry_obj_by_object_info(mat, obj_info, blend_color, 0, 0, 0, 0, 0, false, local);
+        const vec4* blend_color, const mat4* bone_mat) {
+        return entry_obj_by_object_info(mat, obj_info, blend_color, bone_mat, 0, 0, 0, 0, !!bone_mat);
     }
 
     void DispManager::entry_obj_by_object_info_object_skin(object_info obj_info,
@@ -3145,19 +3453,19 @@ namespace mdl {
         }
     }
 
-    void DispManager::entry_obj_etc(const mat4& mat, const EtcObj& etc, bool local) {
+    void DispManager::entry_obj_etc(const mat4& mat, const EtcObj& etc) {
         ObjData* data = alloc_obj_data(mdl::OBJ_KIND_ETC);
         if (!data)
             return;
 
         data->init_etc(mat, etc);
         if (etc.color.a == 0xFF) {
-            if (!local && (obj_flags & OBJ_SHADOW))
+            if (obj_flags & OBJ_SHADOW)
                 entry_list((mdl::ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
-            entry_list(local ? OBJ_TYPE_OPAQUE_LOCAL : OBJ_TYPE_OPAQUE, data);
+            entry_list(OBJ_TYPE_OPAQUE, data);
         }
         else
-            entry_list(local ? OBJ_TYPE_TRANSLUCENT_LOCAL : OBJ_TYPE_TRANSLUCENT, data);
+            entry_list(OBJ_TYPE_TRANSLUCENT, data);
     }
 
     void DispManager::entry_obj_user(const mat4& mat, UserArgsFunc func, void* data, ObjType type) {
@@ -3217,7 +3525,7 @@ namespace mdl {
         return 0;
     }
 
-    GLuint DispManager::get_vertex_array(const mdl::EtcObj* etc) {
+    GLuint DispManager::get_vertex_array(const EtcObj* etc) {
         EtcObjType type = etc->type;
         float_t length = 0;
         switch (type) {
@@ -3303,16 +3611,16 @@ namespace mdl {
         return chara_color;
     }
 
-    mdl::ObjList& DispManager::get_obj_list(mdl::ObjType type) {
-        if (type >= OBJ_TYPE_LOCAL_MAX)
-#pragma warning(suppress: 33010)
-#pragma warning(suppress: 33011)
-            return rctx->obj_reflect[type - OBJ_TYPE_LOCAL_MAX];
-        else if (type >= OBJ_TYPE_MAX)
-#pragma warning(suppress: 33010)
-#pragma warning(suppress: 33011)
-            return rctx->obj_local[type - OBJ_TYPE_MAX];
+    ObjList& DispManager::get_obj_list(ObjType type) {
         return disp_manager->obj[type];
+    }
+
+    ObjList& DispManager::get_obj_list(ObjTypeLocal type) {
+        return rctx->obj_local[type];
+    }
+
+    ObjList& DispManager::get_obj_list(ObjTypeReflect type) {
+        return rctx->obj_reflect[type];
     }
 
     void DispManager::get_morph(object_info& object, float_t& weight) {
@@ -3320,7 +3628,7 @@ namespace mdl {
         object = morph.object;
     }
 
-    void DispManager::get_obj_center(mat4& mat, const mdl::ObjSubMeshArgs* args, vec3& center) {
+    void DispManager::get_obj_center(mat4& mat, const ObjSubMeshArgs* args, vec3& center) {
         const vec3 bounding_sphere_center = args->sub_mesh->bounding_sphere.center;
         if (args->mat_count <= 0 || !args->sub_mesh->num_bone_index) {
             mat4_transform_point(&mat, &bounding_sphere_center, &center);
@@ -3338,6 +3646,14 @@ namespace mdl {
     }
 
     int32_t DispManager::get_obj_count(ObjType type) {
+        return (int32_t)get_obj_list(type).size();
+    }
+    
+    int32_t DispManager::get_obj_count(ObjTypeLocal type) {
+        return (int32_t)get_obj_list(type).size();
+    }
+    
+    int32_t DispManager::get_obj_count(ObjTypeReflect type) {
         return (int32_t)get_obj_list(type).size();
     }
 
@@ -3408,6 +3724,58 @@ namespace mdl {
             list.sort([](ObjData* left, ObjData* right) {
                 return left->radius > right->radius;
             });
+            break;
+        }
+    }
+
+    void DispManager::obj_sort(mat4* view, ObjTypeLocal type, int32_t compare_func, bool a3) {
+        prj::list<ObjData*>& list = get_obj_list(type);
+        if (list.size() < 1)
+            return;
+
+        calc_obj_radius(view, type);
+
+        switch (compare_func) {
+        case 0:
+            list.sort([](ObjData* left, ObjData* right) {
+                return left->view_z > right->view_z;
+                });
+            break;
+        case 1:
+            list.sort([](ObjData* left, ObjData* right) {
+                return left->view_z < right->view_z;
+                });
+            break;
+        case 2:
+            list.sort([](ObjData* left, ObjData* right) {
+                return left->radius > right->radius;
+                });
+            break;
+        }
+    }
+
+    void DispManager::obj_sort(mat4* view, ObjTypeReflect type, int32_t compare_func, bool a3) {
+        prj::list<ObjData*>& list = get_obj_list(type);
+        if (list.size() < 1)
+            return;
+
+        calc_obj_radius(view, type);
+
+        switch (compare_func) {
+        case 0:
+            list.sort([](ObjData* left, ObjData* right) {
+                return left->view_z > right->view_z;
+                });
+            break;
+        case 1:
+            list.sort([](ObjData* left, ObjData* right) {
+                return left->view_z < right->view_z;
+                });
+            break;
+        case 2:
+            list.sort([](ObjData* left, ObjData* right) {
+                return left->radius > right->radius;
+                });
             break;
         }
     }
