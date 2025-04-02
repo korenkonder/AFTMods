@@ -990,25 +990,20 @@ namespace rndr {
             gl_state_begin_event("local");
 
             if (alpha_z_sort)
-                disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT_LOCAL, 1, field_31F);
+                disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_LOCAL_TRANSLUCENT, 1, field_31F);
 
             if (opaque_z_sort)
-                disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_OPAQUE_LOCAL, 0);
+                disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_LOCAL_OPAQUE, 0);
 
             float_t fov = camera_data.fov;
             camera_data.fov = 32.2673416137695f;
             draw_pass_set_camera();
 
-            disp_manager->draw(mdl::OBJ_TYPE_OPAQUE_LOCAL);
-            disp_manager->draw(mdl::OBJ_TYPE_TRANSPARENT_LOCAL);
+            disp_manager->draw(mdl::OBJ_TYPE_LOCAL_OPAQUE);
+            disp_manager->draw(mdl::OBJ_TYPE_LOCAL_TRANSPARENT);
             gl_state_enable_blend();
-            disp_manager->draw(mdl::OBJ_TYPE_TRANSLUCENT_LOCAL);
+            disp_manager->draw(mdl::OBJ_TYPE_LOCAL_TRANSLUCENT);
             gl_state_disable_blend();
-
-            draw_pass_3d_translucent(
-                mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_2_LOCAL,
-                mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL,
-                mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL);
 
             gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
             Glitter::glt_particle_manager_x->DispScenes(Glitter::DISP_LOCAL);

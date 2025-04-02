@@ -2104,6 +2104,7 @@ namespace Glitter {
         extern bool reflect_full;
         mdl::obj_reflect_enable = !local && reflect_full;
         disp_manager.set_texture_pattern(0, 0);
+        disp_manager.set_obj_flags((mdl::ObjFlags)0);
 
         RenderElementX* elem = rend_group->elements;
         size_t disp = 0;
@@ -2166,14 +2167,13 @@ namespace Glitter {
                 elem->mat_draw = mat;
 
                 mat4_transpose(&mat, &mat);
-                if (disp_manager.entry_obj_by_object_info(mat,
-                    rend_group->object, &elem->color, 0, local))
+                if (local
+                    ? disp_manager.entry_obj_by_object_info_local(mat, rend_group->object, &elem->color)
+                    : disp_manager.entry_obj_by_object_info(mat, rend_group->object, &elem->color))
                     disp++;
-
-                disp_manager.set_texture_transform(0, 0);
             }
         }
-        disp_manager.set_texture_pattern(0, 0);
+        disp_manager.set_texture_transform(0, 0);
         rend_group->disp = disp;
         if (local)
             disp_manager.object_culling = object_culling;
