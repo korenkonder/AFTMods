@@ -899,7 +899,6 @@ namespace rndr {
             disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, 1, field_31F);
             disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, 1, field_31F);
             disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, 1, field_31F);
-            disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL, 1, field_31F);
         }
 
         if (opaque_z_sort)
@@ -989,6 +988,12 @@ namespace rndr {
 
         if (Glitter::glt_particle_manager_x->CheckHasLocalEffect()) { // X
             gl_state_begin_event("local");
+
+            if (alpha_z_sort)
+                disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT_LOCAL, 1, field_31F);
+
+            if (opaque_z_sort)
+                disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_OPAQUE_LOCAL, 0);
 
             float_t fov = camera_data.fov;
             camera_data.fov = 32.2673416137695f;
@@ -2053,7 +2058,6 @@ static void draw_pass_reflect_full(rndr::RenderManager& render_manager) {
     RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
     RenderTexture& refl_buf_tex = reflect_full_ptr->reflect_buffer_texture;
     refl_tex.Bind();
-    extern bool reflect_full;
     if (draw_pass_reflect_get_obj_reflect_surface()
         && (disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_OPAQUE)
         || disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSPARENT)
