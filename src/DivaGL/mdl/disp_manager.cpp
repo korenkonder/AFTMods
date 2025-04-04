@@ -2931,7 +2931,8 @@ namespace mdl {
         for (int32_t i = 0; i < obj->num_mesh; i++) {
             const obj_mesh* mesh = &obj->mesh_array[i];
             const obj_mesh* mesh_morph = 0;
-            if (!mdl::obj_reflect_enable && !mesh->attrib.m.reflect || mesh->attrib.m.no_reflect
+            if (mesh->attrib.m.no_reflect
+                || !mdl::obj_reflect_enable && !mesh->attrib.m.reflect
                 || camera_front && mesh->attrib.m.reflect_cam_back)
                 continue;
 
