@@ -404,11 +404,9 @@ namespace mdl {
             draw_func func, const ObjSubMeshArgs* func_data, bool enable_bone_mat);
         bool entry_obj_local(const ::obj* obj, const mat4& mat, obj_mesh_vertex_buffer_divagl* obj_vert_buf,
             obj_mesh_index_buffer* obj_index_buf, const prj::vector<GLuint>* textures, const vec4* blend_color);
-#if SHARED_OBJECT_BUFFER
         void entry_obj_by_obj(const mat4& mat,
             const ::obj* obj, prj::vector<GLuint>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
             obj_mesh_index_buffer* obj_index_buf, const mat4* bone_mat, float_t alpha);
-#endif
         void entry_obj_by_obj(const mat4& mat,
             const ::obj* obj, prj::vector<GLuint>* textures, obj_mesh_vertex_buffer_divagl* obj_vert_buf,
             obj_mesh_index_buffer* obj_index_buf, const mat4* bone_mat, float_t alpha);
