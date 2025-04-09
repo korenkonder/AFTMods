@@ -3263,7 +3263,6 @@ namespace mdl {
         return true;
     }
 
-#if SHARED_OBJECT_BUFFER
 #pragma warning(push)
 #pragma warning(disable: 6385)
 #pragma warning(disable: 6386)
@@ -3283,6 +3282,7 @@ namespace mdl {
             obj_mesh_vertex_buffer& src_buf = obj_vert_buf[i];
             obj_mesh_vertex_buffer_divagl& dst_buf = _obj_vert_buf[i];
             dst_buf = src_buf;
+#if SHARED_OBJECT_BUFFER
             if (src_buf.buffers[0]) {
                 GLint buffer;
                 GLint size;
@@ -3295,6 +3295,7 @@ namespace mdl {
             else
                 dst_buf.size = 0;
             dst_buf.offset = 0;
+#endif
         }
 
         vec4 blend_color = 1.0f;
@@ -3306,7 +3307,6 @@ namespace mdl {
         _operator_delete(_obj_vert_buf);
     }
 #pragma warning(pop)
-#endif
 
     void DispManager::entry_obj_by_obj(const mat4& mat,
         const ::obj* obj, prj::vector<GLuint>* textures, obj_mesh_vertex_buffer_divagl* obj_vert_buf,
@@ -3955,7 +3955,6 @@ namespace mdl {
     HOOK(void, FASTCALL, DispManager__entry_obj_etc, 0x00000001404395C0, const mdl::EtcObj& etc) {
         disp_manager->entry_obj_etc(mat4_identity, etc);
     }
-
 
     HOOK(void, FASTCALL, DispManager__entry_obj_by_obj, 0x0000000140439A20, obj* obj_data, prj::vector<GLuint>* textures,
         obj_mesh_vertex_buffer* obj_vert_buf, obj_mesh_index_buffer* obj_index_buf, mat4* bone_mat, float_t alpha) {

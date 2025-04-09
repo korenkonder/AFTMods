@@ -193,8 +193,8 @@ size_t obj_mesh_vertex_buffer_divagl::get_offset() {
 #if SHARED_OBJECT_BUFFER
     if (buffers[0])
         return offset;
-    return 0;
 #endif
+    return 0;
 }
 
 GLsizeiptr obj_mesh_vertex_buffer_divagl::get_size() {
