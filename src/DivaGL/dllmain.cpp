@@ -59,7 +59,7 @@ bool APIENTRY DllMain(HMODULE handle, DWORD ul_reason_for_call, LPVOID lpReserve
         config_reflect_res_scale = config_reflect_res_scale ? clamp_def(config_reflect_res_scale, 25, 100) : 100;
 
         dll_handle = (size_t)handle;
-        printf_divagl("Current version - v0.7.2.2");
+        printf_divagl("Current version - v0.7.3.0");
         printf_divagl("Attach");
         divagl_main();
         break;
@@ -76,7 +76,7 @@ extern "C" __declspec(dllexport) LPCWSTR GetPluginDescription(void) {
 }
 
 extern "C" __declspec(dllexport) LPCWSTR GetBuildDate(void) {
-    return L"v0.7.2.2";
+    return L"v0.7.3.0";
 }
 
 static std::wstring GetDirPath() {
