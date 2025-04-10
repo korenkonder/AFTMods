@@ -3916,6 +3916,10 @@ namespace mdl {
         disp_manager->set_obj_flags((mdl::ObjFlags)0);
     }
 
+    HOOK(void, FASTCALL, disp_stgtst, 0x0000000140299430) {
+        disp_manager->entry_obj_by_object_info(mat4_identity, object_info(0x00, 0x01));
+    }
+
     HOOK(void, FASTCALL, MeshDw__DrawObjAxisAlignedBoundingBox, 0x000000014031AF10, obj_axis_aligned_bounding_box* aabb, color4u8_bgra color) {
         mdl::EtcObj etc(mdl::ETC_OBJ_CUBE);
         etc.color = color;
@@ -3986,6 +3990,7 @@ namespace mdl {
 
     void disp_manager_patch() {
         INSTALL_HOOK(DataTestObjectManager__Disp);
+        INSTALL_HOOK(disp_stgtst);
         INSTALL_HOOK(MeshDw__DrawObjAxisAlignedBoundingBox);
         INSTALL_HOOK(MeshDw__DrawObjBoundingSphere);
         INSTALL_HOOK(DispManager__entry_obj);
