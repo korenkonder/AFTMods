@@ -44,6 +44,11 @@ static const GLuint      BONE_INDEX_INDEX = 15;
 static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshArgs* args,
     int32_t texcoord_array[2], GLuint vertex_attrib_buffer_binding[16]);
 
+static void rob_chara_item_cos_data_disp_item(rob_chara_item_cos_data* item_cos_data, const mat4& mat, int32_t item_no);
+static void rob_chara_item_cos_data_disp_item_object(rob_chara_item_cos_data* item_cos_data,
+    object_info obj_info, const mat4& mat, int32_t item_no);
+static void rob_chara_item_cos_data_set_chara_index(rob_chara_item_cos_data* item_cos_data, ::chara_index chara_index);
+
 static void sub_140436760(mat4* view);
 
 extern bool reflect_draw;
@@ -3896,7 +3901,40 @@ namespace mdl {
         wet_param = value;
     }
 
-    HOOK(void, FASTCALL, DataTestObjectManager__Disp, 0x0000000140293E30, __int64 a1) {
+    HOOK(void, FASTCALL, DataTestItem__disp, 0x0000000140273200, __int64 a1) {
+        int32_t state = *(int32_t*)(a1 + 0x4B0);
+        if (!(((state - 3) & 0xFFFFFFFC) == 0 && state != 4))
+            return;
+
+        disp_manager->set_obj_flags((mdl::ObjFlags)(*(int32_t*)(a1 + 0x94) | mdl::OBJ_40 | mdl::OBJ_20));
+
+        mat4 mat;
+        mat4_rotate_zyx((vec3*)(a1 + 0x98), &mat);
+
+        vec3 pos = 0.0f;
+        sub_1405E8A20(shadow_ptr_get(), 0, 0.0f);
+
+        disp_manager->set_shadow_type(SHADOW_CHARA);
+        if (*(bool*)(a1 + 0xA4)) {
+            for (int32_t i = 0; i < 5; i++) {
+                mat4 _mat;
+                mat4_mul_translate(&mat, ((float_t)i * 0.5f) - 1.0f, (float_t)(i % 2) * 0.5f, 0.0f, &_mat);
+                mat4_transpose(&_mat, &_mat);
+
+                rob_chara_item_cos_data_set_chara_index((rob_chara_item_cos_data*)(a1 + 0xA8), *(chara_index*)(a1 + 0x78));
+                rob_chara_item_cos_data_disp_item((rob_chara_item_cos_data*)(a1 + 0xA8), _mat, *(int32_t*)(a1 + 0x74));
+            }
+        }
+        else {
+            mat4_transpose(&mat, &mat);
+
+            rob_chara_item_cos_data_set_chara_index((rob_chara_item_cos_data*)(a1 + 0xA8), *(chara_index*)(a1 + 0x78));
+            rob_chara_item_cos_data_disp_item((rob_chara_item_cos_data*)(a1 + 0xA8), mat, *(int32_t*)(a1 + 0x74));
+        }
+        disp_manager->set_obj_flags((mdl::ObjFlags)0);
+    }
+
+    HOOK(void, FASTCALL, DataTestObjectManager__disp, 0x0000000140293E30, __int64 a1) {
         if (*(int32_t*)(a1 + 0x88) != 3 || *(int32_t*)(a1 + 0x74) < 0
             || *(int32_t*)(a1 + 0x74) >= *(int32_t*)(a1 + 0x70))
             return;
@@ -3909,8 +3947,7 @@ namespace mdl {
         mat4_rotate_xyz((vec3*)(a1 + 0x78), &mat);
         mat4_transpose(&mat, &mat);
 
-        vec3 pos = 0.0f;
-        sub_1405E8A20(shadow_ptr_get(), 0, &pos);
+        sub_1405E8A20(shadow_ptr_get(), 0, 0.0f);
         disp_manager->set_shadow_type(SHADOW_CHARA);
         disp_manager->entry_obj_by_object_info(mat, object_info((uint16_t)id, (uint16_t)set_id));
         disp_manager->set_obj_flags((mdl::ObjFlags)0);
@@ -3989,7 +4026,8 @@ namespace mdl {
     }
 
     void disp_manager_patch() {
-        INSTALL_HOOK(DataTestObjectManager__Disp);
+        INSTALL_HOOK(DataTestItem__disp);
+        INSTALL_HOOK(DataTestObjectManager__disp);
         INSTALL_HOOK(disp_stgtst);
         INSTALL_HOOK(MeshDw__DrawObjAxisAlignedBoundingBox);
         INSTALL_HOOK(MeshDw__DrawObjBoundingSphere);
@@ -4055,6 +4093,63 @@ static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshA
     }
 }
 
+// 0x00000001405223C0
+static void rob_chara_item_cos_data_disp_item(rob_chara_item_cos_data* item_cos_data, const mat4& mat, int32_t item_no) {
+    if (!item_no)
+        return;
+
+    static const item_table_item* (FASTCALL * item_table_handler_array_get_item)(::chara_index chara_index, int32_t item_no)
+        = (const item_table_item * (FASTCALL*)(::chara_index chara_index, int32_t item_no))0x0000000140525B30;
+
+    const item_table_item* item = item_table_handler_array_get_item(item_cos_data->chara_index, item_no);
+    if (!item)
+        return;
+
+    for (const item_table_item_data_obj& i : item->data.obj)
+        if (i.obj_info.not_null())
+            rob_chara_item_cos_data_disp_item_object(item_cos_data, i.obj_info, mat, item_no);
+}
+
+// 0x0000000140522480
+static void rob_chara_item_cos_data_disp_item_object(rob_chara_item_cos_data* item_cos_data,
+    object_info obj_info, const mat4& mat, int32_t item_no) {
+    mat4* rob_chara_item_cos_data_bone_mat = (mat4*)0x00000001411B2040;
+
+    texture_pattern_struct* tex_pat = 0;
+    size_t tex_pat_count = 0;
+    obj_skin* skin = objset_info_storage_get_obj_skin(obj_info);
+    auto elem = item_cos_data->texture_change.find(item_no);
+    if (elem != item_cos_data->texture_change.end()) {
+        tex_pat_count = elem->second.size();
+        if (tex_pat_count) {
+            tex_pat = (texture_pattern_struct*)_operator_new(tex_pat_count * sizeof(texture_pattern_struct));
+            item_cos_texture_change_tex* v19 = elem->second.data();
+            for (size_t i = 0; i < tex_pat_count; i++) {
+                tex_pat[i].src = v19[i].org->id;
+                tex_pat[i].dst = v19[i].chg->id;
+            }
+            disp_manager->set_texture_pattern(tex_pat_count, tex_pat);
+        }
+    }
+    if (skin && skin->num_bone <= 320) {
+        for (int32_t i = 0; i < skin->num_bone; i++)
+            rob_chara_item_cos_data_bone_mat[i] = mat;
+        disp_manager->entry_obj_by_object_info(mat4_identity, obj_info, rob_chara_item_cos_data_bone_mat);
+    }
+    else
+        disp_manager->entry_obj_by_object_info(mat, obj_info);
+
+    if (tex_pat_count) {
+        disp_manager->set_texture_pattern(0, 0);
+        _operator_delete(tex_pat);
+    }
+}
+
+// 0x000000014052C530
+static void rob_chara_item_cos_data_set_chara_index(rob_chara_item_cos_data* item_cos_data, ::chara_index chara_index) {
+    item_cos_data->chara_index = chara_index;
+}
+
 static void sub_140436760(mat4* view) {
     for (auto& i : disp_manager->obj[mdl::OBJ_TYPE_TRANSLUCENT]) {
         if (i->kind != mdl::OBJ_KIND_NORMAL)
@@ -4096,21 +4191,21 @@ static void sub_140436760(mat4* view) {
         *(vec3*)&t = aabb->size;
         t.w = 1.0f;
 
-        float_t view_z = vec4::dot(t ^ vec4(  0.0f,  0.0f,  0.0f, 0.0f ), mat.row2);
-        if (view_z < vec4::dot(t ^ vec4(  0.0f,  0.0f, -0.0f, 0.0f ), mat.row2))
-            view_z = vec4::dot(t ^ vec4(  0.0f,  0.0f, -0.0f, 0.0f ), mat.row2);
-        if (view_z < vec4::dot(t ^ vec4(  0.0f, -0.0f,  0.0f, 0.0f ), mat.row2))
+        float_t view_z = vec4::dot(t ^ vec4(0.0f, 0.0f, 0.0f, 0.0f), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(0.0f, 0.0f, -0.0f, 0.0f), mat.row2))
+            view_z = vec4::dot(t ^ vec4(0.0f, 0.0f, -0.0f, 0.0f), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(0.0f, -0.0f, 0.0f, 0.0f), mat.row2))
             view_z = -t.y;
-        if (view_z < vec4::dot(t ^ vec4(  0.0f, -0.0f, -0.0f, 0.0f ), mat.row2))
-            view_z = vec4::dot(t ^ vec4(  0.0f, -0.0f, -0.0f, 0.0f ), mat.row2);
-        if (view_z < vec4::dot(t ^ vec4( -0.0f,  0.0f,  0.0f, 0.0f ), mat.row2))
+        if (view_z < vec4::dot(t ^ vec4(0.0f, -0.0f, -0.0f, 0.0f), mat.row2))
+            view_z = vec4::dot(t ^ vec4(0.0f, -0.0f, -0.0f, 0.0f), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(-0.0f, 0.0f, 0.0f, 0.0f), mat.row2))
             view_z = -t.x;
-        if (view_z < vec4::dot(t ^ vec4( -0.0f,  0.0f, -0.0f, 0.0f ), mat.row2))
-            view_z = vec4::dot(t ^ vec4( -0.0f,  0.0f, -0.0f, 0.0f ), mat.row2);
-        if (view_z < vec4::dot(t ^ vec4( -0.0f, -0.0f,  0.0f, 0.0f ), mat.row2))
-            view_z = vec4::dot(t ^ vec4( -0.0f, -0.0f,  0.0f, 0.0f ), mat.row2);
-        if (view_z < vec4::dot(t ^ vec4( -0.0f, -0.0f, -0.0f, 0.0f ), mat.row2))
-            view_z = vec4::dot(t ^ vec4( -0.0f, -0.0f, -0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(-0.0f, 0.0f, -0.0f, 0.0f), mat.row2))
+            view_z = vec4::dot(t ^ vec4(-0.0f, 0.0f, -0.0f, 0.0f), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(-0.0f, -0.0f, 0.0f, 0.0f), mat.row2))
+            view_z = vec4::dot(t ^ vec4(-0.0f, -0.0f, 0.0f, 0.0f), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(-0.0f, -0.0f, -0.0f, 0.0f), mat.row2))
+            view_z = vec4::dot(t ^ vec4(-0.0f, -0.0f, -0.0f, 0.0f), mat.row2);
         i->view_z = view_z;
     }
 }

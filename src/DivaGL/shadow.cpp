@@ -14,8 +14,8 @@
 
 Shadow*& shadow_ptr = *(Shadow**)0x000000014CC587B8;
 
-void(FASTCALL* sub_1405E8A20)(Shadow* shad, int32_t index, vec3* pos)
-    = (void(FASTCALL*)(Shadow* shad, int32_t index, vec3 * pos))0x00000001405E8A20;
+void(FASTCALL* sub_1405E8A20)(Shadow* shad, int32_t index, const vec3& pos)
+    = (void(FASTCALL*)(Shadow* shad, int32_t index, const vec3 & pos))0x00000001405E8A20;
 void(FASTCALL* shadow_ptr_free)() = (void(FASTCALL*)())0x00000001405E8610;
 void(FASTCALL* shadow_ptr_init)() = (void(FASTCALL*)())0x00000001405E8890;
 
