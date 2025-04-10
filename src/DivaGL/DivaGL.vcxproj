@@ -78,7 +78,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(SolutionDir)extern\lib;$(SolutionDir)lib\debugopt\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)extern\lib;$(SolutionDir)lib\debug\;$(SolutionDir)lib\debugopt\</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;detours.lib;syelog.lib;libdeflatestatic.lib;AFTModsShared.lib;KKdLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4098 /ignore:4099 /ignore:4286 %(AdditionalOptions)</AdditionalOptions>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>

@@ -658,20 +658,6 @@ void* obj_mesh_vertex_buffer_divagl::fill_data(void* data, obj_mesh* mesh) {
     return (void*)((size_t)data + (size_t)size_vertex * num_vertex);
 }
 
-/*#if SHARED_OBJECT_BUFFER
-void obj_mesh_vertex_buffer_aft::cycle_index() {
-    if (++index >= count)
-        index = 0;
-}
-
-GLuint obj_mesh_vertex_buffer_aft::get_buffer() {
-    if (index < count)
-        return buffers[index];
-    return 0;
-}
-
-#endif*/
-
 #if SHARED_OBJECT_BUFFER
 obj_index_buffer::obj_index_buffer() : mesh_num(), mesh_data(), buffer() {
 #else
@@ -700,7 +686,7 @@ bool obj_index_buffer::load(obj* obj) {
     }
 
     void* index = force_malloc(buffer_size);
-    if (!index) {
+    if (!index && buffer_size) {
         buffer = 0;
         unload();
         return false;
@@ -717,7 +703,7 @@ bool obj_index_buffer::load(obj* obj) {
     }
 
     buffer = create_index_buffer(buffer_size, index);
-    if (!buffer) {
+    if (!buffer && buffer_size) {
         free_def(index);
         unload();
         return false;
@@ -802,7 +788,7 @@ bool obj_vertex_buffer::load(obj* obj) {
     int32_t count = double_buffer ? 2 : 1;
 
     void* vertex = force_malloc(buffer_size);
-    if (!vertex) {
+    if (!vertex && buffer_size) {
         for (int32_t i = 0; i < count; i++)
             buffers[i] = 0;
         unload();
@@ -821,7 +807,7 @@ bool obj_vertex_buffer::load(obj* obj) {
 
     for (int32_t i = 0; i < count; i++) {
         buffers[i] = create_vertex_buffer(buffer_size, vertex);
-        if (!buffers[i]) {
+        if (!buffers[i] && buffer_size) {
             free_def(vertex);
             unload();
             return false;
@@ -843,8 +829,12 @@ bool obj_vertex_buffer::load(obj* obj) {
 void obj_vertex_buffer::unload() {
     if (mesh_data) {
 #if SHARED_OBJECT_BUFFER
-        for (int32_t i = 0; i < mesh_data[0].count; i++)
-            free_vertex_buffer(buffers[i]);
+        if (mesh_num)
+            for (int32_t i = 0; i < mesh_data[0].count; i++)
+                free_vertex_buffer(buffers[i]);
+        else
+            for (int32_t i = 0; i < 3; i++)
+                free_vertex_buffer(buffers[i]);
 #else
         for (int32_t i = 0; i < mesh_num; i++)
             mesh_data[i].unload();
