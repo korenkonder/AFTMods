@@ -3247,6 +3247,8 @@ extern gl_func_struct gl_addr_glut[7];
 #define wglGetProcAddressGLUT ((PFNWGLGETPROCADDRESSGLUTPROC)gl_addr_glut[WGLGETPROCADDRESSGLUT].func)
 #define wglMakeCurrentGLUT ((PFNWGLMAKECURRENTGLUTPROC)gl_addr_glut[WGLMAKECURRENTGLUT].func)
 
+extern bool GL_VERSION_4_1;
+extern bool GL_VERSION_4_2;
 extern bool GL_VERSION_4_3;
 extern bool GL_VERSION_4_4;
 extern bool GL_VERSION_4_5;
@@ -3418,7 +3420,11 @@ extern void GLAPIENTRY glVertex3fvGLUT(GLfloat const * v);
 extern HGLRC GLAPIENTRY wglCreateContextGLUT(HDC hDc);
 
 extern void GLAPIENTRY glTexParameteriv(GLenum target, GLenum pname, const GLint* params);
+extern void GLAPIENTRY glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
 extern void GLAPIENTRY glPrimitiveRestartIndex(GLuint index);
+extern GLuint GLAPIENTRY glGetUniformBlockIndex(GLuint program, const GLchar* uniformBlockName);
+extern void GLAPIENTRY glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
+extern void GLAPIENTRY glVertexAttribDivisor(GLuint index, GLuint divisor);
 extern void GLAPIENTRY glClearDepthf(GLfloat d);
 extern void GLAPIENTRY glGetProgramBinary(GLuint program, GLsizei bufSize, GLsizei* length, GLenum* binaryFormat, void* binary);
 extern void GLAPIENTRY glProgramBinary(GLuint program, GLenum binaryFormat, const void* binary, GLsizei length);

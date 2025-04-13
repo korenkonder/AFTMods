@@ -117,6 +117,9 @@ void gl_state_bind_uniform_buffer_range(GLuint index,
 }
 
 void gl_state_bind_shader_storage_buffer(GLuint buffer, bool force) {
+    if (!GL_VERSION_4_3)
+        return;
+
     if (force || gl_state.shader_storage_buffer_binding != buffer) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
         gl_state.shader_storage_buffer_binding = buffer;
@@ -124,6 +127,9 @@ void gl_state_bind_shader_storage_buffer(GLuint buffer, bool force) {
 }
 
 void gl_state_bind_shader_storage_buffer_base(GLuint index, GLuint buffer, bool force) {
+    if (!GL_VERSION_4_3)
+        return;
+
     if (force || gl_state.shader_storage_buffer_bindings[index] != buffer) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, buffer);
         shader_storage_buffer_binding = buffer;
@@ -135,6 +141,9 @@ void gl_state_bind_shader_storage_buffer_base(GLuint index, GLuint buffer, bool 
 
 void gl_state_bind_shader_storage_buffer_range(GLuint index,
     GLuint buffer, GLintptr offset, GLsizeiptr size, bool force) {
+    if (!GL_VERSION_4_3)
+        return;
+
     if (force || gl_state.shader_storage_buffer_bindings[index] != buffer
         || gl_state.shader_storage_buffer_offsets[index] != offset
         || gl_state.shader_storage_buffer_sizes[index] != size) {
@@ -327,11 +336,13 @@ void gl_state_get() {
         glGetIntegeri_v(GL_UNIFORM_BUFFER_SIZE, i, (GLint*)&gl_state.uniform_buffer_sizes[i]);
     }
 
-    glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&gl_state.shader_storage_buffer_binding);
-    for (GLuint i = 0; i < 14; i++) {
-        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&gl_state.shader_storage_buffer_bindings[i]);
-        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_START, i, (GLint*)&gl_state.shader_storage_buffer_offsets[i]);
-        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_SIZE, i, (GLint*)&gl_state.shader_storage_buffer_sizes[i]);
+    if (GL_VERSION_4_3) {
+        glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&gl_state.shader_storage_buffer_binding);
+        for (GLuint i = 0; i < 14; i++) {
+            glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&gl_state.shader_storage_buffer_bindings[i]);
+            glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_START, i, (GLint*)&gl_state.shader_storage_buffer_offsets[i]);
+            glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_SIZE, i, (GLint*)&gl_state.shader_storage_buffer_sizes[i]);
+        }
     }
 
     glGetBooleanvDLL(GL_COLOR_WRITEMASK, gl_state.color_mask);

@@ -34,21 +34,23 @@ static void APIENTRY gl_debug_output(GLenum source, GLenum type, uint32_t id,
 
 HOOK(int32_t, FASTCALL, data_init, 0x0000000140192FF0) {
 #ifdef DEBUG
-    typedef void (APIENTRY* GLDEBUGPROC)(GLenum source, GLenum type, GLuint id,
-        GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
+    if (GL_VERSION_4_3) {
+        typedef void (APIENTRY* GLDEBUGPROC)(GLenum source, GLenum type, GLuint id,
+            GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 
-    typedef void (GLAPIENTRY* PFNGLDEBUGMESSAGECALLBACKPROC)(GLDEBUGPROC callback, const void* userParam);
-    PFNGLDEBUGMESSAGECALLBACKPROC glDebugMessageCallback
-        = (PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddressDLL("glDebugMessageCallback");
-    typedef void (GLAPIENTRY* PFNGLDEBUGMESSAGECONTROLPROC)(GLenum source,
-        GLenum type, GLenum severity, GLsizei count, const GLuint* ids, GLboolean enabled);
-    PFNGLDEBUGMESSAGECONTROLPROC glDebugMessageControl
-        = (PFNGLDEBUGMESSAGECONTROLPROC)wglGetProcAddressDLL("glDebugMessageControl");
+        typedef void (GLAPIENTRY* PFNGLDEBUGMESSAGECALLBACKPROC)(GLDEBUGPROC callback, const void* userParam);
+        PFNGLDEBUGMESSAGECALLBACKPROC glDebugMessageCallback
+            = (PFNGLDEBUGMESSAGECALLBACKPROC)wglGetProcAddressDLL("glDebugMessageCallback");
+        typedef void (GLAPIENTRY* PFNGLDEBUGMESSAGECONTROLPROC)(GLenum source,
+            GLenum type, GLenum severity, GLsizei count, const GLuint* ids, GLboolean enabled);
+        PFNGLDEBUGMESSAGECONTROLPROC glDebugMessageControl
+            = (PFNGLDEBUGMESSAGECONTROLPROC)wglGetProcAddressDLL("glDebugMessageControl");
 
-    glEnableDLL(GL_DEBUG_OUTPUT);
-    glEnableDLL(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(gl_debug_output, 0);
-    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+        glEnableDLL(GL_DEBUG_OUTPUT);
+        glEnableDLL(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(gl_debug_output, 0);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+    }
 #endif
 
 #ifdef USE_STUB
@@ -254,7 +256,7 @@ HOOK(void, FASTCALL, set_render_defaults, 0x00000001401948B0) {
 }
 
 HOOK(GLenum, FASTCALL, gl_check_framebuffer_status, 0x0000000140503240) {
-    GLenum ret = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER);
+    GLenum ret = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (ret != GL_FRAMEBUFFER_COMPLETE)
         return ret;
 
@@ -334,13 +336,15 @@ static HGLRC FASTCALL glut_create_context(int64_t a1, int64_t a2, int64_t a3, in
 
         int32_t minor = 6;
         HGLRC ctx = 0;
-        while (!ctx || minor < 3) {
+        while (!ctx && minor >= 1) {
             const int32_t attrib_list[] = {
                 WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
                 WGL_CONTEXT_MINOR_VERSION_ARB, minor,
                 WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 #ifdef DEBUG
-                WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB,
+                WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB | WGL_CONTEXT_DEBUG_BIT_ARB,
+#else
+                WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
 #endif
                 0,
             };

@@ -258,7 +258,10 @@ void render_data::init() {
     buffer_shader.Create(sizeof(obj_shader_data));
     buffer_scene.Create(sizeof(obj_scene_data));
     buffer_batch.Create(sizeof(obj_batch_data));
-    buffer_skinning.Create(sizeof(obj_skinning_data));
+    if (GL_VERSION_4_3)
+        buffer_skinning.Create(sizeof(obj_skinning_data));
+    else
+        buffer_skinning_ubo.Create(sizeof(obj_skinning_data));
 
     buffer_shader_data.reset();
     enum_or(flags, RENDER_DATA_SHADER_UPDATE);
@@ -269,7 +272,10 @@ void render_data::init() {
 }
 
 void render_data::free() {
-    buffer_skinning.Destroy();
+    if (GL_VERSION_4_3)
+        buffer_skinning.Destroy();
+    else
+        buffer_skinning_ubo.Destroy();
     buffer_batch.Destroy();
     buffer_scene.Destroy();
     buffer_shader.Destroy();
@@ -340,7 +346,10 @@ void render_data::set(render_context* rctx) {
     buffer_batch.Bind(2);
 
     if (uniform->arr[U_SKINNING])
-        buffer_skinning.Bind(0);
+        if (GL_VERSION_4_3)
+            buffer_skinning.Bind(0);
+        else
+            buffer_skinning_ubo.Bind(6);
 }
 
 void render_data::set_shader(uint32_t index) {

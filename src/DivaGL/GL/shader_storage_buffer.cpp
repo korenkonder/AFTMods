@@ -12,7 +12,7 @@ namespace GL {
     }
 
     void ShaderStorageBuffer::Create(size_t size) {
-        if (buffer)
+        if (!GL_VERSION_4_3 || buffer)
             return;
 
         if (GL_VERSION_4_5) {
@@ -31,7 +31,7 @@ namespace GL {
     }
 
     void ShaderStorageBuffer::Create(size_t size, const void* data, bool dynamic) {
-        if (buffer)
+        if (!GL_VERSION_4_3 || buffer)
             return;
 
         if (GL_VERSION_4_5) {
@@ -59,7 +59,7 @@ namespace GL {
     }
 
     void* ShaderStorageBuffer::MapMemory() {
-        if (!buffer)
+        if (!GL_VERSION_4_3 || !buffer)
             return 0;
 
         void* data;
@@ -83,7 +83,7 @@ namespace GL {
     }
 
     void ShaderStorageBuffer::UnmapMemory() {
-        if (!buffer)
+        if (!GL_VERSION_4_3 || !buffer)
             return;
 
         if (GL_VERSION_4_5)
@@ -95,7 +95,7 @@ namespace GL {
     }
 
     void ShaderStorageBuffer::WriteMemory(size_t offset, size_t size, const void* data) {
-        if (!buffer || !size)
+        if (!GL_VERSION_4_3 || !buffer || !size)
             return;
 
         if (GL_VERSION_4_5)

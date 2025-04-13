@@ -531,7 +531,7 @@ gl_func_struct gl_addr[1057] = {
     { 0x00000001411A4268, 0, }, // glBindAttribLocation
     { 0x00000001411A4CE0, 0, }, // glBindAttribLocationARB
     { 0x00000001411A41E0, 0, }, // glBindBuffer
-    { 0x0000001411A4598, 0, }, // glBindBufferBase
+    { 0x00000001411A4598, 0, }, // glBindBufferBase
     { 0x00000001411A3570, 0, }, // glBindBufferOffsetNV
     { 0x00000001411A4590, 0, }, // glBindBufferRange
     { 0x00000001411A3568, 0, }, // glBindBufferRangeNV
@@ -1582,6 +1582,8 @@ gl_func_struct gl_addr_glut[7] = {
     { 0x000000000002A430, 0, }, // wglMakeCurrent
 };
 
+bool GL_VERSION_4_1 = false;
+bool GL_VERSION_4_2 = false;
 bool GL_VERSION_4_3 = false;
 bool GL_VERSION_4_4 = false;
 bool GL_VERSION_4_5 = false;
@@ -1710,6 +1712,8 @@ void wrap_addresses() {
         int32_t minor;
         sscanf_s(version, "%d.%d", &major, &minor);
 
+        GL_VERSION_4_1 = (major == 4 && minor >= 1) || major > 4;
+        GL_VERSION_4_2 = (major == 4 && minor >= 2) || major > 4;
         GL_VERSION_4_3 = (major == 4 && minor >= 3) || major > 4;
         GL_VERSION_4_4 = (major == 4 && minor >= 4) || major > 4;
         GL_VERSION_4_5 = (major == 4 && minor >= 5) || major > 4;
@@ -2491,7 +2495,11 @@ HGLRC GLAPIENTRY wglCreateContextGLUT(HDC hDc) {
 }
 
 typedef void (GLAPIENTRY* PFNGLTEXPARAMETERIVPROC)(GLenum target, GLenum pname, const GLint* params);
+typedef void (GLAPIENTRY* PFNGLDRAWARRAYSINSTANCEDPROC)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
 typedef void (GLAPIENTRY* PFNGLPRIMITIVERESTARTINDEXPROC)(GLuint index);
+typedef GLuint(GLAPIENTRY* PFNGLGETUNIFORMBLOCKINDEXPROC)(GLuint program, const GLchar* uniformBlockName);
+typedef void (GLAPIENTRY* PFNGLUNIFORMBLOCKBINDINGPROC)(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
+typedef void (GLAPIENTRY* PFNGLVERTEXATTRIBDIVISORPROC)(GLuint index, GLuint divisor);
 typedef void (GLAPIENTRY* PFNGLCLEARDEPTHFPROC)(GLfloat d);
 typedef void (GLAPIENTRY* PFNGLGETPROGRAMBINARYPROC)(GLuint program, GLsizei bufSize, GLsizei* length, GLenum* binaryFormat, void* binary);
 typedef void (GLAPIENTRY* PFNGLPROGRAMBINARYPROC)(GLuint program, GLenum binaryFormat, const void* binary, GLsizei length);
@@ -2508,7 +2516,11 @@ typedef void (GLAPIENTRY* PFNGLPUSHDEBUGGROUPPROC)(GLenum source, GLuint id, GLs
 typedef void (GLAPIENTRY* PFNGLPOPDEBUGGROUPPROC)();
 
 static PFNGLTEXPARAMETERIVPROC _glTexParameteriv = 0;
+static PFNGLDRAWARRAYSINSTANCEDPROC _glDrawArraysInstanced = 0;
 static PFNGLPRIMITIVERESTARTINDEXPROC _glPrimitiveRestartIndex = 0;
+static PFNGLGETUNIFORMBLOCKINDEXPROC _glGetUniformBlockIndex = 0;
+static PFNGLUNIFORMBLOCKBINDINGPROC _glUniformBlockBinding = 0;
+static PFNGLVERTEXATTRIBDIVISORPROC _glVertexAttribDivisor = 0;
 static PFNGLCLEARDEPTHFPROC _glClearDepthf = 0;
 static PFNGLGETPROGRAMBINARYPROC _glGetProgramBinary = 0;
 static PFNGLPROGRAMBINARYPROC _glProgramBinary = 0;
@@ -2530,13 +2542,40 @@ void GLAPIENTRY glTexParameteriv(GLenum target, GLenum pname, const GLint* param
     _glTexParameteriv(target, pname, params);
 }
 
+void GLAPIENTRY glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount) {
+    if (!_glDrawArraysInstanced)
+        _glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)wglGetProcAddressDLL("glDrawArraysInstanced");
+    _glDrawArraysInstanced(mode, first, count, instancecount);
+}
+
 void GLAPIENTRY glPrimitiveRestartIndex(GLuint index) {
     if (!_glPrimitiveRestartIndex)
         _glPrimitiveRestartIndex = (PFNGLPRIMITIVERESTARTINDEXPROC)wglGetProcAddressDLL("glPrimitiveRestartIndex");
     _glPrimitiveRestartIndex(index);
 }
 
+GLuint GLAPIENTRY glGetUniformBlockIndex(GLuint program, const GLchar* uniformBlockName) {
+    if (!_glGetUniformBlockIndex)
+        _glGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC)wglGetProcAddressDLL("glGetUniformBlockIndex");
+    return _glGetUniformBlockIndex(program, uniformBlockName);
+}
+
+void GLAPIENTRY glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding) {
+    if (!_glUniformBlockBinding)
+        _glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC)wglGetProcAddressDLL("glUniformBlockBinding");
+    _glUniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding);
+}
+
+void GLAPIENTRY glVertexAttribDivisor(GLuint index, GLuint divisor) {
+    if (!_glVertexAttribDivisor)
+        _glVertexAttribDivisor = (PFNGLVERTEXATTRIBDIVISORPROC)wglGetProcAddressDLL("glVertexAttribDivisor");
+    _glVertexAttribDivisor(index, divisor);
+}
+
 void GLAPIENTRY glClearDepthf(GLfloat d) {
+    if (!GL_VERSION_4_1)
+        return glClearDepthDLL(d);
+
     if (!_glClearDepthf)
         _glClearDepthf = (PFNGLCLEARDEPTHFPROC)wglGetProcAddressDLL("glClearDepthf");
     _glClearDepthf(d);
@@ -2603,12 +2642,18 @@ void GLAPIENTRY glTextureSubImage2D(GLuint texture, GLint level, GLint xoffset, 
 }
 
 void constexpr GLAPIENTRY glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar* message) {
+    if (!GL_VERSION_4_3)
+        return;
+
     if (!_glPushDebugGroup)
         _glPushDebugGroup = (PFNGLPUSHDEBUGGROUPPROC)wglGetProcAddressDLL("glPushDebugGroup");
     return _glPushDebugGroup(source, id, length, message);
 }
 
 void constexpr GLAPIENTRY glPopDebugGroup() {
+    if (!GL_VERSION_4_3)
+        return;
+
     if (!_glPopDebugGroup)
         _glPopDebugGroup = (PFNGLPOPDEBUGGROUPPROC)wglGetProcAddressDLL("glPopDebugGroup");
     return _glPopDebugGroup();
