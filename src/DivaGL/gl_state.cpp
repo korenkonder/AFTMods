@@ -297,7 +297,7 @@ void gl_state_get() {
         glActiveTexture((GLenum)(GL_TEXTURE0 + i));
         glGetIntegervDLL(GL_TEXTURE_BINDING_2D, &gl_state.texture_binding_2d[i]);
         glGetIntegervDLL(GL_TEXTURE_BINDING_CUBE_MAP, &gl_state.texture_binding_cube_map[i]);
-        glGetIntegeri_v(GL_SAMPLER_BINDING, i, &gl_state.sampler_binding[i]);
+        glGetIntegervDLL(GL_SAMPLER_BINDING, &gl_state.sampler_binding[i]);
     }
     glActiveTexture(gl_state.active_texture);
 
