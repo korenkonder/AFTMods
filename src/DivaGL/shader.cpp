@@ -6,6 +6,7 @@
 #include "shader.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/path.hpp"
+#include "../KKdLib/prj/vector_pair.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "gl_state.hpp"
@@ -62,6 +63,197 @@ int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
     return 0;
 }
 
+static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::string>& samplers,
+    prj::vector_pair<int32_t, std::string>& uniforms, bool apple_fix) {
+    std::string temp;
+    temp.assign(data);
+    free_def(data);
+
+    size_t version_pos = temp.find("#version 430 core");
+    if (version_pos != -1)
+        if (GL_VERSION_4_2)
+            temp.replace(version_pos, 17, "#version 420 core", 17);
+        else if (GL_VERSION_4_1)
+            temp.replace(version_pos, 17, "#version 410 core", 17);
+
+    if (apple_fix) {
+        size_t result_pos = temp.size() - 1;
+        while ((result_pos = temp.rfind("result_", result_pos)) != -1)
+            temp.replace(result_pos, 7, "frg_", 4);
+    }
+
+    size_t binding_pos = 0;
+    size_t binding_end_pos = 0;
+    while ((binding_pos = temp.find("layout(set = 0, binding = ", binding_pos)) != -1
+        && (binding_end_pos = temp.find(") uniform sampler", binding_pos)) != -1) {
+        std::string binding_str = temp.substr(binding_pos + 26, binding_end_pos - (binding_pos + 26));
+        int32_t binding = atoi(binding_str.c_str());
+
+        bool sampler_2d = !temp.compare(binding_end_pos + 10, 9, "sampler2D");
+        bool sampler_cube = !temp.compare(binding_end_pos + 10, 11, "samplerCube");
+        if (GL_VERSION_4_2) {
+            if (sampler_2d) {
+                char buf[0x40];
+                sprintf_s(buf, sizeof(buf), "layout(binding = %d) uniform sampler2D", binding);
+                temp.replace(binding_pos, binding_end_pos + 19 - binding_pos, buf);
+            }
+            else if (sampler_cube) {
+                char buf[0x40];
+                sprintf_s(buf, sizeof(buf), "layout(binding = %d) uniform samplerCube", binding);
+                temp.replace(binding_pos, binding_end_pos + 21 - binding_pos, buf);
+            }
+        }
+        else {
+            if (sampler_2d) {
+                size_t name_pos = binding_end_pos + 19;
+                while (isspace(temp.data()[name_pos]))
+                    name_pos++;
+
+                size_t name_end_pos = temp.find(';', name_pos);
+                if (name_end_pos != -1) {
+                    while (isspace(temp.data()[name_end_pos - 1]))
+                        name_end_pos--;
+
+                    std::string name_str = temp.substr(name_pos, name_end_pos - name_pos);
+
+                    bool found = false;
+                    for (auto& i : samplers)
+                        if (i.first == binding && i.second == name_str) {
+                            found = true;
+                            break;
+                        }
+
+                    if (!found)
+                        samplers.push_back(binding, name_str);
+                }
+            }
+            else if (sampler_cube) {
+                size_t name_pos = binding_end_pos + 21;
+                while (isspace(temp.data()[name_pos]))
+                    name_pos++;
+
+                size_t name_end_pos = temp.find(';', name_pos);
+                if (name_end_pos != -1) {
+                    while (isspace(temp.data()[name_end_pos - 1]))
+                        name_end_pos--;
+
+                    std::string name_str = temp.substr(name_pos, name_end_pos - name_pos);
+
+                    bool found = false;
+                    for (auto& i : samplers)
+                        if (i.first == binding && i.second == name_str) {
+                            found = true;
+                            break;
+                        }
+
+                    if (!found)
+                        samplers.push_back(binding, name_str);
+                }
+            }
+
+            temp.erase(binding_pos, binding_end_pos + 2 - binding_pos);
+        }
+    }
+
+    binding_pos = 0;
+    binding_end_pos = 0;
+    while ((binding_pos = temp.find("layout(set = 1, binding = ", binding_pos)) != -1
+        && (binding_end_pos = temp.find(") uniform", binding_pos)) != -1) {
+        std::string binding_str = temp.substr(binding_pos + 26, binding_end_pos - (binding_pos + 26));
+        int32_t binding = atoi(binding_str.c_str());
+
+        if (GL_VERSION_4_2) {
+            char buf[0x40];
+            sprintf_s(buf, sizeof(buf), "layout(binding = %d) uniform", binding);
+            temp.replace(binding_pos, binding_end_pos + 9 - binding_pos, buf);
+        }
+        else {
+            size_t name_pos = binding_end_pos + 9;
+            while (isspace(temp.data()[name_pos]))
+                name_pos++;
+
+            size_t name_end_pos = temp.find('{', name_pos);
+            if (name_end_pos != -1) {
+                while (isspace(temp.data()[name_end_pos - 1]))
+                    name_end_pos--;
+
+                std::string name_str = temp.substr(name_pos, name_end_pos - name_pos);
+
+                bool found = false;
+                for (auto& i : uniforms)
+                    if (i.first == binding && i.second == name_str) {
+                        found = true;
+                        break;
+                    }
+
+                if (!found)
+                    uniforms.push_back(binding, name_str);
+            }
+
+            temp.erase(binding_pos, binding_end_pos + 2 - binding_pos);
+        }
+    }
+
+    binding_pos = 0;
+    binding_end_pos = 0;
+    while ((binding_pos = temp.find("layout(std430, set = 2, binding = ", binding_pos)) != -1
+        && (binding_end_pos = temp.find(") readonly buffer", binding_pos)) != -1) {
+        std::string binding_str = temp.substr(binding_pos + 34, binding_end_pos - (binding_pos + 34));
+        int32_t binding = atoi(binding_str.c_str()) + 6;
+
+        if (GL_VERSION_4_2) {
+            char buf[0x40];
+            sprintf_s(buf, sizeof(buf), "layout(binding = %d) uniform", binding);
+            temp.replace(binding_pos, binding_end_pos + 17 - binding_pos, buf);
+        }
+        else {
+            size_t name_pos = binding_end_pos + 17;
+            while (isspace(temp.data()[name_pos]))
+                name_pos++;
+
+            size_t name_end_pos = temp.find('{', name_pos);
+            if (name_end_pos != -1) {
+                while (isspace(temp.data()[name_end_pos - 1]))
+                    name_end_pos--;
+
+                std::string name_str = temp.substr(name_pos, name_end_pos - name_pos);
+
+                bool found = false;
+                for (auto& i : uniforms)
+                    if (i.first == binding && i.second == name_str) {
+                        found = true;
+                        break;
+                    }
+
+                if (!found)
+                    uniforms.push_back(binding, name_str);
+            }
+
+            temp.replace(binding_pos, binding_end_pos + 17 - binding_pos, "uniform", 7);
+        }
+    }
+
+    size_t in_pos = temp.size() - 1;
+    while ((in_pos = temp.rfind("in const", in_pos)) != -1)
+        temp.replace(in_pos, 8, "const", 5);
+
+    size_t const_pos = temp.size() - 1;
+    size_t offsets_pos = temp.size() - 1;
+    while ((const_pos = temp.rfind("const ", const_pos)) != -1) {
+        offsets_pos = temp.find("offsets", const_pos);
+        if (offsets_pos == -1 || offsets_pos - const_pos > 20)
+            temp.erase(const_pos, 6);
+        else
+            const_pos--;
+    }
+
+    size_t use_vertex_attrib_pos = temp.size() - 1;
+    while ((use_vertex_attrib_pos = temp.rfind("USE_VERTEX_ATTRIB", use_vertex_attrib_pos)) != -1)
+        temp.replace(use_vertex_attrib_pos, 17, "(1)", 3);
+
+    return str_utils_copy(temp.c_str());
+}
+
 static void parse_define_inner(std::string& temp) {
     size_t off = 0;
     while (true) {
@@ -99,7 +291,8 @@ bool shader::parse_define(const char* data, std::string& temp) {
     else
         temp.assign(data);
 
-    parse_define_inner(temp);
+    if (GL_VERSION_4_3)
+        parse_define_inner(temp);
     return true;
 }
 
@@ -134,7 +327,8 @@ bool shader::parse_define(const char* data, int32_t num_uniform,
     else
         temp.assign(data);
 
-    parse_define_inner(temp);
+    if (GL_VERSION_4_3)
+        parse_define_inner(temp);
     return true;
 }
 
@@ -384,6 +578,8 @@ void shader_set_data::load(farc* f, bool ignore_cache,
     if (!ignore_cache && path_check_file_exists(buf))
         shader_cache_farc.read(buf, true, false);
 
+    const bool apple = !!strstr((const char*)glGetStringGLUT(GL_VENDOR), "Apple");
+
     char vert_buf[MAX_PATH];
     char frag_buf[MAX_PATH];
     char vert_file_buf[MAX_PATH];
@@ -499,6 +695,14 @@ void shader_set_data::load(farc* f, bool ignore_cache,
 
             vert_data = shader::parse_include(vert_data, f);
             frag_data = shader::parse_include(frag_data, f);
+
+            prj::vector_pair<int32_t, std::string> samplers;
+            prj::vector_pair<int32_t, std::string> uniforms;
+            if (!GL_VERSION_4_3) {
+                vert_data = get_uniform_location(vert_data, samplers, uniforms, apple);
+                frag_data = get_uniform_location(frag_data, samplers, uniforms, apple);
+            }
+
             uint64_t vert_data_hash = hash_utf8_xxh3_64bits(vert_data);
             uint64_t frag_data_hash = hash_utf8_xxh3_64bits(frag_data);
 
@@ -594,6 +798,30 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                             memcpy((void*)b->binary, (void*)((size_t)bin + bin->binary), bin->length);
                         }
 
+                        if (!GL_VERSION_4_3) {
+                            if (programs[k] && samplers.size()) {
+                                GLuint program = programs[k];
+
+                                gl_state_use_program(program);
+                                for (auto& i : samplers) {
+                                    GLint loc = glGetUniformLocation(program, i.second.c_str());
+                                    if (loc != -1)
+                                        glUniform1i(loc, i.first);
+                                }
+                                gl_state_use_program(0);
+                            }
+
+                            if (programs[k] && uniforms.size()) {
+                                GLuint program = programs[k];
+
+                                for (auto& i : uniforms) {
+                                    GLuint loc = glGetUniformBlockIndex(program, i.second.c_str());
+                                    if (loc != -1)
+                                        glUniformBlockBinding(program, loc, i.first);
+                                }
+                            }
+                        }
+
                         if (!ignore_cache && bin)
                             bin++;
                     }
@@ -633,6 +861,30 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                         b->binary_format = bin->binary_format;
                         b->binary = (size_t)force_malloc(bin->length);
                         memcpy((void*)b->binary, (void*)((size_t)bin + bin->binary), bin->length);
+                    }
+
+                    if (!GL_VERSION_4_3) {
+                        if (programs[0] && samplers.size()) {
+                            GLuint program = programs[0];
+
+                            gl_state_use_program(program);
+                            for (auto& i : samplers) {
+                                GLint loc = glGetUniformLocation(program, i.second.c_str());
+                                if (loc != -1)
+                                    glUniform1i(loc, i.first);
+                            }
+                            gl_state_use_program(0);
+                        }
+
+                        if (programs[0] && uniforms.size()) {
+                            GLuint program = programs[0];
+
+                            for (auto& i : uniforms) {
+                                GLint loc = glGetUniformBlockIndex(program, i.second.c_str());
+                                if (loc != -1)
+                                    glUniformBlockBinding(program, loc, i.first);
+                            }
+                        }
                     }
 
                     if (!ignore_cache && bin)

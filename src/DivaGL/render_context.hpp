@@ -384,6 +384,7 @@ struct render_data {
     GL::UniformBuffer buffer_shader;
     GL::UniformBuffer buffer_scene;
     GL::UniformBuffer buffer_batch;
+    GL::UniformBuffer buffer_skinning_ubo;
     GL::ShaderStorageBuffer buffer_skinning;
 
     void init();

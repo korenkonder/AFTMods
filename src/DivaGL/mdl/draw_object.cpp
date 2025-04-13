@@ -193,7 +193,11 @@ namespace mdl {
                 g_joint_transforms[2] = mat.row2;
             }
 
-            rctx->data.buffer_skinning.WriteMemory(rctx->data.buffer_skinning_data);
+            if (GL_VERSION_4_3)
+                rctx->data.buffer_skinning.WriteMemory(rctx->data.buffer_skinning_data);
+            else
+                rctx->data.buffer_skinning_ubo.WriteMemory(0,
+                    sizeof(vec4) * 3 * args->mat_count, &rctx->data.buffer_skinning_data);
 
             rctx->set_batch_worlds(mat4_identity);
 
