@@ -581,8 +581,9 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                                 programs[k] = shader_compile_binary(vert_succ ? temp_vert.c_str() : 0,
                                     frag_succ ? temp_frag.c_str() : 0, vert_buf, frag_buf,
                                     &program_data_binary.back(), &buffer_size, &binary);
+
+                                shader_cache_changed |= !!programs[k];
                             }
-                            shader_cache_changed |= programs[k] ? true : false;
                         }
                         else {
                             program_data_binary.push_back({});
@@ -621,8 +622,9 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                             programs[0] = shader_compile_binary(vert_succ ? temp_vert.c_str() : 0,
                                 frag_succ ? temp_frag.c_str() : 0, vert_buf, frag_buf,
                                 &program_data_binary.back(), &buffer_size, &binary);
+
+                            shader_cache_changed |= !!programs[0];
                         }
-                        shader_cache_changed |= programs[0] ? true : false;
                     }
                     else {
                         program_data_binary.push_back({});
@@ -690,7 +692,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
     }
     free_def(binary);
 
-    if (shader_cache_changed)
+    if (!ignore_cache && shader_cache_changed)
         shader_cache_farc.write(temp_buf, FARC_FArC, FARC_NONE, true, false);
 
     this->get_index_by_name_func = get_index_by_name;
