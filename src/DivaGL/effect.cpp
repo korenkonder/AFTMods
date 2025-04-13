@@ -172,7 +172,7 @@ struct EffectRipple {
 
 static_assert(sizeof(EffectRipple) == 0xC20, "\"EffectRipple\" struct should have a size of 0xC20");
 
-struct for_ring_vertex_data {
+struct fog_ring_vertex_data {
     vec2 position;
     vec4 color;
     float_t size;
@@ -825,7 +825,7 @@ HOOK(void, FASTCALL, EffectFogRing__set_stage_indices, 0x0000000140348790,
     }
     else
         elem->second.Destroy();
-    elem->second.Create(sizeof(for_ring_vertex_data) * fog_ring->max_ptcls);
+    elem->second.Create(sizeof(fog_ring_vertex_data) * fog_ring->max_ptcls);
 }
 
 HOOK(void, FASTCALL, EffectFogRing__calc_vert, 0x000000001403495B0, EffectFogRing* fog_ring) {
@@ -838,7 +838,7 @@ HOOK(void, FASTCALL, EffectFogRing__calc_vert, 0x000000001403495B0, EffectFogRin
     float_t density = fog_ring->density;
     fog_ring_data* ptcl_data = fog_ring->ptcl_data;
 
-    for_ring_vertex_data* ptcl_vtx_data = (for_ring_vertex_data*)ssbo.MapMemory();
+    fog_ring_vertex_data* ptcl_vtx_data = (fog_ring_vertex_data*)storage.MapMemory();
     if (!ptcl_vtx_data) {
         fog_ring->num_vtx = 0;
         return;
