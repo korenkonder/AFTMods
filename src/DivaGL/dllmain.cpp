@@ -21,6 +21,7 @@ bool cpu_caps_aes_ni;
 bool cpu_caps_f16c;
 bool config_reflect_full = true;
 int32_t config_reflect_res_scale = 100;
+bool config_shared_storage_uniform_buffer = false;
 
 static std::wstring GetDirPath();
 
@@ -57,9 +58,11 @@ bool APIENTRY DllMain(HMODULE handle, DWORD ul_reason_for_call, LPVOID lpReserve
         config_reflect_full = GetPrivateProfileIntW(L"general", L"reflect_full", 0, CONFIG_FILE) > 0 ? true : false;
         config_reflect_res_scale = GetPrivateProfileIntW(L"general", L"reflect_res_scale", 1, CONFIG_FILE);
         config_reflect_res_scale = config_reflect_res_scale ? clamp_def(config_reflect_res_scale, 25, 100) : 100;
+        config_shared_storage_uniform_buffer = GetPrivateProfileIntW(L"experimentals",
+            L"shared_storage_uniform_buffer", 0, CONFIG_FILE) > 0 ? true : false;
 
         dll_handle = (size_t)handle;
-        printf_divagl("Current version - v0.7.3.0");
+        printf_divagl("Current version - v0.7.3.0 (Build date: " __DATE__ ")");
         printf_divagl("Attach");
         divagl_main();
         break;
@@ -76,7 +79,7 @@ extern "C" __declspec(dllexport) LPCWSTR GetPluginDescription(void) {
 }
 
 extern "C" __declspec(dllexport) LPCWSTR GetBuildDate(void) {
-    return L"v0.7.3.0";
+    return L"v0.7.3.0 (Build date: " __DATE__ ")";
 }
 
 static std::wstring GetDirPath() {
@@ -115,10 +118,22 @@ PluginConfig::PluginConfigOption config[] = {
             L"general",
             CONFIG_FILE,
             L"Reflect Resolution Scale",
-            L"Sets resolution for Full Reflect as a percentage relative to the Internal Resolution values.\nImportant note! Scale doesn't apply can't go lower than 256x144 or Internal Resolution.",
+            L"Sets resolution for Full Reflect as a percentage relative to the Internal Resolution values.\nImportant note! Scale can't go lower than 256x144 or Internal Resolution.",
             100,
             25,
             100,
+        }
+    },
+    {
+        PluginConfig::CONFIG_BOOLEAN,
+        new PluginConfig::PluginConfigBooleanData {
+            L"shared_storage_uniform_buffer",
+            L"experimentals",
+            CONFIG_FILE,
+            L"Shared Storage/Uniform Buffer",
+            L"May be seful for running AFT via Mesa or on Apple devices\nor when driver doesn't support OpenGL 4.3.",
+            false,
+            false,
         }
     },
 };

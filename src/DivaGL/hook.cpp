@@ -165,6 +165,7 @@ HOOK(void, FASTCALL, rndr__RenderManager__rndpass_pre_proc, 0x0000000140502C90) 
     render_manager.render->pre_proc();
     Glitter::glt_particle_manager->CalcDisp();
     Glitter::glt_particle_manager_x->CalcDisp();
+    rctx->pre_proc();
     gl_state_end_event();
 }
 
@@ -174,6 +175,7 @@ HOOK(void, FASTCALL, rndr__RenderManager__render_all, 0x0000000140502CA0) {
 
 HOOK(void, FASTCALL, rndr__RenderManager__rndpass_post_proc, 0x0000000140502C70) {
     gl_state_begin_event("rndpass_post_proc");
+    rctx->post_proc();
     render_manager.render->post_proc();
     render_manager.field_31C = false;
     gl_state_end_event();
