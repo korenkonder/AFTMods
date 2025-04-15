@@ -306,13 +306,23 @@ void gl_state_get() {
     glGetIntegervDLL(GL_CURRENT_PROGRAM, &gl_state.program);
     glGetIntegervDLL(GL_ACTIVE_TEXTURE, (GLint*)&gl_state.active_texture);
     gl_state.active_texture_index = gl_state.active_texture - GL_TEXTURE0;
-    for (GLuint i = 0; i < 32; i++) {
-        glActiveTexture((GLenum)(GL_TEXTURE0 + i));
-        glGetIntegervDLL(GL_TEXTURE_BINDING_2D, &gl_state.texture_binding_2d[i]);
-        glGetIntegervDLL(GL_TEXTURE_BINDING_CUBE_MAP, &gl_state.texture_binding_cube_map[i]);
-        glGetIntegervDLL(GL_SAMPLER_BINDING, &gl_state.sampler_binding[i]);
+
+    if (GL_VERSION_4_5) {
+        for (GLuint i = 0; i < 32; i++) {
+            glGetIntegeri_v(GL_TEXTURE_BINDING_2D, i, &gl_state.texture_binding_2d[i]);
+            glGetIntegeri_v(GL_TEXTURE_BINDING_CUBE_MAP, i, &gl_state.texture_binding_cube_map[i]);
+            glGetIntegeri_v(GL_SAMPLER_BINDING, i, &gl_state.sampler_binding[i]);
+        }
     }
-    glActiveTexture(gl_state.active_texture);
+    else {
+        for (GLuint i = 0; i < 32; i++) {
+            glActiveTexture((GLenum)(GL_TEXTURE0 + i));
+            glGetIntegervDLL(GL_TEXTURE_BINDING_2D, &gl_state.texture_binding_2d[i]);
+            glGetIntegervDLL(GL_TEXTURE_BINDING_CUBE_MAP, &gl_state.texture_binding_cube_map[i]);
+            glGetIntegervDLL(GL_SAMPLER_BINDING, &gl_state.sampler_binding[i]);
+        }
+        glActiveTexture(gl_state.active_texture);
+    }
 
     glGetBooleanvDLL(GL_BLEND, &gl_state.blend);
     glGetIntegervDLL(GL_BLEND_SRC_RGB, (GLint*)&gl_state.blend_src_rgb);
@@ -332,16 +342,16 @@ void gl_state_get() {
     glGetIntegervDLL(GL_UNIFORM_BUFFER_BINDING, (GLint*)&gl_state.uniform_buffer_binding);
     for (GLuint i = 0; i < 14; i++) {
         glGetIntegeri_v(GL_UNIFORM_BUFFER_BINDING, i, (GLint*)&gl_state.uniform_buffer_bindings[i]);
-        glGetIntegeri_v(GL_UNIFORM_BUFFER_START, i, (GLint*)&gl_state.uniform_buffer_offsets[i]);
-        glGetIntegeri_v(GL_UNIFORM_BUFFER_SIZE, i, (GLint*)&gl_state.uniform_buffer_sizes[i]);
+        glGetInteger64i_v(GL_UNIFORM_BUFFER_START, i, (GLintptr*)&gl_state.uniform_buffer_offsets[i]);
+        glGetInteger64i_v(GL_UNIFORM_BUFFER_SIZE, i, (GLsizeiptr*)&gl_state.uniform_buffer_sizes[i]);
     }
 
     if (GL_VERSION_4_3) {
         glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&gl_state.shader_storage_buffer_binding);
         for (GLuint i = 0; i < 14; i++) {
             glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&gl_state.shader_storage_buffer_bindings[i]);
-            glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_START, i, (GLint*)&gl_state.shader_storage_buffer_offsets[i]);
-            glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_SIZE, i, (GLint*)&gl_state.shader_storage_buffer_sizes[i]);
+            glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_START, i, (GLintptr*)&gl_state.shader_storage_buffer_offsets[i]);
+            glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_SIZE, i, (GLsizeiptr*)&gl_state.shader_storage_buffer_sizes[i]);
         }
     }
 

@@ -3424,6 +3424,7 @@ extern void GLAPIENTRY glDrawArraysInstanced(GLenum mode, GLint first, GLsizei c
 extern void GLAPIENTRY glPrimitiveRestartIndex(GLuint index);
 extern GLuint GLAPIENTRY glGetUniformBlockIndex(GLuint program, const GLchar* uniformBlockName);
 extern void GLAPIENTRY glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
+extern void GLAPIENTRY glGetInteger64i_v(GLenum target, GLuint index, GLint64* data);
 extern void GLAPIENTRY glVertexAttribDivisor(GLuint index, GLuint divisor);
 extern void GLAPIENTRY glClearDepthf(GLfloat d);
 extern void GLAPIENTRY glGetProgramBinary(GLuint program, GLsizei bufSize, GLsizei* length, GLenum* binaryFormat, void* binary);
