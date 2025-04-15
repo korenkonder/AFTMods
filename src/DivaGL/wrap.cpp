@@ -2499,6 +2499,7 @@ typedef void (GLAPIENTRY* PFNGLDRAWARRAYSINSTANCEDPROC)(GLenum mode, GLint first
 typedef void (GLAPIENTRY* PFNGLPRIMITIVERESTARTINDEXPROC)(GLuint index);
 typedef GLuint(GLAPIENTRY* PFNGLGETUNIFORMBLOCKINDEXPROC)(GLuint program, const GLchar* uniformBlockName);
 typedef void (GLAPIENTRY* PFNGLUNIFORMBLOCKBINDINGPROC)(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
+typedef void (GLAPIENTRY* PFNGLGETINTEGER64I_VPROC)(GLenum target, GLuint index, GLint64* data);
 typedef void (GLAPIENTRY* PFNGLVERTEXATTRIBDIVISORPROC)(GLuint index, GLuint divisor);
 typedef void (GLAPIENTRY* PFNGLCLEARDEPTHFPROC)(GLfloat d);
 typedef void (GLAPIENTRY* PFNGLGETPROGRAMBINARYPROC)(GLuint program, GLsizei bufSize, GLsizei* length, GLenum* binaryFormat, void* binary);
@@ -2520,6 +2521,7 @@ static PFNGLDRAWARRAYSINSTANCEDPROC _glDrawArraysInstanced = 0;
 static PFNGLPRIMITIVERESTARTINDEXPROC _glPrimitiveRestartIndex = 0;
 static PFNGLGETUNIFORMBLOCKINDEXPROC _glGetUniformBlockIndex = 0;
 static PFNGLUNIFORMBLOCKBINDINGPROC _glUniformBlockBinding = 0;
+static PFNGLGETINTEGER64I_VPROC _glGetInteger64i_v = 0;
 static PFNGLVERTEXATTRIBDIVISORPROC _glVertexAttribDivisor = 0;
 static PFNGLCLEARDEPTHFPROC _glClearDepthf = 0;
 static PFNGLGETPROGRAMBINARYPROC _glGetProgramBinary = 0;
@@ -2564,6 +2566,12 @@ void GLAPIENTRY glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex, 
     if (!_glUniformBlockBinding)
         _glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC)wglGetProcAddressDLL("glUniformBlockBinding");
     _glUniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding);
+}
+
+void GLAPIENTRY glGetInteger64i_v(GLenum target, GLuint index, GLint64* data) {
+    if (!_glGetInteger64i_v)
+        _glGetInteger64i_v = (PFNGLGETINTEGER64I_VPROC)wglGetProcAddressDLL("glGetInteger64i_v");
+    _glGetInteger64i_v(target, index, data);
 }
 
 void GLAPIENTRY glVertexAttribDivisor(GLuint index, GLuint divisor) {

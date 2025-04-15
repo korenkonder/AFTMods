@@ -4128,7 +4128,7 @@ static void rob_chara_item_cos_data_disp_item_object(rob_chara_item_cos_data* it
                 tex_pat[i].src = v19[i].org->id;
                 tex_pat[i].dst = v19[i].chg->id;
             }
-            disp_manager->set_texture_pattern(tex_pat_count, tex_pat);
+            disp_manager->set_texture_pattern((int32_t)tex_pat_count, tex_pat);
         }
     }
     if (skin && skin->num_bone <= 320) {
