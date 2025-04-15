@@ -565,6 +565,11 @@ void shader_set_data::load(farc* f, bool ignore_cache,
     if (FAILED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf)))
         return;
 
+    const bool apple = !!strstr((const char*)glGetStringGLUT(GL_VENDOR), "Apple");
+
+    if (strstr((const char*)glGetStringGLUT(GL_VERSION), "Mesa"))
+        ignore_cache = true;
+
     wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\PDAFT");
     path_create_directory(temp_buf);
 
@@ -577,8 +582,6 @@ void shader_set_data::load(farc* f, bool ignore_cache,
     swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"%ls.farc", temp_buf);
     if (!ignore_cache && path_check_file_exists(buf))
         shader_cache_farc.read(buf, true, false);
-
-    const bool apple = !!strstr((const char*)glGetStringGLUT(GL_VENDOR), "Apple");
 
     char vert_buf[MAX_PATH];
     char frag_buf[MAX_PATH];

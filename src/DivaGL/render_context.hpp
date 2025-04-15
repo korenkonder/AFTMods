@@ -404,6 +404,36 @@ struct render_context {
         float_t end;
     };
 
+    struct shared_storage_buffer {
+        void* data;
+        size_t offset;
+        size_t size;
+        GL::ShaderStorageBuffer buffer;
+
+        bool can_fill_data(render_context* rctx, size_t size);
+        void create(size_t size);
+        void destroy();
+        size_t fill_data(render_context* rctx, const void* data, size_t size);
+    };
+
+    struct shared_uniform_buffer {
+        void* data;
+        size_t offset;
+        size_t size;
+        GL::UniformBuffer buffer;
+
+        bool can_fill_data(render_context* rctx, size_t size);
+        void create(size_t size);
+        void destroy();
+        size_t fill_data(render_context* rctx, const void* data, size_t size);
+    };
+
+    struct shared_buffer_entry {
+        GLuint buffer;
+        size_t offset;
+        size_t size;
+    };
+
     mat4 view_mat;
     mat4 proj_mat;
     mat4 vp_mat;
@@ -454,6 +484,17 @@ struct render_context {
     mdl::ObjList obj_local[mdl::OBJ_TYPE_LOCAL_MAX];
     mdl::ObjList obj_reflect[mdl::OBJ_TYPE_REFLECT_MAX];
 
+    uint32_t max_uniform_block_size = 0;
+    uint32_t uniform_buffer_offset_alignment = 0;
+
+    uint32_t max_storage_block_size = 0;
+    uint32_t storage_buffer_offset_alignment = 0;
+
+    prj::vector<render_context::shared_storage_buffer> shared_storage_buffers;
+    std::unordered_map<size_t, shared_buffer_entry> shared_storage_buffer_entries;
+    prj::vector<render_context::shared_uniform_buffer> shared_uniform_buffers;
+    std::unordered_map<size_t, shared_buffer_entry> shared_uniform_buffer_entries;
+
     render_context();
     ~render_context();
 
@@ -461,10 +502,16 @@ struct render_context {
     void free();
     void init();
 
+    void add_shared_storage_uniform_buffer_data(size_t index,
+        const void* data, size_t size, size_t max_size, bool storage = false);
+    void post_proc();
+    void pre_proc();
     void get_scene_fog_params(render_context::fog_params& value);
     void get_scene_light(vec4* light_env_stage_diffuse,
         vec4* light_env_stage_specular, vec4* light_chara_dir, vec4* light_chara_luce,
         vec4* light_env_chara_diffuse, vec4* light_env_chara_specular);
+    bool get_shared_storage_uniform_buffer_data(size_t index,
+        GLuint& buffer, size_t& offset, size_t& size, bool storage = false);
     void set_batch_alpha_threshold(const float_t value);
     void set_batch_blend_color(const vec4& blend_color);
     void set_batch_blend_color_offset_color(const vec4& blend_color, const vec4& offset_color);

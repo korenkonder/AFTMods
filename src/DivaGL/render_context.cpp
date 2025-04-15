@@ -14,6 +14,8 @@ sss_data& _sss_data = *(sss_data*)0x000000014CC924E0;
 
 render_context* rctx;
 
+extern bool config_shared_storage_uniform_buffer;
+
 void draw_state_stats::reset() {
     object_draw_count = 0;
     object_translucent_draw_count = 0;
@@ -345,7 +347,7 @@ void render_data::set(render_context* rctx) {
     buffer_scene.Bind(1);
     buffer_batch.Bind(2);
 
-    if (uniform->arr[U_SKINNING])
+    if (uniform->arr[U_SKINNING] && !config_shared_storage_uniform_buffer)
         if (GL_VERSION_4_3)
             buffer_skinning.Bind(0);
         else
@@ -357,6 +359,76 @@ void render_data::set_shader(uint32_t index) {
 
     buffer_shader_data.set_shader_flags(uniform->arr);
     enum_or(flags, RENDER_DATA_SHADER_UPDATE);
+}
+
+bool render_context::shared_storage_buffer::can_fill_data(render_context* rctx, size_t size) {
+    return (size + align_val(offset, rctx->storage_buffer_offset_alignment)) <= this->size;
+}
+
+void render_context::shared_storage_buffer::create(size_t size) {
+    if (buffer)
+        return;
+
+    size = size / rctx->storage_buffer_offset_alignment * rctx->storage_buffer_offset_alignment;
+
+    buffer.Create(size);
+    data = _operator_new(size);
+    memset(data, 0, size);
+    offset = 0;
+    this->size = size;
+}
+
+void render_context::shared_storage_buffer::destroy() {
+    buffer.Destroy();
+
+    if (data) {
+        _operator_delete(data);
+        data = 0;
+    }
+}
+
+size_t render_context::shared_storage_buffer::fill_data(render_context* rctx, const void* data, size_t size) {
+    size_t offset = align_val(this->offset, rctx->storage_buffer_offset_alignment);
+    if (offset != this->offset)
+        memset((void*)((size_t)this->data + this->offset), 0, offset - this->offset);
+    memcpy((void*)((size_t)this->data + offset), data, size);
+    this->offset = offset + size;
+    return offset;
+}
+
+bool render_context::shared_uniform_buffer::can_fill_data(render_context* rctx, size_t size) {
+    return (size + align_val(offset, rctx->uniform_buffer_offset_alignment)) <= this->size;
+}
+
+void render_context::shared_uniform_buffer::create(size_t size) {
+    if (buffer)
+        return;
+
+    size = size / rctx->uniform_buffer_offset_alignment * rctx->uniform_buffer_offset_alignment;
+
+    buffer.Create(size);
+    data = _operator_new(size);
+    memset(data, 0, size);
+    offset = 0;
+    this->size = size;
+}
+
+void render_context::shared_uniform_buffer::destroy() {
+    buffer.Destroy();
+
+    if (data) {
+        _operator_delete(data);
+        data = 0;
+    }
+}
+
+size_t render_context::shared_uniform_buffer::fill_data(render_context* rctx, const void* data, size_t size) {
+    size_t offset = align_val(this->offset, rctx->uniform_buffer_offset_alignment);
+    if (offset != this->offset)
+        memset((void*)((size_t)this->data + this->offset), 0, offset - this->offset);
+    memcpy((void*)((size_t)this->data + offset), data, size);
+    this->offset = offset + size;
+    return offset;
 }
 
 render_context::render_context() : box_vao(), lens_ghost_vao(), common_vao(), reflect_buffer(),
@@ -538,9 +610,35 @@ samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height(
     glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
+
+    glGetIntegervDLL(GL_MAX_UNIFORM_BLOCK_SIZE, (GLint*)&max_uniform_block_size);
+    glGetIntegervDLL(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, (GLint*)&uniform_buffer_offset_alignment);
+
+    if (GL_VERSION_4_3) {
+        glGetIntegervDLL(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, (GLint*)&max_storage_block_size);
+        glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, (GLint*)&storage_buffer_offset_alignment);
+
+        max_storage_block_size = min_def(max_storage_block_size, 16u * 1024 * 1024);
+    }
 }
 
 render_context::~render_context() {
+    if (config_shared_storage_uniform_buffer) {
+        shared_uniform_buffer_entries.clear();
+
+        for (render_context::shared_uniform_buffer& i : shared_uniform_buffers)
+            i.destroy();
+        shared_uniform_buffers.clear();
+
+        if (GL_VERSION_4_3) {
+            shared_storage_buffer_entries.clear();
+
+            for (render_context::shared_storage_buffer& i : shared_storage_buffers)
+                i.destroy();
+            shared_storage_buffers.clear();
+        }
+    }
+
     glDeleteSamplers(3, sprite_samplers);
     glDeleteSamplers(4, render_samplers);
     glDeleteSamplers(18, samplers);
@@ -701,6 +799,154 @@ void render_context::init() {
     screen_buffer.Init(screen_width, screen_height, 0, GL_RGBA8, 0);
 }
 
+void render_context::add_shared_storage_uniform_buffer_data(size_t index,
+    const void* data, size_t size, size_t buffer_size, bool storage) {
+    if (storage) {
+        render_context::shared_storage_buffer* buffer = 0;
+        for (render_context::shared_storage_buffer& i : shared_storage_buffers)
+            if (i.can_fill_data(this, buffer_size)) {
+                buffer = &i;
+                break;
+            }
+
+        if (!buffer) {
+            shared_storage_buffers.push_back({});
+            buffer = &shared_storage_buffers.back();
+            buffer->create(max_storage_block_size);
+        }
+
+        size_t offset = buffer->fill_data(this, data, size);
+        shared_storage_buffer_entries.insert({ index, { buffer->buffer, offset, buffer_size } });
+    }
+    else {
+        render_context::shared_uniform_buffer* buffer = 0;
+        for (render_context::shared_uniform_buffer& i : shared_uniform_buffers)
+            if (i.can_fill_data(this, buffer_size)) {
+                buffer = &i;
+                break;
+            }
+
+        if (!buffer) {
+            shared_uniform_buffers.push_back({});
+            buffer = &shared_uniform_buffers.back();
+            buffer->create(max_uniform_block_size);
+        }
+
+        size_t offset = buffer->fill_data(this, data, size);
+        shared_uniform_buffer_entries.insert({ index, { buffer->buffer, offset, buffer_size } });
+    }
+}
+
+void render_context::pre_proc() {
+    if (config_shared_storage_uniform_buffer) {
+        auto add_obj_list = [](render_context* rctx, const mdl::ObjSubMeshArgs* args) {
+            if (!args->mat_count || !args->mats)
+                return;
+
+            if (GL_VERSION_4_3) {
+                if (rctx->shared_storage_buffer_entries.find((size_t)args->mats)
+                    != rctx->shared_storage_buffer_entries.end())
+                    return;
+            }
+            else {
+                if (rctx->shared_uniform_buffer_entries.find((size_t)args->mats)
+                    != rctx->shared_uniform_buffer_entries.end())
+                    return;
+            }
+
+            const int32_t mat_count = min_def(args->mat_count, 256);
+            const mat4* mats = args->mats;
+            vec4* g_joint_transforms = rctx->data.buffer_skinning_data.g_joint_transforms;
+
+            mat4 mat;
+            for (int32_t i = 0; i < mat_count; i++, mats++, g_joint_transforms += 3) {
+                mat4_transpose(mats, &mat);
+                g_joint_transforms[0] = mat.row0;
+                g_joint_transforms[1] = mat.row1;
+                g_joint_transforms[2] = mat.row2;
+            }
+
+            const size_t buffer_size = sizeof(vec4) * 3 * 256;
+            const size_t size = sizeof(vec4) * 3 * mat_count;
+            rctx->add_shared_storage_uniform_buffer_data((size_t)args->mats,
+                rctx->data.buffer_skinning_data.g_joint_transforms, size, buffer_size, !!GL_VERSION_4_3);
+        };
+
+        for (int32_t type = 0; type < mdl::OBJ_TYPE_MAX; type++)
+            for (mdl::ObjData*& i : disp_manager->get_obj_list((mdl::ObjType)type))
+                switch (i->kind) {
+                case mdl::OBJ_KIND_NORMAL:
+                    add_obj_list(rctx, &i->args.sub_mesh);
+                    break;
+                case mdl::OBJ_KIND_TRANSLUCENT:
+                    for (int32_t j = 0; j < i->args.translucent.count; j++)
+                        add_obj_list(rctx, i->args.translucent.sub_mesh[j]);
+                    break;
+                }
+        
+        for (int32_t type = 0; type < mdl::OBJ_TYPE_LOCAL_MAX; type++)
+            for (mdl::ObjData*& i : disp_manager->get_obj_list((mdl::ObjTypeLocal)type))
+                switch (i->kind) {
+                case mdl::OBJ_KIND_NORMAL:
+                    add_obj_list(rctx, &i->args.sub_mesh);
+                    break;
+                case mdl::OBJ_KIND_TRANSLUCENT:
+                    for (int32_t j = 0; j < i->args.translucent.count; j++)
+                        add_obj_list(rctx, i->args.translucent.sub_mesh[j]);
+                    break;
+                }
+
+        for (int32_t type = 0; type < mdl::OBJ_TYPE_REFLECT_MAX; type++)
+            for (mdl::ObjData*& i : disp_manager->get_obj_list((mdl::ObjTypeReflect)type))
+                switch (i->kind) {
+                case mdl::OBJ_KIND_NORMAL:
+                    add_obj_list(rctx, &i->args.sub_mesh);
+                    break;
+                case mdl::OBJ_KIND_TRANSLUCENT:
+                    for (int32_t j = 0; j < i->args.translucent.count; j++)
+                        add_obj_list(rctx, i->args.translucent.sub_mesh[j]);
+                    break;
+                }
+
+        if (GL_VERSION_4_3)
+            for (render_context::shared_storage_buffer& i : shared_storage_buffers) {
+                if (!i.offset)
+                    continue;
+
+                size_t align = align_val(i.offset, storage_buffer_offset_alignment) - i.offset;
+                if (align)
+                    memset((void*)((size_t)i.data + i.offset), 0, align);
+                i.buffer.WriteMemory(0, i.size, i.data);
+            }
+
+        for (render_context::shared_uniform_buffer& i : shared_uniform_buffers) {
+            if (!i.offset)
+                continue;
+
+            size_t align = align_val(i.offset, uniform_buffer_offset_alignment) - i.offset;
+            if (align)
+                memset((void*)((size_t)i.data + i.offset), 0, align);
+            i.buffer.WriteMemory(0, i.size, i.data);
+        }
+    }
+}
+
+void render_context::post_proc() {
+    if (config_shared_storage_uniform_buffer) {
+        if (GL_VERSION_4_3) {
+            for (render_context::shared_storage_buffer& i : shared_storage_buffers)
+                i.offset = 0;
+
+            shared_storage_buffer_entries.clear();
+        }
+
+        for (render_context::shared_uniform_buffer& i : shared_uniform_buffers)
+            i.offset = 0;
+
+        shared_uniform_buffer_entries.clear();
+    }
+}
+
 void render_context::get_scene_fog_params(render_context::fog_params& value) {
     render_data* data = &this->data;
     value.depth_color = data->buffer_scene_data.g_fog_depth_color;
@@ -728,6 +974,30 @@ void render_context::get_scene_light(vec4* light_env_stage_diffuse,
         *light_env_chara_diffuse = data->buffer_scene_data.g_light_env_chara_diffuse;
     if (light_env_chara_specular)
         *light_env_chara_specular = data->buffer_scene_data.g_light_env_chara_specular;
+}
+
+bool render_context::get_shared_storage_uniform_buffer_data(size_t index,
+    GLuint& buffer, size_t& offset, size_t& size, bool storage) {
+    if (storage) {
+        auto elem = shared_storage_buffer_entries.find(index);
+        if (elem == shared_storage_buffer_entries.end())
+            return false;
+
+        buffer = elem->second.buffer;
+        offset = elem->second.offset;
+        size = elem->second.size;
+        return true;
+    }
+    else {
+        auto elem = shared_uniform_buffer_entries.find(index);
+        if (elem == shared_uniform_buffer_entries.end())
+            return false;
+
+        buffer = elem->second.buffer;
+        offset = elem->second.offset;
+        size = elem->second.size;
+        return true;
+    }
 }
 
 void render_context::set_batch_alpha_threshold(const float_t value) {

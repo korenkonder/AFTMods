@@ -30,6 +30,8 @@ static void draw_object_vertex_attrib_set_reflect(const mdl::ObjSubMeshArgs* arg
 
 static bool(FASTCALL* use_shader_get)() = (bool(FASTCALL*)())0x0000000140440E30;
 
+extern bool config_shared_storage_uniform_buffer;
+
 namespace mdl {
     void draw(obj_primitive_type primitive_type, uint32_t count,
         uint16_t start, uint16_t end, obj_index_format index_format, size_t indices) {
@@ -183,21 +185,33 @@ namespace mdl {
             if (args->mat_count == 2)
                 rctx->set_batch_joint(mats[0]);
 
-            vec4* g_joint_transforms = rctx->data.buffer_skinning_data.g_joint_transforms;
-
-            mat4 mat;
-            for (int32_t i = 0; i < args->mat_count; i++, mats++, g_joint_transforms += 3) {
-                mat4_transpose(mats, &mat);
-                g_joint_transforms[0] = mat.row0;
-                g_joint_transforms[1] = mat.row1;
-                g_joint_transforms[2] = mat.row2;
+            if (config_shared_storage_uniform_buffer) {
+                GLuint buffer = 0;
+                size_t offset = 0;
+                size_t size = 0;
+                if (rctx->get_shared_storage_uniform_buffer_data((size_t)args->mats, buffer, offset, size, !!GL_VERSION_4_3))
+                    if (GL_VERSION_4_3)
+                        gl_state_bind_shader_storage_buffer_range(0, buffer, (GLintptr)offset, (GLsizeiptr)size);
+                    else
+                        gl_state_bind_uniform_buffer_range(6, buffer, (GLintptr)offset, (GLsizeiptr)size);
             }
+            else {
+                vec4* g_joint_transforms = rctx->data.buffer_skinning_data.g_joint_transforms;
 
-            if (GL_VERSION_4_3)
-                rctx->data.buffer_skinning.WriteMemory(rctx->data.buffer_skinning_data);
-            else
-                rctx->data.buffer_skinning_ubo.WriteMemory(0,
-                    sizeof(vec4) * 3 * args->mat_count, &rctx->data.buffer_skinning_data);
+                mat4 mat;
+                for (int32_t i = 0; i < args->mat_count; i++, mats++, g_joint_transforms += 3) {
+                    mat4_transpose(mats, &mat);
+                    g_joint_transforms[0] = mat.row0;
+                    g_joint_transforms[1] = mat.row1;
+                    g_joint_transforms[2] = mat.row2;
+                }
+
+                if (GL_VERSION_4_3)
+                    rctx->data.buffer_skinning.WriteMemory(rctx->data.buffer_skinning_data);
+                else
+                    rctx->data.buffer_skinning_ubo.WriteMemory(0,
+                        sizeof(vec4) * 3 * args->mat_count, &rctx->data.buffer_skinning_data);
+            }
 
             rctx->set_batch_worlds(mat4_identity);
 
