@@ -64,25 +64,18 @@ float_t Shadow::get_shadow_range() {
 
 int32_t Shadow::init() {
     struct shadow_texture_init_params {
+        GLenum target;
         int32_t width;
         int32_t height;
         int32_t max_level;
         GLenum color_format;
         GLenum depth_format;
-    } init_params[] = {
-        { 0x800, 0x800, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F },
-        { 0x200, 0x200, 3, GL_RGBA8, GL_ZERO },
-        { 0x200, 0x200, 3, GL_RGBA8, GL_ZERO },
-        { 0x800, 0x800, 0, GL_R32F , GL_ZERO },
-        { 0x800, 0x800, 0, GL_R32F , GL_ZERO },
-        { 0x200, 0x200, 0, GL_R32F , GL_ZERO },
-        { 0x200, 0x200, 0, GL_R32F , GL_ZERO },
     };
 
-    shadow_texture_init_params* v3 = init_params;
-    for (int32_t i = 0; i < 7; i++, v3++)
-        if (render_textures[i].Init(v3->width, v3->height,
-            v3->max_level, v3->color_format, v3->depth_format) < 0)
+    shadow_texture_init_params* init_param = (shadow_texture_init_params*)0x140A81E00;
+    for (int32_t i = 0; i < 7; i++, init_param++)
+        if (render_textures[i].Init(init_param->width, init_param->height,
+            init_param->max_level, init_param->color_format, init_param->depth_format) < 0)
             return -1;
 
     for (int32_t i = 0; i < 3; i++) {
