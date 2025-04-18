@@ -12,9 +12,8 @@
 #include "../../AFTModsShared/canonical_properties.hpp"
 #include "../../AFTModsShared/dw.hpp"
 #include "../../AFTModsShared/resolution_mode.hpp"
-#include "../Glitter/glitter.hpp"
-#include "../rob/rob.hpp"
-#include "../render_context.hpp"
+#include "../../AFTModsShared/file_handler.hpp"
+#include "../mdl/disp_manager.hpp"
 #include <Helpers.h>
 
 class RobOsageTestDw : public dw::Shell {
@@ -1105,7 +1104,7 @@ void RobOsageTest::disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::Collision
             const vec3 up = { 0.0f, 1.0f, 0.0f };
             vec3 axis;
             float_t angle;
-            Glitter::axis_angle_from_vectors(axis, angle, up, dir);
+            vec3::axis_angle_from_vectors(axis, angle, up, dir);
 
             mat4 mat_rot = mat4_identity;
             mat4_mul_rotation(&mat_rot, &axis, angle, &mat_rot);
@@ -1140,7 +1139,7 @@ void RobOsageTest::disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::Collision
             const vec3 up = { 0.0f, 1.0f, 0.0f };
             vec3 axis;
             float_t angle;
-            Glitter::axis_angle_from_vectors(axis, angle, up, dir);
+            vec3::axis_angle_from_vectors(axis, angle, up, dir);
 
             mat4 m = mat4_identity;
             mat4_mul_rotation(&m, &axis, angle, &m);

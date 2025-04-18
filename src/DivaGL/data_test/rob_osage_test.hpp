@@ -7,9 +7,9 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/prj/vector_pair.hpp"
+#include "../../AFTModsShared/rob/rob.hpp"
 #include "../../AFTModsShared/task.hpp"
 #include "../../AFTModsShared/types.hpp"
-#include "../rob/rob.hpp"
 
 class RobOsageTest : public app::Task {
 public:
