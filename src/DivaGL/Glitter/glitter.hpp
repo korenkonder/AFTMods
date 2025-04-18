@@ -1500,8 +1500,6 @@ namespace Glitter {
     extern RandomX random_x;
     extern Counter& counter;
 
-    extern void axis_angle_from_vectors(vec3& axis, float_t& angle, const vec3& vec0, const vec3& vec1);
-
     extern void CreateBuffer(size_t max_count, bool is_quad,
         Buffer*& buffer, GLuint& vao, GL::ArrayBuffer& vbo, GL::ElementArrayBuffer& ebo);
     extern void DeleteBuffer(Buffer*& buffer, GLuint& vao, GL::ArrayBuffer& vbo, GL::ElementArrayBuffer& ebo);

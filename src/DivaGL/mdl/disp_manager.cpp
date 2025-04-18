@@ -1542,7 +1542,7 @@ namespace mdl {
             const vec3 up = { 0.0f, 1.0f, 0.0f };
             vec3 axis;
             float_t angle;
-            Glitter::axis_angle_from_vectors(axis, angle, up, dir);
+            vec3::axis_angle_from_vectors(axis, angle, up, dir);
 
             mat4 m = mat4_identity;
             mat4_mul_rotation(&m, &axis, angle, &m);
@@ -1563,7 +1563,7 @@ namespace mdl {
             const vec3 up = { 0.0f, 1.0f, 0.0f };
             vec3 axis;
             float_t angle;
-            Glitter::axis_angle_from_vectors(axis, angle, up, dir);
+            vec3::axis_angle_from_vectors(axis, angle, up, dir);
 
             mat4 m = mat4_identity;
             mat4_mul_rotation(&m, &axis, angle, &m);
