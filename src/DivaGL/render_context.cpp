@@ -4,9 +4,10 @@
 */
 
 #include "render_context.hpp"
+#include "../AFTModsShared/uniform.hpp"
 #include "render_manager.hpp"
 #include "shader_ft.hpp"
-#include "../AFTModsShared/uniform.hpp"
+#include "static_var.hpp"
 
 draw_state_struct& draw_state = *(draw_state_struct*)0x00000001411A32B0;
 
@@ -361,15 +362,15 @@ void render_data::set_shader(uint32_t index) {
     enum_or(flags, RENDER_DATA_SHADER_UPDATE);
 }
 
-bool render_context::shared_storage_buffer::can_fill_data(render_context* rctx, size_t size) {
-    return (size + align_val(offset, rctx->storage_buffer_offset_alignment)) <= this->size;
+bool render_context::shared_storage_buffer::can_fill_data(size_t size) {
+    return (size + align_val(offset, sv_min_storage_buffer_alignment)) <= this->size;
 }
 
 void render_context::shared_storage_buffer::create(size_t size) {
     if (buffer)
         return;
 
-    size = size / rctx->storage_buffer_offset_alignment * rctx->storage_buffer_offset_alignment;
+    size = size / sv_min_storage_buffer_alignment * sv_min_storage_buffer_alignment;
 
     buffer.Create(size);
     data = _operator_new(size);
@@ -387,8 +388,8 @@ void render_context::shared_storage_buffer::destroy() {
     }
 }
 
-size_t render_context::shared_storage_buffer::fill_data(render_context* rctx, const void* data, size_t size) {
-    size_t offset = align_val(this->offset, rctx->storage_buffer_offset_alignment);
+size_t render_context::shared_storage_buffer::fill_data(const void* data, size_t size) {
+    size_t offset = align_val(this->offset, sv_min_storage_buffer_alignment);
     if (offset != this->offset)
         memset((void*)((size_t)this->data + this->offset), 0, offset - this->offset);
     memcpy((void*)((size_t)this->data + offset), data, size);
@@ -396,15 +397,15 @@ size_t render_context::shared_storage_buffer::fill_data(render_context* rctx, co
     return offset;
 }
 
-bool render_context::shared_uniform_buffer::can_fill_data(render_context* rctx, size_t size) {
-    return (size + align_val(offset, rctx->uniform_buffer_offset_alignment)) <= this->size;
+bool render_context::shared_uniform_buffer::can_fill_data(size_t size) {
+    return (size + align_val(offset, sv_min_uniform_buffer_alignment)) <= this->size;
 }
 
 void render_context::shared_uniform_buffer::create(size_t size) {
     if (buffer)
         return;
 
-    size = size / rctx->uniform_buffer_offset_alignment * rctx->uniform_buffer_offset_alignment;
+    size = size / sv_min_uniform_buffer_alignment * sv_min_uniform_buffer_alignment;
 
     buffer.Create(size);
     data = _operator_new(size);
@@ -422,8 +423,8 @@ void render_context::shared_uniform_buffer::destroy() {
     }
 }
 
-size_t render_context::shared_uniform_buffer::fill_data(render_context* rctx, const void* data, size_t size) {
-    size_t offset = align_val(this->offset, rctx->uniform_buffer_offset_alignment);
+size_t render_context::shared_uniform_buffer::fill_data(const void* data, size_t size) {
+    size_t offset = align_val(this->offset, sv_min_uniform_buffer_alignment);
     if (offset != this->offset)
         memset((void*)((size_t)this->data + this->offset), 0, offset - this->offset);
     memcpy((void*)((size_t)this->data + offset), data, size);
@@ -611,15 +612,10 @@ samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height(
     glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
 
-    glGetIntegervDLL(GL_MAX_UNIFORM_BLOCK_SIZE, (GLint*)&max_uniform_block_size);
-    glGetIntegervDLL(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, (GLint*)&uniform_buffer_offset_alignment);
+    max_uniform_block_size = min_def((uint32_t)sv_max_uniform_buffer_size, 64u * 1024);
 
-    if (DIVA_GL_VERSION_4_3) {
-        glGetIntegervDLL(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, (GLint*)&max_storage_block_size);
-        glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, (GLint*)&storage_buffer_offset_alignment);
-
-        max_storage_block_size = min_def(max_storage_block_size, 16u * 1024 * 1024);
-    }
+    if (DIVA_GL_VERSION_4_3)
+        max_storage_block_size = min_def((uint32_t)sv_max_storage_buffer_size, 1024u * 1024);
 }
 
 render_context::~render_context() {
@@ -804,7 +800,7 @@ void render_context::add_shared_storage_uniform_buffer_data(size_t index,
     if (storage) {
         render_context::shared_storage_buffer* buffer = 0;
         for (render_context::shared_storage_buffer& i : shared_storage_buffers)
-            if (i.can_fill_data(this, buffer_size)) {
+            if (i.can_fill_data(buffer_size)) {
                 buffer = &i;
                 break;
             }
@@ -815,13 +811,13 @@ void render_context::add_shared_storage_uniform_buffer_data(size_t index,
             buffer->create(max_storage_block_size);
         }
 
-        size_t offset = buffer->fill_data(this, data, size);
+        size_t offset = buffer->fill_data(data, size);
         shared_storage_buffer_entries.insert({ index, { buffer->buffer, offset, buffer_size } });
     }
     else {
         render_context::shared_uniform_buffer* buffer = 0;
         for (render_context::shared_uniform_buffer& i : shared_uniform_buffers)
-            if (i.can_fill_data(this, buffer_size)) {
+            if (i.can_fill_data(buffer_size)) {
                 buffer = &i;
                 break;
             }
@@ -832,7 +828,7 @@ void render_context::add_shared_storage_uniform_buffer_data(size_t index,
             buffer->create(max_uniform_block_size);
         }
 
-        size_t offset = buffer->fill_data(this, data, size);
+        size_t offset = buffer->fill_data(data, size);
         shared_uniform_buffer_entries.insert({ index, { buffer->buffer, offset, buffer_size } });
     }
 }
@@ -966,7 +962,7 @@ void render_context::pre_proc() {
                 if (!i.offset)
                     continue;
 
-                size_t align = align_val(i.offset, storage_buffer_offset_alignment) - i.offset;
+                size_t align = align_val(i.offset, sv_min_storage_buffer_alignment) - i.offset;
                 if (align)
                     memset((void*)((size_t)i.data + i.offset), 0, align);
                 i.buffer.WriteMemory(0, i.size, i.data);
@@ -976,7 +972,7 @@ void render_context::pre_proc() {
             if (!i.offset)
                 continue;
 
-            size_t align = align_val(i.offset, uniform_buffer_offset_alignment) - i.offset;
+            size_t align = align_val(i.offset, sv_min_uniform_buffer_alignment) - i.offset;
             if (align)
                 memset((void*)((size_t)i.data + i.offset), 0, align);
             i.buffer.WriteMemory(0, i.size, i.data);

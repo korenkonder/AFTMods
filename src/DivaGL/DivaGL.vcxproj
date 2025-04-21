@@ -182,6 +182,7 @@
     <ClCompile Include="sprite.cpp" />
     <ClCompile Include="stage.cpp" />
     <ClCompile Include="stage_param.cpp" />
+    <ClCompile Include="static_var.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="wrap.cpp" />
   </ItemGroup>
@@ -230,6 +231,7 @@
     <ClInclude Include="sprite.hpp" />
     <ClInclude Include="stage.hpp" />
     <ClInclude Include="stage_param.hpp" />
+    <ClInclude Include="static_var.hpp" />
     <ClInclude Include="texture.hpp" />
     <ClInclude Include="wrap.hpp" />
   </ItemGroup>

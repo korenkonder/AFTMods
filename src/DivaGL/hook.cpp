@@ -22,6 +22,7 @@
 #include "shader_ft.hpp"
 #include "sprite.hpp"
 #include "stage.hpp"
+#include "static_var.hpp"
 #include "texture.hpp"
 #include <Helpers.h>
 
@@ -53,6 +54,14 @@ HOOK(int32_t, FASTCALL, data_init, 0x0000000140192FF0) {
     }
 #endif
 
+    glGetIntegervDLL(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
+    glGetIntegervDLL(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
+    glGetIntegervDLL(GL_MAX_UNIFORM_BLOCK_SIZE, &sv_max_uniform_buffer_size);
+    if (DIVA_GL_VERSION_4_3)
+        glGetIntegervDLL(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &sv_max_storage_buffer_size);
+    glGetIntegervDLL(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &sv_min_uniform_buffer_alignment);
+    if (DIVA_GL_VERSION_4_3)
+        glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &sv_min_storage_buffer_alignment);
 
     sprite_shared_init();
 

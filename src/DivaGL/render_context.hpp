@@ -410,10 +410,10 @@ struct render_context {
         size_t size;
         GL::ShaderStorageBuffer buffer;
 
-        bool can_fill_data(render_context* rctx, size_t size);
+        bool can_fill_data(size_t size);
         void create(size_t size);
         void destroy();
-        size_t fill_data(render_context* rctx, const void* data, size_t size);
+        size_t fill_data(const void* data, size_t size);
     };
 
     struct shared_uniform_buffer {
@@ -422,10 +422,10 @@ struct render_context {
         size_t size;
         GL::UniformBuffer buffer;
 
-        bool can_fill_data(render_context* rctx, size_t size);
+        bool can_fill_data(size_t size);
         void create(size_t size);
         void destroy();
-        size_t fill_data(render_context* rctx, const void* data, size_t size);
+        size_t fill_data(const void* data, size_t size);
     };
 
     struct shared_buffer_entry {
@@ -485,10 +485,7 @@ struct render_context {
     mdl::ObjList obj_reflect[mdl::OBJ_TYPE_REFLECT_MAX];
 
     uint32_t max_uniform_block_size = 0;
-    uint32_t uniform_buffer_offset_alignment = 0;
-
     uint32_t max_storage_block_size = 0;
-    uint32_t storage_buffer_offset_alignment = 0;
 
     prj::vector<render_context::shared_storage_buffer> shared_storage_buffers;
     std::unordered_map<size_t, shared_buffer_entry> shared_storage_buffer_entries;
