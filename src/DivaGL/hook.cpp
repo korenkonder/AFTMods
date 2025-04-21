@@ -53,11 +53,6 @@ HOOK(int32_t, FASTCALL, data_init, 0x0000000140192FF0) {
     }
 #endif
 
-#ifdef USE_STUB
-    wrap_addresses(true);
-#else
-    wrap_addresses();
-#endif
 
     sprite_shared_init();
 
@@ -325,8 +320,6 @@ void hook_funcs() {
 static HGLRC FASTCALL glut_create_context(int64_t a1, int64_t a2, int64_t a3, int64_t a4, int32_t a5) {
     extern size_t glut_handle;
     HDC& XHDC = *(HDC*)(glut_handle + 0x55F20);
-
-    wrap_addresses();
 
     if (true/*a5*/) {
         typedef HGLRC(GLAPIENTRY* PFNWGLCREATECONTEXTGLUTPROC)(HDC hDc);
