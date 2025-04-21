@@ -15,14 +15,14 @@ namespace GL {
         if (buffer)
             return;
 
-        if (GL_VERSION_4_5) {
+        if (DIVA_GL_VERSION_4_5) {
             glCreateBuffers(1, &buffer);
             glNamedBufferStorage(buffer, (GLsizeiptr)size, 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
         }
         else {
             glGenBuffers(1, &buffer);
             gl_state_bind_element_array_buffer(buffer, true);
-            if (GL_VERSION_4_4)
+            if (DIVA_GL_VERSION_4_4)
                 glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size,
                     0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
             else
@@ -34,7 +34,7 @@ namespace GL {
         if (buffer)
             return;
 
-        if (GL_VERSION_4_5) {
+        if (DIVA_GL_VERSION_4_5) {
             glCreateBuffers(1, &buffer);
             glNamedBufferStorage(buffer, (GLsizeiptr)size, data,
                 dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
@@ -42,7 +42,7 @@ namespace GL {
         else {
             glGenBuffers(1, &buffer);
             gl_state_bind_element_array_buffer(buffer, true);
-            if (GL_VERSION_4_4)
+            if (DIVA_GL_VERSION_4_4)
                 glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data,
                     dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
             else
@@ -63,7 +63,7 @@ namespace GL {
             return 0;
 
         void* data;
-        if (GL_VERSION_4_5)
+        if (DIVA_GL_VERSION_4_5)
             data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
         else {
             gl_state_bind_element_array_buffer(buffer);
@@ -73,7 +73,7 @@ namespace GL {
         if (data)
             return data;
 
-        if (GL_VERSION_4_5)
+        if (DIVA_GL_VERSION_4_5)
             glUnmapNamedBuffer(buffer);
         else {
             glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
@@ -86,7 +86,7 @@ namespace GL {
         if (!buffer)
             return;
 
-        if (GL_VERSION_4_5)
+        if (DIVA_GL_VERSION_4_5)
             glUnmapNamedBuffer(buffer);
         else {
             glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
@@ -98,7 +98,7 @@ namespace GL {
         if (!buffer || !size)
             return;
 
-        if (GL_VERSION_4_5)
+        if (DIVA_GL_VERSION_4_5)
             glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
         else {
             gl_state_bind_element_array_buffer(buffer);

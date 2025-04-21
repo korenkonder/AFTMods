@@ -435,14 +435,14 @@ struct EffectStorage {
     }
 
     void Bind(int32_t index, bool force = false) {
-        if (GL_VERSION_4_3)
+        if (DIVA_GL_VERSION_4_3)
             ssbo.Bind(index, force);
         else
             gl_state_bind_vertex_array(vao);
     }
 
     void Create(size_t size, size_t count, const EffectStorageAttrib* attribs) {
-        if (GL_VERSION_4_3) {
+        if (DIVA_GL_VERSION_4_3) {
             ssbo.Create(size * count);
             return;
         }
@@ -470,7 +470,7 @@ struct EffectStorage {
 
     void Create(size_t size, size_t count, const EffectStorageAttrib* attribs,
         const void* data, bool dynamic = false) {
-        if (GL_VERSION_4_3) {
+        if (DIVA_GL_VERSION_4_3) {
             ssbo.Create(size * count, data, dynamic);
             return;
         }
@@ -497,7 +497,7 @@ struct EffectStorage {
     }
 
     void Destroy() {
-        if (GL_VERSION_4_3) {
+        if (DIVA_GL_VERSION_4_3) {
             ssbo.Destroy();
             return;
         }
@@ -511,28 +511,28 @@ struct EffectStorage {
     }
 
     void Draw(GLenum mode, GLint first, GLsizei count) {
-        if (GL_VERSION_4_3)
+        if (DIVA_GL_VERSION_4_3)
             glDrawArraysDLL(mode, first, count);
         else
             glDrawArraysInstanced(mode, first, 6, count / 6);
     }
 
     void* MapMemory() {
-        if (GL_VERSION_4_3)
+        if (DIVA_GL_VERSION_4_3)
             return ssbo.MapMemory();
         else
             return vbo.MapMemory();
     }
 
     void UnmapMemory() {
-        if (GL_VERSION_4_3)
+        if (DIVA_GL_VERSION_4_3)
             ssbo.UnmapMemory();
         else
             vbo.UnmapMemory();
     }
 
     void WriteMemory(size_t offset, size_t size, const void* data) {
-        if (GL_VERSION_4_3)
+        if (DIVA_GL_VERSION_4_3)
             ssbo.WriteMemory(offset, size, data);
         else
             vbo.WriteMemory(offset, size, data);

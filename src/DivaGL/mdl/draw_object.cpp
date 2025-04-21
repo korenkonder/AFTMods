@@ -189,8 +189,9 @@ namespace mdl {
                 GLuint buffer = 0;
                 size_t offset = 0;
                 size_t size = 0;
-                if (rctx->get_shared_storage_uniform_buffer_data((size_t)args->mats, buffer, offset, size, !!GL_VERSION_4_3))
-                    if (GL_VERSION_4_3)
+                if (rctx->get_shared_storage_uniform_buffer_data(
+                    (size_t)args->mats, buffer, offset, size, !!DIVA_GL_VERSION_4_3))
+                    if (DIVA_GL_VERSION_4_3)
                         gl_state_bind_shader_storage_buffer_range(0, buffer, (GLintptr)offset, (GLsizeiptr)size);
                     else
                         gl_state_bind_uniform_buffer_range(6, buffer, (GLintptr)offset, (GLsizeiptr)size);
@@ -206,7 +207,7 @@ namespace mdl {
                     g_joint_transforms[2] = mat.row2;
                 }
 
-                if (GL_VERSION_4_3)
+                if (DIVA_GL_VERSION_4_3)
                     rctx->data.buffer_skinning.WriteMemory(rctx->data.buffer_skinning_data);
                 else
                     rctx->data.buffer_skinning_ubo.WriteMemory(0,

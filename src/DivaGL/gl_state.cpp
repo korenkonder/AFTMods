@@ -117,7 +117,7 @@ void gl_state_bind_uniform_buffer_range(GLuint index,
 }
 
 void gl_state_bind_shader_storage_buffer(GLuint buffer, bool force) {
-    if (!GL_VERSION_4_3)
+    if (!DIVA_GL_VERSION_4_3)
         return;
 
     if (force || gl_state.shader_storage_buffer_binding != buffer) {
@@ -127,7 +127,7 @@ void gl_state_bind_shader_storage_buffer(GLuint buffer, bool force) {
 }
 
 void gl_state_bind_shader_storage_buffer_base(GLuint index, GLuint buffer, bool force) {
-    if (!GL_VERSION_4_3)
+    if (!DIVA_GL_VERSION_4_3)
         return;
 
     if (force || gl_state.shader_storage_buffer_bindings[index] != buffer) {
@@ -141,7 +141,7 @@ void gl_state_bind_shader_storage_buffer_base(GLuint index, GLuint buffer, bool 
 
 void gl_state_bind_shader_storage_buffer_range(GLuint index,
     GLuint buffer, GLintptr offset, GLsizeiptr size, bool force) {
-    if (!GL_VERSION_4_3)
+    if (!DIVA_GL_VERSION_4_3)
         return;
 
     if (force || gl_state.shader_storage_buffer_bindings[index] != buffer
@@ -307,7 +307,7 @@ void gl_state_get() {
     glGetIntegervDLL(GL_ACTIVE_TEXTURE, (GLint*)&gl_state.active_texture);
     gl_state.active_texture_index = gl_state.active_texture - GL_TEXTURE0;
 
-    if (GL_VERSION_4_5) {
+    if (DIVA_GL_VERSION_4_5) {
         for (GLuint i = 0; i < 32; i++) {
             glGetIntegeri_v(GL_TEXTURE_BINDING_2D, i, &gl_state.texture_binding_2d[i]);
             glGetIntegeri_v(GL_TEXTURE_BINDING_CUBE_MAP, i, &gl_state.texture_binding_cube_map[i]);
@@ -346,7 +346,7 @@ void gl_state_get() {
         glGetInteger64i_v(GL_UNIFORM_BUFFER_SIZE, i, (GLsizeiptr*)&gl_state.uniform_buffer_sizes[i]);
     }
 
-    if (GL_VERSION_4_3) {
+    if (DIVA_GL_VERSION_4_3) {
         glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&gl_state.shader_storage_buffer_binding);
         for (GLuint i = 0; i < 14; i++) {
             glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&gl_state.shader_storage_buffer_bindings[i]);

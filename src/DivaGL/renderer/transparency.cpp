@@ -55,7 +55,7 @@ namespace renderer {
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         gl_state_enable_depth_test();
 
-        if (GL_VERSION_4_3)
+        if (DIVA_GL_VERSION_4_3)
             glCopyImageSubData(rctx->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
                 rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
         else
@@ -65,14 +65,14 @@ namespace renderer {
     }
 
     void Transparency::copy(GLuint texture) {
-        if (GL_VERSION_4_3)
+        if (DIVA_GL_VERSION_4_3)
             glCopyImageSubData(texture, GL_TEXTURE_2D, 0, 0, 0, 0,
                 fbo.textures[0], GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
 
         fbo.bind_buffer();
         gl_state_set_viewport(0, 0, fbo.width, fbo.height);
 
-        if (!GL_VERSION_4_3) {
+        if (!DIVA_GL_VERSION_4_3) {
             gl_state_disable_depth_test();
             uniform->arr[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);

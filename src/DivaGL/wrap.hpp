@@ -3434,12 +3434,12 @@ extern PFNGLTEXTURESUBIMAGE2DPROC divagl_glTextureSubImage2D;
 #define glUnmapNamedBuffer divagl_glUnmapNamedBuffer
 #define glTextureSubImage2D divagl_glTextureSubImage2D
 
-extern bool GL_VERSION_4_1;
-extern bool GL_VERSION_4_2;
-extern bool GL_VERSION_4_3;
-extern bool GL_VERSION_4_4;
-extern bool GL_VERSION_4_5;
-extern bool GL_VERSION_4_6;
+extern bool DIVA_GL_VERSION_4_1;
+extern bool DIVA_GL_VERSION_4_2;
+extern bool DIVA_GL_VERSION_4_3;
+extern bool DIVA_GL_VERSION_4_4;
+extern bool DIVA_GL_VERSION_4_5;
+extern bool DIVA_GL_VERSION_4_6;
 
 extern void wrap_addresses();
 extern void wrap_patch();

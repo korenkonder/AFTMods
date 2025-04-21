@@ -71,9 +71,9 @@ static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::str
 
     size_t version_pos = temp.find("#version 430 core");
     if (version_pos != -1)
-        if (GL_VERSION_4_2)
+        if (DIVA_GL_VERSION_4_2)
             temp.replace(version_pos, 17, "#version 420 core", 17);
-        else if (GL_VERSION_4_1)
+        else if (DIVA_GL_VERSION_4_1)
             temp.replace(version_pos, 17, "#version 410 core", 17);
 
     if (apple_fix) {
@@ -91,7 +91,7 @@ static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::str
 
         bool sampler_2d = !temp.compare(binding_end_pos + 10, 9, "sampler2D");
         bool sampler_cube = !temp.compare(binding_end_pos + 10, 11, "samplerCube");
-        if (GL_VERSION_4_2) {
+        if (DIVA_GL_VERSION_4_2) {
             if (sampler_2d) {
                 char buf[0x40];
                 sprintf_s(buf, sizeof(buf), "layout(binding = %d) uniform sampler2D", binding);
@@ -162,7 +162,7 @@ static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::str
         std::string binding_str = temp.substr(binding_pos + 26, binding_end_pos - (binding_pos + 26));
         int32_t binding = atoi(binding_str.c_str());
 
-        if (GL_VERSION_4_2) {
+        if (DIVA_GL_VERSION_4_2) {
             char buf[0x40];
             sprintf_s(buf, sizeof(buf), "layout(binding = %d) uniform", binding);
             temp.replace(binding_pos, binding_end_pos + 9 - binding_pos, buf);
@@ -201,7 +201,7 @@ static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::str
         std::string binding_str = temp.substr(binding_pos + 34, binding_end_pos - (binding_pos + 34));
         int32_t binding = atoi(binding_str.c_str()) + 6;
 
-        if (GL_VERSION_4_2) {
+        if (DIVA_GL_VERSION_4_2) {
             char buf[0x40];
             sprintf_s(buf, sizeof(buf), "layout(binding = %d) uniform", binding);
             temp.replace(binding_pos, binding_end_pos + 17 - binding_pos, buf);
@@ -291,7 +291,7 @@ bool shader::parse_define(const char* data, std::string& temp) {
     else
         temp.assign(data);
 
-    if (GL_VERSION_4_3)
+    if (DIVA_GL_VERSION_4_3)
         parse_define_inner(temp);
     return true;
 }
@@ -327,7 +327,7 @@ bool shader::parse_define(const char* data, int32_t num_uniform,
     else
         temp.assign(data);
 
-    if (GL_VERSION_4_3)
+    if (DIVA_GL_VERSION_4_3)
         parse_define_inner(temp);
     return true;
 }
@@ -701,7 +701,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
 
             prj::vector_pair<int32_t, std::string> samplers;
             prj::vector_pair<int32_t, std::string> uniforms;
-            if (!GL_VERSION_4_3) {
+            if (!DIVA_GL_VERSION_4_3) {
                 vert_data = get_uniform_location(vert_data, samplers, uniforms, apple);
                 frag_data = get_uniform_location(frag_data, samplers, uniforms, apple);
             }
@@ -801,7 +801,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                             memcpy((void*)b->binary, (void*)((size_t)bin + bin->binary), bin->length);
                         }
 
-                        if (!GL_VERSION_4_3) {
+                        if (!DIVA_GL_VERSION_4_3) {
                             if (programs[k] && samplers.size()) {
                                 GLuint program = programs[k];
 
@@ -866,7 +866,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                         memcpy((void*)b->binary, (void*)((size_t)bin + bin->binary), bin->length);
                     }
 
-                    if (!GL_VERSION_4_3) {
+                    if (!DIVA_GL_VERSION_4_3) {
                         if (programs[0] && samplers.size()) {
                             GLuint program = programs[0];
 

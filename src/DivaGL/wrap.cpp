@@ -381,12 +381,12 @@ func_struct wrap_addr_glut[19] = {
     { 0x000000000002A3C0, 0, (size_t)&glVertex3fvGLUT, }, // glVertex3fv
 };
 
-bool GL_VERSION_4_1 = false;
-bool GL_VERSION_4_2 = false;
-bool GL_VERSION_4_3 = false;
-bool GL_VERSION_4_4 = false;
-bool GL_VERSION_4_5 = false;
-bool GL_VERSION_4_6 = false;
+bool DIVA_GL_VERSION_4_1 = false;
+bool DIVA_GL_VERSION_4_2 = false;
+bool DIVA_GL_VERSION_4_3 = false;
+bool DIVA_GL_VERSION_4_4 = false;
+bool DIVA_GL_VERSION_4_5 = false;
+bool DIVA_GL_VERSION_4_6 = false;
 
 PFNGLBINDTEXTUREDLLPROC* divagl_glBindTextureDLL
     = (PFNGLBINDTEXTUREDLLPROC*)0x0000000140965BF8; // glBindTexture
@@ -2746,12 +2746,12 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
         int32_t minor;
         sscanf_s(version, "%d.%d", &major, &minor);
 
-        GL_VERSION_4_1 = (major == 4 && minor >= 1) || major > 4;
-        GL_VERSION_4_2 = (major == 4 && minor >= 2) || major > 4;
-        GL_VERSION_4_3 = (major == 4 && minor >= 3) || major > 4;
-        GL_VERSION_4_4 = (major == 4 && minor >= 4) || major > 4;
-        GL_VERSION_4_5 = (major == 4 && minor >= 5) || major > 4;
-        GL_VERSION_4_6 = (major == 4 && minor >= 6) || major > 4;
+        DIVA_GL_VERSION_4_1 = (major == 4 && minor >= 1) || major > 4;
+        DIVA_GL_VERSION_4_2 = (major == 4 && minor >= 2) || major > 4;
+        DIVA_GL_VERSION_4_3 = (major == 4 && minor >= 3) || major > 4;
+        DIVA_GL_VERSION_4_4 = (major == 4 && minor >= 4) || major > 4;
+        DIVA_GL_VERSION_4_5 = (major == 4 && minor >= 5) || major > 4;
+        DIVA_GL_VERSION_4_6 = (major == 4 && minor >= 6) || major > 4;
     }
 
 #define REPLACE_FUNC(name) \
@@ -2781,14 +2781,14 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
     glVertexAttribDivisor = (PFNGLVERTEXATTRIBDIVISORPROC)wglGetProcAddressDLL("glVertexAttribDivisor");
 
     // 4.1
-    if (GL_VERSION_4_1) {
+    if (DIVA_GL_VERSION_4_1) {
         glClearDepthf = (PFNGLCLEARDEPTHFPROC)wglGetProcAddressDLL("glClearDepthf");
         glGetProgramBinary = (PFNGLGETPROGRAMBINARYPROC)wglGetProcAddressDLL("glGetProgramBinary");
         glProgramBinary = (PFNGLPROGRAMBINARYPROC)wglGetProcAddressDLL("glProgramBinary");
     }
 
     // 4.3
-    if (GL_VERSION_4_3) {
+    if (DIVA_GL_VERSION_4_3) {
         divagl_glPushDebugGroup_orig = (PFNGLPUSHDEBUGGROUPPROC)wglGetProcAddressDLL("glPushDebugGroup");
         divagl_glPopDebugGroup_orig = (PFNGLPOPDEBUGGROUPPROC)wglGetProcAddressDLL("glPopDebugGroup");
     }
@@ -2797,11 +2797,11 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
     glPopDebugGroup = divagl_glPopDebugGroup_impl;
 
     // 4.4
-    if (GL_VERSION_4_4)
+    if (DIVA_GL_VERSION_4_4)
         glBufferStorage = (PFNGLBUFFERSTORAGEPROC)wglGetProcAddressDLL("glBufferStorage");
 
     // 4.5
-    if (GL_VERSION_4_5) {
+    if (DIVA_GL_VERSION_4_5) {
         glCreateBuffers = (PFNGLCREATEBUFFERSPROC)wglGetProcAddressDLL("glCreateBuffers");
         glNamedBufferStorage = (PFNGLNAMEDBUFFERSTORAGEPROC)wglGetProcAddressDLL("glNamedBufferStorage");
         glNamedBufferSubData = (PFNGLNAMEDBUFFERSUBDATAPROC)wglGetProcAddressDLL("glNamedBufferSubData");
@@ -3412,11 +3412,11 @@ static void GLAPIENTRY divagl_glTexImage2DDLL_impl(GLenum target, GLint level, G
 }
 
 static void GLAPIENTRY divagl_glPushDebugGroup_impl(GLenum source, GLuint id, GLsizei length, const GLchar* message) {
-    if (GL_VERSION_4_3)
+    if (DIVA_GL_VERSION_4_3)
         return divagl_glPushDebugGroup_orig(source, id, length, message);
 }
 
 static void GLAPIENTRY divagl_glPopDebugGroup_impl() {
-    if (GL_VERSION_4_3)
+    if (DIVA_GL_VERSION_4_3)
         return divagl_glPopDebugGroup_orig();
 }

@@ -1773,7 +1773,7 @@ namespace rndr {
                 * ((float_t)TONE_MAP_SAT_GAMMA_SAMPLES / (float_t)i) * (1.0f - saturation);
         }
 
-        if (GL_VERSION_4_5)
+        if (DIVA_GL_VERSION_4_5)
             glTextureSubImage2D(tonemap_lut_texture, 0, 0, 0,
                 16 * TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, tex_data);
         else {

@@ -34,7 +34,7 @@ static void APIENTRY gl_debug_output(GLenum source, GLenum type, uint32_t id,
 
 HOOK(int32_t, FASTCALL, data_init, 0x0000000140192FF0) {
 #ifdef DEBUG
-    if (GL_VERSION_4_3) {
+    if (DIVA_GL_VERSION_4_3) {
         typedef void (APIENTRY* GLDEBUGPROC)(GLenum source, GLenum type, GLuint id,
             GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 

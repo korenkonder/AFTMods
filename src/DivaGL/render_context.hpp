@@ -504,14 +504,14 @@ struct render_context {
 
     void add_shared_storage_uniform_buffer_data(size_t index,
         const void* data, size_t size, size_t max_size, bool storage = false);
-    void post_proc();
-    void pre_proc();
     void get_scene_fog_params(render_context::fog_params& value);
     void get_scene_light(vec4* light_env_stage_diffuse,
         vec4* light_env_stage_specular, vec4* light_chara_dir, vec4* light_chara_luce,
         vec4* light_env_chara_diffuse, vec4* light_env_chara_specular);
     bool get_shared_storage_uniform_buffer_data(size_t index,
         GLuint& buffer, size_t& offset, size_t& size, bool storage = false);
+    void post_proc();
+    void pre_proc();
     void set_batch_alpha_threshold(const float_t value);
     void set_batch_blend_color(const vec4& blend_color);
     void set_batch_blend_color_offset_color(const vec4& blend_color, const vec4& offset_color);

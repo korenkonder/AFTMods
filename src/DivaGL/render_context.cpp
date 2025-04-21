@@ -260,7 +260,7 @@ void render_data::init() {
     buffer_shader.Create(sizeof(obj_shader_data));
     buffer_scene.Create(sizeof(obj_scene_data));
     buffer_batch.Create(sizeof(obj_batch_data));
-    if (GL_VERSION_4_3)
+    if (DIVA_GL_VERSION_4_3)
         buffer_skinning.Create(sizeof(obj_skinning_data));
     else
         buffer_skinning_ubo.Create(sizeof(obj_skinning_data));
@@ -274,7 +274,7 @@ void render_data::init() {
 }
 
 void render_data::free() {
-    if (GL_VERSION_4_3)
+    if (DIVA_GL_VERSION_4_3)
         buffer_skinning.Destroy();
     else
         buffer_skinning_ubo.Destroy();
@@ -348,7 +348,7 @@ void render_data::set(render_context* rctx) {
     buffer_batch.Bind(2);
 
     if (uniform->arr[U_SKINNING] && !config_shared_storage_uniform_buffer)
-        if (GL_VERSION_4_3)
+        if (DIVA_GL_VERSION_4_3)
             buffer_skinning.Bind(0);
         else
             buffer_skinning_ubo.Bind(6);
@@ -614,7 +614,7 @@ samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height(
     glGetIntegervDLL(GL_MAX_UNIFORM_BLOCK_SIZE, (GLint*)&max_uniform_block_size);
     glGetIntegervDLL(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, (GLint*)&uniform_buffer_offset_alignment);
 
-    if (GL_VERSION_4_3) {
+    if (DIVA_GL_VERSION_4_3) {
         glGetIntegervDLL(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, (GLint*)&max_storage_block_size);
         glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, (GLint*)&storage_buffer_offset_alignment);
 
@@ -630,7 +630,7 @@ render_context::~render_context() {
             i.destroy();
         shared_uniform_buffers.clear();
 
-        if (GL_VERSION_4_3) {
+        if (DIVA_GL_VERSION_4_3) {
             shared_storage_buffer_entries.clear();
 
             for (render_context::shared_storage_buffer& i : shared_storage_buffers)
@@ -837,116 +837,6 @@ void render_context::add_shared_storage_uniform_buffer_data(size_t index,
     }
 }
 
-void render_context::pre_proc() {
-    if (config_shared_storage_uniform_buffer) {
-        auto add_obj_list = [](render_context* rctx, const mdl::ObjSubMeshArgs* args) {
-            if (!args->mat_count || !args->mats)
-                return;
-
-            if (GL_VERSION_4_3) {
-                if (rctx->shared_storage_buffer_entries.find((size_t)args->mats)
-                    != rctx->shared_storage_buffer_entries.end())
-                    return;
-            }
-            else {
-                if (rctx->shared_uniform_buffer_entries.find((size_t)args->mats)
-                    != rctx->shared_uniform_buffer_entries.end())
-                    return;
-            }
-
-            const int32_t mat_count = min_def(args->mat_count, 256);
-            const mat4* mats = args->mats;
-            vec4* g_joint_transforms = rctx->data.buffer_skinning_data.g_joint_transforms;
-
-            mat4 mat;
-            for (int32_t i = 0; i < mat_count; i++, mats++, g_joint_transforms += 3) {
-                mat4_transpose(mats, &mat);
-                g_joint_transforms[0] = mat.row0;
-                g_joint_transforms[1] = mat.row1;
-                g_joint_transforms[2] = mat.row2;
-            }
-
-            const size_t buffer_size = sizeof(vec4) * 3 * 256;
-            const size_t size = sizeof(vec4) * 3 * mat_count;
-            rctx->add_shared_storage_uniform_buffer_data((size_t)args->mats,
-                rctx->data.buffer_skinning_data.g_joint_transforms, size, buffer_size, !!GL_VERSION_4_3);
-        };
-
-        for (int32_t type = 0; type < mdl::OBJ_TYPE_MAX; type++)
-            for (mdl::ObjData*& i : disp_manager->get_obj_list((mdl::ObjType)type))
-                switch (i->kind) {
-                case mdl::OBJ_KIND_NORMAL:
-                    add_obj_list(rctx, &i->args.sub_mesh);
-                    break;
-                case mdl::OBJ_KIND_TRANSLUCENT:
-                    for (int32_t j = 0; j < i->args.translucent.count; j++)
-                        add_obj_list(rctx, i->args.translucent.sub_mesh[j]);
-                    break;
-                }
-        
-        for (int32_t type = 0; type < mdl::OBJ_TYPE_LOCAL_MAX; type++)
-            for (mdl::ObjData*& i : disp_manager->get_obj_list((mdl::ObjTypeLocal)type))
-                switch (i->kind) {
-                case mdl::OBJ_KIND_NORMAL:
-                    add_obj_list(rctx, &i->args.sub_mesh);
-                    break;
-                case mdl::OBJ_KIND_TRANSLUCENT:
-                    for (int32_t j = 0; j < i->args.translucent.count; j++)
-                        add_obj_list(rctx, i->args.translucent.sub_mesh[j]);
-                    break;
-                }
-
-        for (int32_t type = 0; type < mdl::OBJ_TYPE_REFLECT_MAX; type++)
-            for (mdl::ObjData*& i : disp_manager->get_obj_list((mdl::ObjTypeReflect)type))
-                switch (i->kind) {
-                case mdl::OBJ_KIND_NORMAL:
-                    add_obj_list(rctx, &i->args.sub_mesh);
-                    break;
-                case mdl::OBJ_KIND_TRANSLUCENT:
-                    for (int32_t j = 0; j < i->args.translucent.count; j++)
-                        add_obj_list(rctx, i->args.translucent.sub_mesh[j]);
-                    break;
-                }
-
-        if (GL_VERSION_4_3)
-            for (render_context::shared_storage_buffer& i : shared_storage_buffers) {
-                if (!i.offset)
-                    continue;
-
-                size_t align = align_val(i.offset, storage_buffer_offset_alignment) - i.offset;
-                if (align)
-                    memset((void*)((size_t)i.data + i.offset), 0, align);
-                i.buffer.WriteMemory(0, i.size, i.data);
-            }
-
-        for (render_context::shared_uniform_buffer& i : shared_uniform_buffers) {
-            if (!i.offset)
-                continue;
-
-            size_t align = align_val(i.offset, uniform_buffer_offset_alignment) - i.offset;
-            if (align)
-                memset((void*)((size_t)i.data + i.offset), 0, align);
-            i.buffer.WriteMemory(0, i.size, i.data);
-        }
-    }
-}
-
-void render_context::post_proc() {
-    if (config_shared_storage_uniform_buffer) {
-        if (GL_VERSION_4_3) {
-            for (render_context::shared_storage_buffer& i : shared_storage_buffers)
-                i.offset = 0;
-
-            shared_storage_buffer_entries.clear();
-        }
-
-        for (render_context::shared_uniform_buffer& i : shared_uniform_buffers)
-            i.offset = 0;
-
-        shared_uniform_buffer_entries.clear();
-    }
-}
-
 void render_context::get_scene_fog_params(render_context::fog_params& value) {
     render_data* data = &this->data;
     value.depth_color = data->buffer_scene_data.g_fog_depth_color;
@@ -997,6 +887,116 @@ bool render_context::get_shared_storage_uniform_buffer_data(size_t index,
         offset = elem->second.offset;
         size = elem->second.size;
         return true;
+    }
+}
+
+void render_context::pre_proc() {
+    if (config_shared_storage_uniform_buffer) {
+        auto add_obj_list = [](render_context* rctx, const mdl::ObjSubMeshArgs* args) {
+            if (!args->mat_count || !args->mats)
+                return;
+
+            if (DIVA_GL_VERSION_4_3) {
+                if (rctx->shared_storage_buffer_entries.find((size_t)args->mats)
+                    != rctx->shared_storage_buffer_entries.end())
+                    return;
+            }
+            else {
+                if (rctx->shared_uniform_buffer_entries.find((size_t)args->mats)
+                    != rctx->shared_uniform_buffer_entries.end())
+                    return;
+            }
+
+            const int32_t mat_count = min_def(args->mat_count, 256);
+            const mat4* mats = args->mats;
+            vec4* g_joint_transforms = rctx->data.buffer_skinning_data.g_joint_transforms;
+
+            mat4 mat;
+            for (int32_t i = 0; i < mat_count; i++, mats++, g_joint_transforms += 3) {
+                mat4_transpose(mats, &mat);
+                g_joint_transforms[0] = mat.row0;
+                g_joint_transforms[1] = mat.row1;
+                g_joint_transforms[2] = mat.row2;
+            }
+
+            const size_t buffer_size = sizeof(vec4) * 3 * 256;
+            const size_t size = sizeof(vec4) * 3 * mat_count;
+            rctx->add_shared_storage_uniform_buffer_data((size_t)args->mats,
+                rctx->data.buffer_skinning_data.g_joint_transforms, size, buffer_size, !!DIVA_GL_VERSION_4_3);
+        };
+
+        for (int32_t type = 0; type < mdl::OBJ_TYPE_MAX; type++)
+            for (mdl::ObjData*& i : disp_manager->get_obj_list((mdl::ObjType)type))
+                switch (i->kind) {
+                case mdl::OBJ_KIND_NORMAL:
+                    add_obj_list(rctx, &i->args.sub_mesh);
+                    break;
+                case mdl::OBJ_KIND_TRANSLUCENT:
+                    for (int32_t j = 0; j < i->args.translucent.count; j++)
+                        add_obj_list(rctx, i->args.translucent.sub_mesh[j]);
+                    break;
+                }
+
+        for (int32_t type = 0; type < mdl::OBJ_TYPE_LOCAL_MAX; type++)
+            for (mdl::ObjData*& i : disp_manager->get_obj_list((mdl::ObjTypeLocal)type))
+                switch (i->kind) {
+                case mdl::OBJ_KIND_NORMAL:
+                    add_obj_list(rctx, &i->args.sub_mesh);
+                    break;
+                case mdl::OBJ_KIND_TRANSLUCENT:
+                    for (int32_t j = 0; j < i->args.translucent.count; j++)
+                        add_obj_list(rctx, i->args.translucent.sub_mesh[j]);
+                    break;
+                }
+
+        for (int32_t type = 0; type < mdl::OBJ_TYPE_REFLECT_MAX; type++)
+            for (mdl::ObjData*& i : disp_manager->get_obj_list((mdl::ObjTypeReflect)type))
+                switch (i->kind) {
+                case mdl::OBJ_KIND_NORMAL:
+                    add_obj_list(rctx, &i->args.sub_mesh);
+                    break;
+                case mdl::OBJ_KIND_TRANSLUCENT:
+                    for (int32_t j = 0; j < i->args.translucent.count; j++)
+                        add_obj_list(rctx, i->args.translucent.sub_mesh[j]);
+                    break;
+                }
+
+        if (DIVA_GL_VERSION_4_3)
+            for (render_context::shared_storage_buffer& i : shared_storage_buffers) {
+                if (!i.offset)
+                    continue;
+
+                size_t align = align_val(i.offset, storage_buffer_offset_alignment) - i.offset;
+                if (align)
+                    memset((void*)((size_t)i.data + i.offset), 0, align);
+                i.buffer.WriteMemory(0, i.size, i.data);
+            }
+
+        for (render_context::shared_uniform_buffer& i : shared_uniform_buffers) {
+            if (!i.offset)
+                continue;
+
+            size_t align = align_val(i.offset, uniform_buffer_offset_alignment) - i.offset;
+            if (align)
+                memset((void*)((size_t)i.data + i.offset), 0, align);
+            i.buffer.WriteMemory(0, i.size, i.data);
+        }
+    }
+}
+
+void render_context::post_proc() {
+    if (config_shared_storage_uniform_buffer) {
+        if (DIVA_GL_VERSION_4_3) {
+            for (render_context::shared_storage_buffer& i : shared_storage_buffers)
+                i.offset = 0;
+
+            shared_storage_buffer_entries.clear();
+        }
+
+        for (render_context::shared_uniform_buffer& i : shared_uniform_buffers)
+            i.offset = 0;
+
+        shared_uniform_buffer_entries.clear();
     }
 }
 

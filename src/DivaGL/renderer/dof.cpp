@@ -283,7 +283,7 @@ namespace renderer {
         gl_state_bind_sampler(4, samplers[1]);
         glDrawArraysDLL(GL_TRIANGLE_STRIP, 0, 4);
 
-        if (GL_VERSION_4_3)
+        if (DIVA_GL_VERSION_4_3)
             glCopyImageSubData(
                 buf_rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
                 rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
