@@ -450,6 +450,7 @@ struct render_context {
     RenderTexture reflect_buffer;
     RenderTexture render_buffer;
     RenderTexture screen_buffer;
+    RenderTexture screen_overlay_buffer;
     RenderTexture shadow_buffer;
 
     GL::UniformBuffer camera_blur_ubo;

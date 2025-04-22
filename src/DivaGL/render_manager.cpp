@@ -268,6 +268,7 @@ namespace rndr {
         if (!rctx)
             return;
 
+        sprite_manager_pre_draw();
         light_param_data_storage_data_set_ibl();
 
         static const vec4 color_clear = 0.0f;
@@ -299,6 +300,8 @@ namespace rndr {
         gl_state_end_event();
 
         disp_manager->check_vertex_arrays();
+        sprite_manager_post_draw();
+
         gl_state_bind_vertex_array(0);
         gl_state_disable_primitive_restart();
         gl_state_bind_uniform_buffer(0);
@@ -1091,7 +1094,7 @@ namespace rndr {
             sprite_manager_set_res((double_t)rctx->screen_width / (double_t)rctx->screen_height,
                 rctx->screen_width, rctx->screen_height);
             sprite_manager_draw(0, true,
-                rend->temp_buffer.color_texture);
+                rctx->screen_overlay_buffer.color_texture);
             gl_state_enable_cull_face();
             gl_state_disable_blend();
             gl_state_enable_depth_test();

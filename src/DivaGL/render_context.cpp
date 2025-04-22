@@ -739,12 +739,15 @@ void render_context::ctrl(bool change_res) {
         init_copy_buffer(shadow_buffer, this->shadow_buffer);
     }*/
 
-    if (screen_res_change)
+    if (screen_res_change) {
         screen_buffer.Init(screen_width, screen_height, 0, GL_RGBA8, 0);
+        screen_overlay_buffer.Init(screen_width, screen_height, 0, GL_RGBA8, 0);
+    }
 }
 
 void render_context::free() {
     shadow_buffer.Free();
+    screen_overlay_buffer.Free();
     screen_buffer.Free();
     render_buffer.Free();
     reflect_buffer.Free();
@@ -793,6 +796,7 @@ void render_context::init() {
     init_copy_buffer(shadow_buffer, this->shadow_buffer);
 
     screen_buffer.Init(screen_width, screen_height, 0, GL_RGBA8, 0);
+    screen_overlay_buffer.Init(screen_width, screen_height, 0, GL_RGBA8, 0);
 }
 
 void render_context::add_shared_storage_uniform_buffer_data(size_t index,

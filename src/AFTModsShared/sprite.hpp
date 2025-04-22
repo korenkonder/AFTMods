@@ -238,6 +238,7 @@ namespace spr {
         mat4 mat;
         texture* texture;
         int32_t shader;
+        int32_t sprite_draw_param_index;
         union {
             size_t vertex_array;
             SpriteVertex* vertex_array_ptr;
