@@ -165,7 +165,7 @@
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="effect.cpp" />
-    <ClCompile Include="gl_state.cpp" />
+    <ClCompile Include="gl_rend_state.cpp" />
     <ClCompile Include="hook.cpp" />
     <ClCompile Include="light_param.cpp" />
     <ClCompile Include="object.cpp" />
@@ -213,7 +213,7 @@
     <ClInclude Include="camera.hpp" />
     <ClInclude Include="effect.hpp" />
     <ClInclude Include="gl.hpp" />
-    <ClInclude Include="gl_state.hpp" />
+    <ClInclude Include="gl_rend_state.hpp" />
     <ClInclude Include="hook.hpp" />
     <ClInclude Include="light_param.hpp" />
     <ClInclude Include="object.hpp" />

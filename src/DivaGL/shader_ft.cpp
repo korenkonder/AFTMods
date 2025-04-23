@@ -6,7 +6,7 @@
 #include "shader_ft.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "../AFTModsShared/uniform.hpp"
-#include "gl_state.hpp"
+#include "gl_rend_state.hpp"
 #include "render_context.hpp"
 
 enum shader_ft_sub_enum {

@@ -118,8 +118,8 @@ HOOK(void, FASTCALL, sub_140194CD0, 0x000000140194CD0) {
     originalsub_140194CD0();
 }
 
-HOOK(void, FASTCALL, _gl_state_get, 0x0000000140442DF0) {
-    gl_state_get();
+HOOK(void, FASTCALL, gl_rend_state__get, 0x0000000140442DF0) {
+    gl_rend_state.get();
 }
 
 HOOK(void, FASTCALL, rndr__Render__update_res, 0x00000001404A9480, rndr::Render* rend, bool set, int32_t base_downsample) {
@@ -165,12 +165,12 @@ HOOK(void, FASTCALL, rndr__Render__movie_texture_free, 0x00000001404B18F0,
 }
 
 HOOK(void, FASTCALL, rndr__RenderManager__rndpass_pre_proc, 0x0000000140502C90) {
-    gl_state_begin_event("rndpass_pre_proc");
+    gl_rend_state.begin_event("rndpass_pre_proc");
     render_manager.render->pre_proc();
     Glitter::glt_particle_manager->CalcDisp();
     Glitter::glt_particle_manager_x->CalcDisp();
     rctx->pre_proc();
-    gl_state_end_event();
+    gl_rend_state.end_event();
 }
 
 HOOK(void, FASTCALL, rndr__RenderManager__render_all, 0x0000000140502CA0) {
@@ -178,11 +178,11 @@ HOOK(void, FASTCALL, rndr__RenderManager__render_all, 0x0000000140502CA0) {
 }
 
 HOOK(void, FASTCALL, rndr__RenderManager__rndpass_post_proc, 0x0000000140502C70) {
-    gl_state_begin_event("rndpass_post_proc");
+    gl_rend_state.begin_event("rndpass_post_proc");
     rctx->post_proc();
     render_manager.render->post_proc();
     render_manager.field_31C = false;
-    gl_state_end_event();
+    gl_rend_state.end_event();
 }
 
 struct ScreenShotData {
@@ -279,7 +279,7 @@ void hook_funcs() {
 
     INSTALL_HOOK(sub_140194CD0);
 
-    INSTALL_HOOK(_gl_state_get);
+    INSTALL_HOOK(gl_rend_state__get);
 
     INSTALL_HOOK(rndr__Render__update_res);
     INSTALL_HOOK(rndr__Render__take_ss);
@@ -317,9 +317,6 @@ void hook_funcs() {
 
     *(uint64_t*)&buf[0x02] = (uint64_t)&printf_proxy;
     WRITE_MEMORY_STRING(0x00000001400DE640, buf, 0x0C);
-
-    *(uint64_t*)&buf[0x02] = (uint64_t)&gl_state_get;
-    WRITE_MEMORY_STRING(0x0000000140442FB4, buf, 0x0C);
 
     extern size_t glut_handle;
     *(uint64_t*)&buf[0x02] = (uint64_t)&glut_create_context;

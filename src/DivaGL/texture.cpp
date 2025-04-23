@@ -4,8 +4,9 @@
 */
 
 #include "texture.hpp"
-#include "gl_state.hpp"
 #include "../AFTModsShared/types.hpp"
+#include "gl_rend_state.hpp"
+#include "shared.hpp"
 #include <Helpers.h>
 
 struct texture_handler {
@@ -85,7 +86,7 @@ texture* texture_create_copy_texture_apply_color_tone(
         }
         else
             glGetTexImageDLL(org_tex->target, i, format, type, data);
-        gl_state_get_error();
+        gl_get_error_print();
         vec_data.push_back(data);
     }
     texture_bind(org_tex->target, 0);
@@ -159,7 +160,7 @@ HOOK(void, FASTCALL, texture_apply_color_tone, 0x00000001403B5DF0,
             glTexSubImage2DDLL(chg_tex->target, i, 0, 0, width, height,
                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
         }
-        gl_state_get_error();
+        gl_get_error_print();
         prj::HeapCMallocFree(prj::HeapCMallocTemp, data);
     }
     texture_bind(org_tex->target, 0);
@@ -259,7 +260,7 @@ HOOK(texture*, FASTCALL, texture_create_copy_texture, 0x000000014069B550,
             glGetCompressedTexImage(org_tex->target, i, data);
         else
             glGetTexImageDLL(org_tex->target, i, format, type, data);
-        gl_state_get_error();
+        gl_get_error_print();
         vec_data.push_back(data);
     }
     texture_bind(org_tex->target, 0);
@@ -333,10 +334,10 @@ texture_handler::texture_handler() : field_2C(), field_30(), field_34() {
 inline static void texture_bind(GLenum target, GLuint texture) {
     switch (target) {
     case GL_TEXTURE_2D:
-        gl_state_bind_texture_2d(texture);
+        gl_rend_state.bind_texture_2d(texture);
         break;
     case GL_TEXTURE_CUBE_MAP:
-        gl_state_bind_texture_cube_map(texture);
+        gl_rend_state.bind_texture_cube_map(texture);
         break;
     }
 }
@@ -485,7 +486,7 @@ static int32_t texture_load_pixels(GLenum target, GLenum internal_format,
         glTexImage2DDLL(target, level, internal_format, width, height, 0, format, type, data);
     } break;
     }
-    return -(gl_state_get_error() != GL_ZERO);
+    return -(gl_get_error_print() != GL_ZERO);
 }
 
 static texture* texture_load_tex(texture_id id, GLenum target,

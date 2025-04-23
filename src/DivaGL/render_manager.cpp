@@ -13,7 +13,7 @@
 #include "rob/rob.hpp"
 #include "clear_color.hpp"
 #include "effect.hpp"
-#include "gl_state.hpp"
+#include "gl_rend_state.hpp"
 #include "light_param.hpp"
 #include "render.hpp"
 #include "render_context.hpp"
@@ -273,52 +273,52 @@ namespace rndr {
 
         static const vec4 color_clear = 0.0f;
 
-        gl_state_bind_framebuffer(0);
+        gl_rend_state.bind_framebuffer(0);
         glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
 
         rctx->set_scene_framebuffer_size(render->render_width[0],
             render->render_height[0], render->render_width[0], render->render_height[0]);
 
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        gl_state_enable_depth_test();
-        gl_state_set_depth_func(GL_LEQUAL);
-        gl_state_set_depth_mask(GL_TRUE);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        gl_rend_state.enable_depth_test();
+        gl_rend_state.set_depth_func(GL_LEQUAL);
+        gl_rend_state.set_depth_mask(GL_TRUE);
 
-        gl_state_begin_event("rndpass_render_all_pass::Caller::execute_pre3d");
+        gl_rend_state.begin_event("rndpass_render_all_pass::Caller::execute_pre3d");
         for (int32_t i = RND_PASSID_SHADOW; i <= RND_PASSID_CLEAR; i++)
             RenderManager::render_single_pass((RenderPassID)i);
-        gl_state_end_event();
+        gl_rend_state.end_event();
 
-        gl_state_begin_event("rndpass_render_all_pass::Caller::execute_3d");
+        gl_rend_state.begin_event("rndpass_render_all_pass::Caller::execute_3d");
         for (int32_t i = RND_PASSID_PRE_SPRITE; i <= RND_PASSID_3D; i++)
             RenderManager::render_single_pass((RenderPassID)i);
-        gl_state_end_event();
+        gl_rend_state.end_event();
 
-        gl_state_begin_event("rndpass_render_all_pass::Caller::execute_2d");
+        gl_rend_state.begin_event("rndpass_render_all_pass::Caller::execute_2d");
         for (int32_t i = RND_PASSID_SHOW_VECTOR; i <= RND_PASSID_12; i++)
             RenderManager::render_single_pass((RenderPassID)i);
-        gl_state_end_event();
+        gl_rend_state.end_event();
 
         disp_manager->check_vertex_arrays();
         sprite_manager_post_draw();
 
-        gl_state_bind_vertex_array(0);
-        gl_state_disable_primitive_restart();
-        gl_state_bind_uniform_buffer(0);
-        gl_state_bind_uniform_buffer_base(0, 0);
-        gl_state_bind_uniform_buffer_base(1, 0);
-        gl_state_bind_uniform_buffer_base(2, 0);
-        gl_state_bind_uniform_buffer_base(3, 0);
-        gl_state_bind_uniform_buffer_base(4, 0);
-        gl_state_bind_shader_storage_buffer(0);
-        gl_state_bind_shader_storage_buffer_base(0, 0);
+        gl_rend_state.bind_vertex_array(0);
+        gl_rend_state.disable_primitive_restart();
+        gl_rend_state.bind_uniform_buffer(0);
+        gl_rend_state.bind_uniform_buffer_base(0, 0);
+        gl_rend_state.bind_uniform_buffer_base(1, 0);
+        gl_rend_state.bind_uniform_buffer_base(2, 0);
+        gl_rend_state.bind_uniform_buffer_base(3, 0);
+        gl_rend_state.bind_uniform_buffer_base(4, 0);
+        gl_rend_state.bind_shader_storage_buffer(0);
+        gl_rend_state.bind_shader_storage_buffer_base(0, 0);
     }
 
     void RenderManager::render_single_pass(RenderPassID id) {
         cpu_time[id] = 0.0;
         gpu_time[id] = 0.0;
         if (!pass_sw[id]) {
-            gl_state_get_error();
+            gl_get_error_print();
             return;
         }
 
@@ -359,7 +359,7 @@ namespace rndr {
             break;
         }
         render_pass_end(id);
-        gl_state_get_error();
+        gl_get_error_print();
     }
 
     void RenderManager::render_pass_begin() {
@@ -380,8 +380,8 @@ namespace rndr {
     }
 
     void RenderManager::pass_shadow() {
-        gl_state_begin_event("pass_shadow");
-        gl_state_begin_event("texproj");
+        gl_rend_state.begin_event("pass_shadow");
+        gl_rend_state.begin_event("texproj");
         if (draw_pass_shadow_litproj_set()) {
             disp_manager->draw(mdl::OBJ_TYPE_OPAQUE);
             disp_manager->draw(mdl::OBJ_TYPE_TRANSPARENT);
@@ -400,15 +400,15 @@ namespace rndr {
                 disp_manager->draw(mdl::OBJ_TYPE_OPAQUE);
                 disp_manager->draw(mdl::OBJ_TYPE_TRANSPARENT);
                 disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT, 1);
-                gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                gl_state_enable_blend();
+                gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                gl_rend_state.enable_blend();
                 disp_manager->draw(mdl::OBJ_TYPE_TRANSLUCENT);
-                gl_state_disable_blend();
+                gl_rend_state.disable_blend();
                 draw_state.shader_index = -1;
-                gl_state_bind_framebuffer(0);
+                gl_rend_state.bind_framebuffer(0);
             }
         }
-        gl_state_end_event();
+        gl_rend_state.end_event();
 
         bool v3 = false;
         int32_t v10[2];
@@ -434,10 +434,10 @@ namespace rndr {
                 draw_pass_shadow_begin_make_shadowmap(shad, v11[i], j);
                 disp_manager->draw((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + v11[i]));
                 if (disp_manager->get_obj_count((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + v11[i])) > 0) {
-                    gl_state_set_color_mask(show_stage_shadow
+                    gl_rend_state.set_color_mask(show_stage_shadow
                         ? GL_TRUE : GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
                     disp_manager->draw((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + i));
-                    gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                    gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
                 }
                 draw_pass_shadow_end_make_shadowmap(shad, v11[i], j);
                 j++;
@@ -455,8 +455,8 @@ namespace rndr {
             }
         }
         shader::unbind();
-        gl_state_bind_framebuffer(0);
-        gl_state_end_event();
+        gl_rend_state.bind_framebuffer(0);
+        gl_rend_state.end_event();
     }
 
     void RenderManager::pass_ss_sss() {
@@ -464,13 +464,13 @@ namespace rndr {
         if (!sss->init_data || !sss->enable)
             return;
 
-        gl_state_begin_event("pass_ss_sss");
+        gl_rend_state.begin_event("pass_ss_sss");
         rndr::Render* rend = render;
         extern bool reflect_full;
         if (reflect_full && pass_sw[rndr::RND_PASSID_REFLECT]
             && draw_pass_reflect_get_obj_reflect_surface()
             && disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS) && reflect_full_ptr) {
-            gl_state_begin_event("reflect");
+            gl_rend_state.begin_event("reflect");
             reflect_draw = true;
 
             rndr::Render* rend = render;
@@ -484,7 +484,7 @@ namespace rndr {
             //}
             //else {
             //    sss->textures[0].Bind();
-            //    gl_state_set_viewport(0, 0, 640, 360);
+            //    gl_rend_state.set_viewport(0, 0, 640, 360);
             //}
 
             glClearColorDLL(sss->param.x, sss->param.y, sss->param.z, 0.0f);
@@ -502,11 +502,11 @@ namespace rndr {
             set_reflect_mat(rctx);
 
             draw_state.shader_index = SHADER_FT_SSS_SKIN;
-            gl_state_enable_depth_test();
-            gl_state_set_depth_func(GL_LEQUAL);
-            gl_state_set_depth_mask(GL_TRUE);
+            gl_rend_state.enable_depth_test();
+            gl_rend_state.set_depth_func(GL_LEQUAL);
+            gl_rend_state.set_depth_mask(GL_TRUE);
             disp_manager->draw(mdl::OBJ_TYPE_SSS);
-            gl_state_disable_depth_test();
+            gl_rend_state.disable_depth_test();
             draw_state.shader_index = -1;
             draw_pass_3d_shadow_reset();
             uniform->arr[U_NPR] = 0;
@@ -521,12 +521,12 @@ namespace rndr {
                     refl_tex.SetViewport();
                     glClearDLL(GL_DEPTH_BUFFER_BIT);
                     draw_state.shader_index = SHADER_FT_SSS_SKIN;
-                    gl_state_enable_depth_test();
-                    gl_state_set_depth_mask(GL_TRUE);
+                    gl_rend_state.enable_depth_test();
+                    gl_rend_state.set_depth_mask(GL_TRUE);
                     disp_manager->draw(mdl::OBJ_TYPE_SSS);
-                    gl_state_disable_depth_test();
+                    gl_rend_state.disable_depth_test();
                     draw_state.shader_index = -1;
-                    gl_state_bind_framebuffer(0);
+                    gl_rend_state.bind_framebuffer(0);
                     uniform->arr[U_NPR] = 1;
                     draw_pass_sss_contour(rend);
                 }
@@ -534,7 +534,7 @@ namespace rndr {
 
             if (!sss->npr_contour) {
                 sss->textures[0].Bind();
-                gl_state_set_viewport(0, 0, 640, 360);
+                gl_rend_state.set_viewport(0, 0, 640, 360);
 
                 filter_scene_shader_data filter_scene = {};
                 filter_scene.g_transform = { 1.0f, 1.0f, 0.0f, 0.0f };
@@ -551,15 +551,15 @@ namespace rndr {
                 shaders_ft.set(SHADER_FT_IMGFILT);
                 rctx->filter_scene_ubo.Bind(0);
                 rctx->imgfilter_batch_ubo.Bind(1);
-                gl_state_active_bind_texture_2d(0, refl_tex.GetColorTex());
-                gl_state_bind_sampler(0, rctx->render_samplers[0]);
-                gl_state_bind_vertex_array(rctx->common_vao);
+                gl_rend_state.active_bind_texture_2d(0, refl_tex.GetColorTex());
+                gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
+                gl_rend_state.bind_vertex_array(rctx->common_vao);
                 shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
             }
 
             draw_pass_sss_filter(sss);
             reflect_draw = false;
-            gl_state_end_event();
+            gl_rend_state.end_event();
         }
 
         //if (rend->render_width > 1280.0)
@@ -571,7 +571,7 @@ namespace rndr {
         //}
         //else {
         //    sss->textures[0].Bind();
-        //    gl_state_set_viewport(0, 0, 640, 360);
+        //    gl_rend_state.set_viewport(0, 0, 640, 360);
         //}
 
         glClearColorDLL(sss->param.x, sss->param.y, sss->param.z, 0.0f);
@@ -587,11 +587,11 @@ namespace rndr {
             draw_pass_3d_shadow_reset();
 
         draw_state.shader_index = SHADER_FT_SSS_SKIN;
-        gl_state_enable_depth_test();
-        gl_state_set_depth_func(GL_LEQUAL);
-        gl_state_set_depth_mask(GL_TRUE);
+        gl_rend_state.enable_depth_test();
+        gl_rend_state.set_depth_func(GL_LEQUAL);
+        gl_rend_state.set_depth_mask(GL_TRUE);
         disp_manager->draw(mdl::OBJ_TYPE_SSS);
-        gl_state_disable_depth_test();
+        gl_rend_state.disable_depth_test();
         draw_state.shader_index = -1;
         draw_pass_3d_shadow_reset();
         uniform->arr[U_NPR] = 0;
@@ -606,12 +606,12 @@ namespace rndr {
                 rend->rend_texture[0].SetViewport();
                 glClearDLL(GL_DEPTH_BUFFER_BIT);
                 draw_state.shader_index = SHADER_FT_SSS_SKIN;
-                gl_state_enable_depth_test();
-                gl_state_set_depth_mask(GL_TRUE);
+                gl_rend_state.enable_depth_test();
+                gl_rend_state.set_depth_mask(GL_TRUE);
                 disp_manager->draw(mdl::OBJ_TYPE_SSS);
-                gl_state_disable_depth_test();
+                gl_rend_state.disable_depth_test();
                 draw_state.shader_index = -1;
-                gl_state_bind_framebuffer(0);
+                gl_rend_state.bind_framebuffer(0);
                 uniform->arr[U_NPR] = 1;
                 draw_pass_sss_contour(rend);
             }
@@ -619,7 +619,7 @@ namespace rndr {
 
         if (!sss->npr_contour) {
             sss->textures[0].Bind();
-            gl_state_set_viewport(0, 0, 640, 360);
+            gl_rend_state.set_viewport(0, 0, 640, 360);
 
             filter_scene_shader_data filter_scene = {};
             filter_scene.g_transform = { 1.0f, 1.0f, 0.0f, 0.0f };
@@ -636,16 +636,16 @@ namespace rndr {
             shaders_ft.set(SHADER_FT_IMGFILT);
             rctx->filter_scene_ubo.Bind(0);
             rctx->imgfilter_batch_ubo.Bind(1);
-            gl_state_active_bind_texture_2d(0, rend->rend_texture[0].GetColorTex());
-            gl_state_bind_sampler(0, rctx->render_samplers[0]);
-            gl_state_bind_vertex_array(rctx->common_vao);
+            gl_rend_state.active_bind_texture_2d(0, rend->rend_texture[0].GetColorTex());
+            gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
+            gl_rend_state.bind_vertex_array(rctx->common_vao);
             shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         }
 
         draw_pass_sss_filter(sss);
         shader::unbind();
-        gl_state_bind_framebuffer(0);
-        gl_state_end_event();
+        gl_rend_state.bind_framebuffer(0);
+        gl_rend_state.end_event();
     }
 
     void RenderManager::pass_reflect() {
@@ -655,7 +655,7 @@ namespace rndr {
             return;
         }
 
-        gl_state_begin_event("pass_reflect");
+        gl_rend_state.begin_event("pass_reflect");
         RenderTexture& refl_tex = render_manager.get_render_texture(0);
         RenderTexture& refl_buf_tex = rctx->reflect_buffer;
         refl_tex.Bind();
@@ -685,16 +685,16 @@ namespace rndr {
             uniform->arr[U_REFLECT] = 2;
             uniform->arr[U_CLIP_PLANE] = clip_plane.data[1];
 
-            gl_state_enable_depth_test();
-            gl_state_set_depth_func(GL_LEQUAL);
-            gl_state_set_depth_mask(GL_TRUE);
+            gl_rend_state.enable_depth_test();
+            gl_rend_state.set_depth_func(GL_LEQUAL);
+            gl_rend_state.set_depth_mask(GL_TRUE);
             disp_manager->draw(mdl::OBJ_TYPE_REFLECT_OPAQUE, 0, reflect_texture_mask);
             if (reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP) {
-                gl_state_enable_blend();
-                gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                gl_state_set_blend_equation(GL_FUNC_ADD);
+                gl_rend_state.enable_blend();
+                gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                gl_rend_state.set_blend_equation(GL_FUNC_ADD);
                 disp_manager->draw(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT);
-                gl_state_disable_blend();
+                gl_rend_state.disable_blend();
             }
 
             if (reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP) {
@@ -702,7 +702,7 @@ namespace rndr {
                 uniform->arr[U_CLIP_PLANE] = clip_plane.data[0];
                 disp_manager->draw(mdl::OBJ_TYPE_REFLECT_CHARA_OPAQUE);
             }
-            gl_state_disable_depth_test();
+            gl_rend_state.disable_depth_test();
             uniform->arr[U_REFLECT] = 0;
             draw_state.shader_index = -1;
 
@@ -720,19 +720,19 @@ namespace rndr {
             glClearColorDLL(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         }
         shader::unbind();
-        gl_state_bind_framebuffer(0);
-        gl_state_end_event();
+        gl_rend_state.bind_framebuffer(0);
+        gl_rend_state.end_event();
     }
 
     void RenderManager::pass_refract() {
-        gl_state_begin_event("pass_refract");
+        gl_rend_state.begin_event("pass_refract");
         RenderTexture& refract_texture = render_manager.get_render_texture(1);
         refract_texture.Bind();
         if (disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_OPAQUE)
             || disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_TRANSPARENT)
             || disp_manager->get_obj_count(mdl::OBJ_TYPE_REFRACT_TRANSLUCENT)) {
             texture* refr_tex = refract_texture.color_texture;
-            gl_state_set_viewport(0, 0, refr_tex->width, refr_tex->height);
+            gl_rend_state.set_viewport(0, 0, refr_tex->width, refr_tex->height);
 
             draw_pass_set_camera();
 
@@ -748,13 +748,13 @@ namespace rndr {
             glClearColorDLL(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 
             draw_state.shader_index = SHADER_FT_S_REFR;
-            gl_state_enable_depth_test();
-            gl_state_set_depth_func(GL_LEQUAL);
-            gl_state_set_depth_mask(GL_TRUE);
+            gl_rend_state.enable_depth_test();
+            gl_rend_state.set_depth_func(GL_LEQUAL);
+            gl_rend_state.set_depth_mask(GL_TRUE);
             disp_manager->draw(mdl::OBJ_TYPE_REFRACT_OPAQUE);
             disp_manager->draw(mdl::OBJ_TYPE_REFRACT_TRANSPARENT);
             disp_manager->draw(mdl::OBJ_TYPE_REFRACT_TRANSLUCENT);
-            gl_state_disable_depth_test();
+            gl_rend_state.disable_depth_test();
             draw_state.shader_index = -1;
         }
         else {
@@ -765,28 +765,28 @@ namespace rndr {
             glClearColorDLL(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         }
         shader::unbind();
-        gl_state_bind_framebuffer(0);
-        gl_state_end_event();
+        gl_rend_state.bind_framebuffer(0);
+        gl_rend_state.end_event();
     }
 
     void RenderManager::pass_pre_process() {
-        gl_state_begin_event("pass_pre_process");
+        gl_rend_state.begin_event("pass_pre_process");
         for (draw_pre_process& i : pre_process)
             if (i.func)
                 i.func(i.data);
         shader::unbind();
-        gl_state_bind_framebuffer(0);
-        gl_state_end_event();
+        gl_rend_state.bind_framebuffer(0);
+        gl_rend_state.end_event();
     }
 
     void RenderManager::pass_clear() {
-        gl_state_begin_event("pass_clear");
+        gl_rend_state.begin_event("pass_clear");
         if (clear) {
             rctx->screen_buffer.Bind();
             clear_color_set_gl();
             //glClearDLL(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glClearDLL(GL_COLOR_BUFFER_BIT);
-            gl_state_bind_framebuffer(0);
+            gl_rend_state.bind_framebuffer(0);
         }
 
         rndr::Render* rend = render;
@@ -796,7 +796,7 @@ namespace rndr {
                 glClearColorDLL(0.0f, 0.0f, 0.0f, 0.0f);
                 glClearDepthf(1.0f);
                 glClearDLL(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                gl_state_bind_framebuffer(0);
+                gl_rend_state.bind_framebuffer(0);
             }
             else {
                 clear_color_set_gl();
@@ -805,7 +805,7 @@ namespace rndr {
                     glClearDLL(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 else
                     glClearDLL(GL_DEPTH_BUFFER_BIT);
-                gl_state_bind_framebuffer(0);
+                gl_rend_state.bind_framebuffer(0);
             }
         }
         else {
@@ -813,44 +813,44 @@ namespace rndr {
                 rend->bind_render_texture();
                 glClearColorDLL(0.0f, 0.0f, 0.0f, 0.0f);
                 glClearDLL(GL_COLOR_BUFFER_BIT);
-                gl_state_bind_framebuffer(0);
+                gl_rend_state.bind_framebuffer(0);
             }
             else if (clear) {
                 rend->bind_render_texture();
                 clear_color_set_gl();
                 glClearDLL(GL_COLOR_BUFFER_BIT);
-                gl_state_bind_framebuffer(0);
+                gl_rend_state.bind_framebuffer(0);
             }
         }
 
-        gl_state_get_error();
-        gl_state_end_event();
+        gl_get_error_print();
+        gl_rend_state.end_event();
     }
 
     void RenderManager::pass_pre_sprite() {
         if (!sprite_manager_get_reqlist_count(2))
             return;
 
-        gl_state_begin_event("pass_pre_sprite");
+        gl_rend_state.begin_event("pass_pre_sprite");
         rndr::Render* rend = render;
         rend->bind_render_texture(true);
         glClearColorDLL(0.0f, 0.0f, 0.0f, 0.0f);
         glClearDLL(GL_COLOR_BUFFER_BIT);
         sprite_manager_set_view_projection(true);
-        gl_state_set_depth_mask(GL_FALSE);
-        gl_state_disable_depth_test();
-        gl_state_enable_blend();
-        gl_state_disable_cull_face();
+        gl_rend_state.set_depth_mask(GL_FALSE);
+        gl_rend_state.disable_depth_test();
+        gl_rend_state.enable_blend();
+        gl_rend_state.disable_cull_face();
         sprite_manager_draw(2, true,
             rend->temp_buffer.color_texture);
-        gl_state_enable_cull_face();
-        gl_state_disable_blend();
-        gl_state_enable_depth_test();
-        gl_state_set_depth_mask(GL_TRUE);
+        gl_rend_state.enable_cull_face();
+        gl_rend_state.disable_blend();
+        gl_rend_state.enable_depth_test();
+        gl_rend_state.set_depth_mask(GL_TRUE);
         shader::unbind();
-        gl_state_bind_framebuffer(0);
-        gl_state_get_error();
-        gl_state_end_event();
+        gl_rend_state.bind_framebuffer(0);
+        gl_get_error_print();
+        gl_rend_state.end_event();
     }
 
     void RenderManager::pass_3d() {
@@ -858,11 +858,11 @@ namespace rndr {
         draw_pass_set_camera();
         if (!sss_data_get()->enable || !sss_data_get()->npr_contour
             || draw_pass_3d_get_translucent_count()) {
-            gl_state_set_depth_mask(GL_TRUE);
+            gl_rend_state.set_depth_mask(GL_TRUE);
             glClearDLL(GL_DEPTH_BUFFER_BIT);
         }
 
-        gl_state_set_depth_func(GL_LEQUAL);
+        gl_rend_state.set_depth_func(GL_LEQUAL);
 
         for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
             lighting_set((light_set_id)i);
@@ -875,27 +875,27 @@ namespace rndr {
             draw_pass_3d_shadow_reset();
 
         if (effect_texture)
-            gl_state_active_bind_texture_2d(14, effect_texture->glid);
+            gl_rend_state.active_bind_texture_2d(14, effect_texture->glid);
         else
-            gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
+            gl_rend_state.active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
 
         if (pass_sw[RND_PASSID_REFLECT] && reflect) {
             extern bool reflect_full;
             RenderTexture& refl_tex = reflect_full && reflect_full_ptr
                 ? reflect_full_ptr->reflect_texture : get_render_texture(0);
-            gl_state_active_bind_texture_2d(15, refl_tex.GetColorTex());
+            gl_rend_state.active_bind_texture_2d(15, refl_tex.GetColorTex());
             uniform->arr[U_WATER_REFLECT] = 1;
         }
         else {
-            gl_state_active_bind_texture_2d(15, rctx->empty_texture_2d->glid);
+            gl_rend_state.active_bind_texture_2d(15, rctx->empty_texture_2d->glid);
             uniform->arr[U_WATER_REFLECT] = 0;
         }
 
         sss_data_get()->set_texture(1);
 
-        gl_state_bind_sampler(14, rctx->render_samplers[0]);
-        gl_state_bind_sampler(15, rctx->render_samplers[0]);
-        gl_state_bind_sampler(16, rctx->render_samplers[0]);
+        gl_rend_state.bind_sampler(14, rctx->render_samplers[0]);
+        gl_rend_state.bind_sampler(15, rctx->render_samplers[0]);
+        gl_rend_state.bind_sampler(16, rctx->render_samplers[0]);
 
         uniform->arr[U_STAGE_AMBIENT] = light_stage_ambient ? 1 : 0;
 
@@ -911,17 +911,17 @@ namespace rndr {
             disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_OPAQUE, 0);
 
         if (draw_pass_3d[DRAW_PASS_3D_OPAQUE]) {
-            gl_state_enable_depth_test();
-            gl_state_set_depth_mask(GL_TRUE);
+            gl_rend_state.enable_depth_test();
+            gl_rend_state.set_depth_mask(GL_TRUE);
             disp_manager->draw(mdl::OBJ_TYPE_OPAQUE);
-            gl_state_disable_depth_test();
+            gl_rend_state.disable_depth_test();
         }
 
         Glitter::glt_particle_manager->DispScenes(Glitter::DISP_OPAQUE);
         Glitter::glt_particle_manager_x->DispScenes(Glitter::DISP_OPAQUE);
 
-        gl_state_enable_depth_test();
-        gl_state_set_depth_mask(GL_TRUE);
+        gl_rend_state.enable_depth_test();
+        gl_rend_state.set_depth_mask(GL_TRUE);
         if (draw_pass_3d[DRAW_PASS_3D_TRANSPARENT])
             disp_manager->draw(mdl::OBJ_TYPE_TRANSPARENT);
         if (render_manager.field_120)
@@ -944,56 +944,56 @@ namespace rndr {
         rain_particle_draw();
         leaf_particle_draw();
         particle_draw();
-        gl_state_disable_depth_test();
+        gl_rend_state.disable_depth_test();
 
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
         Glitter::glt_particle_manager->DispScenes(Glitter::DISP_ALPHA);
         Glitter::glt_particle_manager_x->DispScenes(Glitter::DISP_ALPHA);
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         /*if (npr_param == 1) {
-            gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+            gl_rend_state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
             glClearColorDLL(0.0f, 0.0f, 0.0f, 0.0f);
             glClearDLL(GL_COLOR_BUFFER_BIT);
-            gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         }*/
 
-        gl_state_enable_depth_test();
+        gl_rend_state.enable_depth_test();
 
         if (draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT]) {
-            gl_state_enable_blend();
-            gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            gl_state_set_depth_mask(GL_FALSE);
+            gl_rend_state.enable_blend();
+            gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            gl_rend_state.set_depth_mask(GL_FALSE);
             disp_manager->draw(mdl::OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS);
             disp_manager->draw(mdl::OBJ_TYPE_TRANSLUCENT);
-            gl_state_disable_blend();
+            gl_rend_state.disable_blend();
         }
 
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // X
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // X
         Glitter::glt_particle_manager_x->DispScenes(Glitter::DISP_TYPE_2);
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-        gl_state_set_depth_mask(GL_TRUE);
+        gl_rend_state.set_depth_mask(GL_TRUE);
         draw_pass_3d_translucent(
             mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_2,
             mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2,
             mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2);
-        gl_state_disable_depth_test();
+        gl_rend_state.disable_depth_test();
 
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
         Glitter::glt_particle_manager->DispScenes(Glitter::DISP_NORMAL);
         Glitter::glt_particle_manager_x->DispScenes(Glitter::DISP_NORMAL);
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-        gl_state_enable_depth_test();
-        gl_state_set_depth_mask(GL_TRUE);
+        gl_rend_state.enable_depth_test();
+        gl_rend_state.set_depth_mask(GL_TRUE);
         draw_pass_3d_translucent(
             mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_1,
             mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1,
             mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1);
 
         if (Glitter::glt_particle_manager_x->CheckHasLocalEffect()) { // X
-            gl_state_begin_event("local");
+            gl_rend_state.begin_event("local");
 
             if (alpha_z_sort)
                 disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_LOCAL_TRANSLUCENT, 1, field_31F);
@@ -1007,30 +1007,30 @@ namespace rndr {
 
             disp_manager->draw(mdl::OBJ_TYPE_LOCAL_OPAQUE);
             disp_manager->draw(mdl::OBJ_TYPE_LOCAL_TRANSPARENT);
-            gl_state_enable_blend();
+            gl_rend_state.enable_blend();
             disp_manager->draw(mdl::OBJ_TYPE_LOCAL_TRANSLUCENT);
-            gl_state_disable_blend();
+            gl_rend_state.disable_blend();
 
-            gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+            gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
             Glitter::glt_particle_manager_x->DispScenes(Glitter::DISP_LOCAL);
-            gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
             camera_data.fov = fov;
 
-            gl_state_end_event();
+            gl_rend_state.end_event();
 
             draw_pass_set_camera();
         }
 
-        gl_state_active_bind_texture_2d(14, 0);
-        gl_state_active_bind_texture_2d(15, 0);
+        gl_rend_state.active_bind_texture_2d(14, 0);
+        gl_rend_state.active_bind_texture_2d(15, 0);
 
-        gl_state_disable_depth_test();
+        gl_rend_state.disable_depth_test();
 
         if (shadow)
             draw_pass_3d_shadow_reset();
         pass_sprite_surf();
         shader::unbind();
-        gl_state_bind_framebuffer(0);
+        gl_rend_state.bind_framebuffer(0);
     }
 
     void RenderManager::pass_show_vector() {
@@ -1038,7 +1038,7 @@ namespace rndr {
         /*if (!show_vector_flags)
             return;
 
-        gl_state_begin_event("pass_show_vector");
+        gl_rend_state.begin_event("pass_show_vector");
 
         render->bind_render_texture();
         draw_pass_set_camera();
@@ -1060,27 +1060,27 @@ namespace rndr {
             }
         }
         shader::unbind();
-        gl_state_bind_framebuffer(0);
-        gl_state_end_event();*/
+        gl_rend_state.bind_framebuffer(0);
+        gl_rend_state.end_event();*/
     }
 
     void RenderManager::pass_post_process() {
-        gl_state_begin_event("pass_post_process");
+        gl_rend_state.begin_event("pass_post_process");
 
         static texture* (FASTCALL * litproj_texture_get)() = (texture * (FASTCALL*)())0x0000000140350600;
         render->apply_post_process(litproj_texture_get(), npr_param);
-        gl_state_end_event();
+        gl_rend_state.end_event();
     }
 
     void RenderManager::pass_sprite() {
-        gl_state_begin_event("pass_sprite");
+        gl_rend_state.begin_event("pass_sprite");
         if (sprite_manager_get_reqlist_count(0)) {
             rndr::Render* rend = render;
-            gl_state_set_viewport(0, 0, rend->screen_width, rend->screen_height);
+            gl_rend_state.set_viewport(0, 0, rend->screen_width, rend->screen_height);
 
             if (multisample && multisample_framebuffer) {
-                gl_state_bind_framebuffer(multisample_framebuffer);
-                gl_state_enable_multisample();
+                gl_rend_state.bind_framebuffer(multisample_framebuffer);
+                gl_rend_state.enable_multisample();
                 glClearColorDLL(0.0f, 0.0f, 0.0f, 0.0f);
                 glClearDLL(GL_COLOR_BUFFER_BIT);
             }
@@ -1088,35 +1088,35 @@ namespace rndr {
                 rctx->screen_buffer.Bind();
 
             sprite_manager_set_view_projection(false);
-            gl_state_disable_depth_test();
-            gl_state_enable_blend();
-            gl_state_disable_cull_face();
+            gl_rend_state.disable_depth_test();
+            gl_rend_state.enable_blend();
+            gl_rend_state.disable_cull_face();
             sprite_manager_set_res((double_t)rctx->screen_width / (double_t)rctx->screen_height,
                 rctx->screen_width, rctx->screen_height);
             sprite_manager_draw(0, true,
                 rctx->screen_overlay_buffer.color_texture);
-            gl_state_enable_cull_face();
-            gl_state_disable_blend();
-            gl_state_enable_depth_test();
+            gl_rend_state.enable_cull_face();
+            gl_rend_state.disable_blend();
+            gl_rend_state.enable_depth_test();
 
             if (multisample && multisample_framebuffer) {
-                gl_state_bind_framebuffer(0);
-                gl_state_disable_multisample();
+                gl_rend_state.bind_framebuffer(0);
+                gl_rend_state.disable_multisample();
                 fbo_blit(multisample_framebuffer, rctx->screen_buffer.fbos[0],
                     0, 0, rctx->screen_width, rctx->screen_height,
                     0, 0, rctx->screen_width, rctx->screen_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             }
             shader::unbind();
 
-            gl_state_get_error();
+            gl_get_error_print();
         }
 
         fbo_blit(rctx->screen_buffer.fbos[0], 0,
             0, 0, rctx->screen_width, rctx->screen_height,
             0, 0, rctx->screen_width, rctx->screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-        gl_state_bind_framebuffer(0);
-        gl_state_end_event();
+        gl_rend_state.bind_framebuffer(0);
+        gl_rend_state.end_event();
     }
 
     void RenderManager::pass_3d_contour() {
@@ -1131,12 +1131,12 @@ namespace rndr {
             contour_rt = render->sss_contour_texture;
         }
 
-        gl_state_begin_event("`anonymous-namespace'::draw_npr_frame");
-        gl_state_enable_blend();
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-        gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        gl_state_set_blend_equation(GL_FUNC_ADD);
-        gl_state_disable_depth_test();
+        gl_rend_state.begin_event("`anonymous-namespace'::draw_npr_frame");
+        gl_rend_state.enable_blend();
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+        gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        gl_rend_state.set_blend_equation(GL_FUNC_ADD);
+        gl_rend_state.disable_depth_test();
 
         quad_shader_data quad_data = {};
         quad_data.g_texcoord_modifier = { 0.5f, 0.5f, 0.5f, 0.5f };
@@ -1147,26 +1147,26 @@ namespace rndr {
         rctx->contour_params_ubo.WriteMemory(contour_params_data);
 
         shaders_ft.set(SHADER_FT_CONTOUR_NPR);
-        gl_state_active_bind_texture_2d(14, rt->GetDepthTex());
-        gl_state_active_bind_texture_2d(16, contour_rt->GetColorTex());
-        gl_state_active_bind_texture_2d(17, contour_rt->GetDepthTex());
-        gl_state_bind_sampler(14, rctx->render_samplers[1]);
-        gl_state_bind_sampler(16, rctx->render_samplers[1]);
-        gl_state_bind_sampler(17, rctx->render_samplers[1]);
+        gl_rend_state.active_bind_texture_2d(14, rt->GetDepthTex());
+        gl_rend_state.active_bind_texture_2d(16, contour_rt->GetColorTex());
+        gl_rend_state.active_bind_texture_2d(17, contour_rt->GetDepthTex());
+        gl_rend_state.bind_sampler(14, rctx->render_samplers[1]);
+        gl_rend_state.bind_sampler(16, rctx->render_samplers[1]);
+        gl_rend_state.bind_sampler(17, rctx->render_samplers[1]);
         rctx->quad_ubo.Bind(0);
         rctx->contour_params_ubo.Bind(2);
-        gl_state_bind_vertex_array(rctx->common_vao);
+        gl_rend_state.bind_vertex_array(rctx->common_vao);
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
         if (effect_texture)
-            gl_state_active_bind_texture_2d(14, effect_texture->glid);
+            gl_rend_state.active_bind_texture_2d(14, effect_texture->glid);
         else
-            gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
-        gl_state_bind_sampler(14, rctx->render_samplers[0]);
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        gl_state_enable_depth_test();
-        gl_state_disable_blend();
-        gl_state_end_event();
+            gl_rend_state.active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
+        gl_rend_state.bind_sampler(14, rctx->render_samplers[0]);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        gl_rend_state.enable_depth_test();
+        gl_rend_state.disable_blend();
+        gl_rend_state.end_event();
     }
 
     void RenderManager::pass_sprite_surf() {
@@ -1176,11 +1176,11 @@ namespace rndr {
         rndr::Render* rend = render;
 
         sprite_manager_set_view_projection(false);
-        gl_state_set_depth_mask(GL_FALSE);
-        gl_state_disable_depth_test();
-        gl_state_disable_depth_test();
-        gl_state_enable_blend();
-        gl_state_disable_cull_face();
+        gl_rend_state.set_depth_mask(GL_FALSE);
+        gl_rend_state.disable_depth_test();
+        gl_rend_state.disable_depth_test();
+        gl_rend_state.enable_blend();
+        gl_rend_state.disable_cull_face();
         sprite_manager_draw(1, true,
             rend->temp_buffer.color_texture);
     }
@@ -1190,7 +1190,7 @@ void image_filter_scale(RenderTexture* dst, texture* src, const vec4& scale) {
     if (!dst || !dst->color_texture->glid || !dst->color_texture || !src || !src->glid)
         return;
 
-    gl_state_begin_event("`anonymous-namespace'::Impl::apply_no_filter_sub");
+    gl_rend_state.begin_event("`anonymous-namespace'::Impl::apply_no_filter_sub");
 
     dst->Bind();
     dst->SetViewport();
@@ -1210,11 +1210,11 @@ void image_filter_scale(RenderTexture* dst, texture* src, const vec4& scale) {
     shaders_ft.set(SHADER_FT_IMGFILT);
     rctx->filter_scene_ubo.Bind(0);
     rctx->imgfilter_batch_ubo.Bind(1);
-    gl_state_active_bind_texture_2d(0, src->glid);
-    gl_state_bind_sampler(0, rctx->render_samplers[0]);
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.active_bind_texture_2d(0, src->glid);
+    gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-    gl_state_end_event();
+    gl_rend_state.end_event();
 }
 
 void draw_pass_set_camera() {
@@ -1387,15 +1387,15 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, i
     shad->curr_render_textures[0]->Bind();
     shad->curr_render_textures[0]->SetViewport();
     texture* tex = shad->curr_render_textures[0]->color_texture;
-    gl_state_set_scissor(0, 0, tex->width, tex->height);
-    gl_state_enable_depth_test();
-    gl_state_enable_scissor_test();
+    gl_rend_state.set_scissor(0, 0, tex->width, tex->height);
+    gl_rend_state.enable_depth_test();
+    gl_rend_state.enable_scissor_test();
     glClearColorDLL(1.0, 1.0, 1.0, 1.0);
     if (!a3)
         glClearDLL(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     else if (shad->separate)
         glClearDLL(GL_COLOR_BUFFER_BIT);
-    gl_state_set_scissor(1, 1, tex->width - 2, tex->height - 2);
+    gl_rend_state.set_scissor(1, 1, tex->width - 2, tex->height - 2);
 
     float_t shadow_range = shad->get_shadow_range();
     float_t offset;
@@ -1428,8 +1428,8 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, i
 }
 
 static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int32_t a3) {
-    gl_state_disable_depth_test();
-    gl_state_disable_scissor_test();
+    gl_rend_state.disable_depth_test();
+    gl_rend_state.disable_scissor_test();
 
     draw_state.shader_index = -1;
     if (a3 == shad->num_shadow - 1) {
@@ -1459,10 +1459,10 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int
         glClearDLL(GL_COLOR_BUFFER_BIT);
     }
 
-    gl_state_bind_framebuffer(0);
-    gl_state_bind_texture_2d(rend_tex->GetColorTex());
+    gl_rend_state.bind_framebuffer(0);
+    gl_rend_state.bind_texture_2d(rend_tex->GetColorTex());
     glGenerateMipmap(GL_TEXTURE_2D);
-    gl_state_bind_texture_2d(0);
+    gl_rend_state.bind_texture_2d(0);
 }
 
 static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
@@ -1476,7 +1476,7 @@ static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
     if (!v7 || !v9 || !v11 || v7->width != v9->width || v7->height != v9->height)
         return;
 
-    gl_state_begin_event("`anonymous-namespace'::Impl::apply_esm_filter");
+    gl_rend_state.begin_event("`anonymous-namespace'::Impl::apply_esm_filter");
     filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = 0.0f;
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
@@ -1494,13 +1494,13 @@ static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
     rctx->filter_scene_ubo.Bind(0);
     rctx->esm_filter_batch_ubo.Bind(1);
 
-    gl_state_set_viewport(0, 0, v7->width, v7->height);
+    gl_rend_state.set_viewport(0, 0, v7->width, v7->height);
 
     a2->Bind();
     esm_filter_batch.g_params = { 1.0f / (float_t)v7->width, 0.0f, far_texel_offset, far_texel_offset };
     rctx->esm_filter_batch_ubo.WriteMemory(esm_filter_batch);
 
-    gl_state_active_bind_texture_2d(0, v11->glid);
+    gl_rend_state.active_bind_texture_2d(0, v11->glid);
     if (a3) {
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
@@ -1509,8 +1509,8 @@ static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
         GLint swizzle[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
     }
-    gl_state_bind_sampler(0, rctx->render_samplers[0]);
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
     a1->Bind();
@@ -1518,25 +1518,25 @@ static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
     esm_filter_batch.g_params = { 0.0f, 1.0f / (float_t)v7->height, far_texel_offset, far_texel_offset };
     rctx->esm_filter_batch_ubo.WriteMemory(esm_filter_batch);
 
-    gl_state_active_bind_texture_2d(0, v9->glid);
-    gl_state_bind_sampler(0, rctx->render_samplers[0]);
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.active_bind_texture_2d(0, v9->glid);
+    gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
     shader::unbind();
-    gl_state_end_event();
+    gl_rend_state.end_event();
 }
 
 static void draw_pass_shadow_esm_filter(RenderTexture* dst, RenderTexture* buf, RenderTexture* src) {
     texture* dst_tex = dst->color_texture;
     texture* buf_tex = buf->color_texture;
     texture* src_tex = src->color_texture;
-    gl_state_begin_event("`anonymous-namespace'::Impl::apply_esm_min_filter");
+    gl_rend_state.begin_event("`anonymous-namespace'::Impl::apply_esm_min_filter");
     if (!dst_tex || !dst_tex->glid || !buf_tex || !buf_tex->glid || !src_tex || !src_tex->glid) {
-        gl_state_end_event();
+        gl_rend_state.end_event();
         return;
     }
 
-    gl_state_begin_event("minimize");
+    gl_rend_state.begin_event("minimize");
     filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = 0.0f;
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
@@ -1549,7 +1549,7 @@ static void draw_pass_shadow_esm_filter(RenderTexture* dst, RenderTexture* buf, 
     rctx->filter_scene_ubo.Bind(0);
     rctx->esm_filter_batch_ubo.Bind(1);
 
-    gl_state_set_viewport(0, 0, dst_tex->width, dst_tex->height);
+    gl_rend_state.set_viewport(0, 0, dst_tex->width, dst_tex->height);
 
     buf->Bind();
     esm_filter_batch.g_params = { 1.0f / (float_t)src_tex->width,
@@ -1558,13 +1558,13 @@ static void draw_pass_shadow_esm_filter(RenderTexture* dst, RenderTexture* buf, 
 
     uniform->arr[U_ESM_FILTER] = 0;
     shaders_ft.set(SHADER_FT_ESMFILT);
-    gl_state_active_bind_texture_2d(0, src_tex->glid);
-    gl_state_bind_sampler(0, rctx->render_samplers[0]);
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.active_bind_texture_2d(0, src_tex->glid);
+    gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-    gl_state_end_event();
+    gl_rend_state.end_event();
 
-    gl_state_begin_event("erosion");
+    gl_rend_state.begin_event("erosion");
     dst->Bind();
     esm_filter_batch.g_params = { 0.75f / (float_t)buf_tex->width,
         0.75f / (float_t)buf_tex->height, 0.0f, 0.0f };
@@ -1572,12 +1572,12 @@ static void draw_pass_shadow_esm_filter(RenderTexture* dst, RenderTexture* buf, 
 
     uniform->arr[U_ESM_FILTER] = 1;
     shaders_ft.set(SHADER_FT_ESMFILT);
-    gl_state_active_bind_texture_2d(0, buf_tex->glid);
-    gl_state_bind_sampler(0, rctx->render_samplers[0]);
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.active_bind_texture_2d(0, buf_tex->glid);
+    gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-    gl_state_end_event();
-    gl_state_end_event();
+    gl_rend_state.end_event();
+    gl_rend_state.end_event();
 }
 
 static bool draw_pass_shadow_litproj() {
@@ -1590,22 +1590,22 @@ static bool draw_pass_shadow_litproj() {
 
     litproj_texture->Bind();
     litproj_texture->SetViewport();
-    gl_state_enable_depth_test();
+    gl_rend_state.enable_depth_test();
     glClearColorDLL(0.0f, 0.0f, 0.0f, 0.0f);
     glClearDepthf(1.0f);
     glClearDLL(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (!draw_pass_shadow_litproj_set_mat(true)) {
-        gl_state_bind_framebuffer(0);
+        gl_rend_state.bind_framebuffer(0);
         return false;
     }
 
     draw_state.shader_index = SHADER_FT_LITPROJ;
-    gl_state_active_bind_texture_2d(17, tex->glid);
-    gl_state_bind_sampler(17, rctx->render_samplers[2]);
-    gl_state_active_bind_texture_2d(18, litproj_shadow[0].GetColorTex());
-    gl_state_bind_sampler(18, rctx->render_samplers[2]);
-    gl_state_active_texture(0);
+    gl_rend_state.active_bind_texture_2d(17, tex->glid);
+    gl_rend_state.bind_sampler(17, rctx->render_samplers[2]);
+    gl_rend_state.active_bind_texture_2d(18, litproj_shadow[0].GetColorTex());
+    gl_rend_state.bind_sampler(18, rctx->render_samplers[2]);
+    gl_rend_state.active_texture(0);
     return true;
 }
 
@@ -1617,9 +1617,9 @@ static bool draw_pass_shadow_litproj_set() {
     static const GLfloat depth_clear = 1.0f;
 
     litproj_shadow[0].Bind();
-    gl_state_set_viewport(0, 0, 2048, 512);
-    gl_state_enable_depth_test();
-    gl_state_set_depth_mask(GL_TRUE);
+    gl_rend_state.set_viewport(0, 0, 2048, 512);
+    gl_rend_state.enable_depth_test();
+    gl_rend_state.set_depth_mask(GL_TRUE);
     glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
     glClearBufferfv(GL_DEPTH, 0, &depth_clear);
 
@@ -1631,8 +1631,8 @@ static bool draw_pass_shadow_litproj_set() {
     else {
         litproj_texture->Bind();
         litproj_texture->SetViewport();
-        gl_state_enable_depth_test();
-        gl_state_set_depth_mask(GL_TRUE);
+        gl_rend_state.enable_depth_test();
+        gl_rend_state.set_depth_mask(GL_TRUE);
         glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
         glClearBufferfv(GL_DEPTH, 0, &depth_clear);
     }
@@ -1693,25 +1693,25 @@ static void draw_pass_sss_contour(rndr::Render* rend) {
     else
         rend->sss_contour_texture->Bind();
 
-    gl_state_enable_depth_test();
-    gl_state_set_depth_func(GL_ALWAYS);
-    gl_state_set_depth_mask(GL_TRUE);
+    gl_rend_state.enable_depth_test();
+    gl_rend_state.set_depth_func(GL_ALWAYS);
+    gl_rend_state.set_depth_mask(GL_TRUE);
     if (reflect_draw) {
         RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
-        gl_state_set_viewport(0, 0, refl_tex.GetWidth(), refl_tex.GetHeight());
-        gl_state_active_bind_texture_2d(0, refl_tex.GetColorTex());
-        gl_state_bind_sampler(0, rctx->render_samplers[1]);
-        gl_state_active_bind_texture_2d(1, refl_tex.GetDepthTex());
-        gl_state_bind_sampler(1, rctx->render_samplers[1]);
+        gl_rend_state.set_viewport(0, 0, refl_tex.GetWidth(), refl_tex.GetHeight());
+        gl_rend_state.active_bind_texture_2d(0, refl_tex.GetColorTex());
+        gl_rend_state.bind_sampler(0, rctx->render_samplers[1]);
+        gl_rend_state.active_bind_texture_2d(1, refl_tex.GetDepthTex());
+        gl_rend_state.bind_sampler(1, rctx->render_samplers[1]);
     }
     else {
-        gl_state_set_viewport(0, 0, rend->render_width[0], rend->render_height[0]);
-        gl_state_active_bind_texture_2d(0, rend->rend_texture[0].GetColorTex());
-        gl_state_bind_sampler(0, rctx->render_samplers[1]);
-        gl_state_active_bind_texture_2d(1, rend->rend_texture[0].GetDepthTex());
-        gl_state_bind_sampler(1, rctx->render_samplers[1]);
+        gl_rend_state.set_viewport(0, 0, rend->render_width[0], rend->render_height[0]);
+        gl_rend_state.active_bind_texture_2d(0, rend->rend_texture[0].GetColorTex());
+        gl_rend_state.bind_sampler(0, rctx->render_samplers[1]);
+        gl_rend_state.active_bind_texture_2d(1, rend->rend_texture[0].GetDepthTex());
+        gl_rend_state.bind_sampler(1, rctx->render_samplers[1]);
     }
-    gl_state_active_texture(0);
+    gl_rend_state.active_texture(0);
 
     float_t v3 = 1.0f / tanf(camera_data.fov * 0.5f * DEG_TO_RAD_FLOAT);
 
@@ -1824,27 +1824,27 @@ static void draw_pass_sss_filter(sss_data* sss) {
         v33 = max_def(v34 - 0.02f, 0.0f) * 8.0f * 0.6f;
     rctx->set_batch_sss_param({ v33, 0.0f, 0.0f, 0.0f });
 
-    gl_state_active_texture(0);
+    gl_rend_state.active_texture(0);
     if (sss->npr_contour) {
         sss->textures[0].Bind();
-        gl_state_set_viewport(0, 0, 640, 360);
+        gl_rend_state.set_viewport(0, 0, 640, 360);
         rndr::Render* rend = render_get();
         uniform->arr[U_REDUCE] = 0;
         shaders_ft.set(SHADER_FT_REDUCE);
         RenderTexture& rt = reflect_draw
             ? reflect_full_ptr->reflect_texture
             : rend->rend_texture[0];
-        gl_state_bind_texture_2d(rt.GetColorTex());
-        gl_state_bind_sampler(0, rctx->render_samplers[0]);
+        gl_rend_state.bind_texture_2d(rt.GetColorTex());
+        gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
         render_get()->draw_quad(rt.GetWidth(), rt.GetHeight(), 1.0f, 1.0f,
             0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     }
     sss->textures[2].Bind();
-    gl_state_set_viewport(0, 0, 320, 180);
+    gl_rend_state.set_viewport(0, 0, 320, 180);
     uniform->arr[U_SSS_FILTER] = 0;
     shaders_ft.set(SHADER_FT_SSS_FILT);
-    gl_state_bind_texture_2d(sss->textures[0].GetColorTex());
-    gl_state_bind_sampler(0, rctx->render_samplers[0]);
+    gl_rend_state.bind_texture_2d(sss->textures[0].GetColorTex());
+    gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
     render_get()->draw_quad(sss->textures[0].GetWidth(), sss->textures[0].GetHeight(),
         1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
 
@@ -1859,15 +1859,15 @@ static void draw_pass_sss_filter(sss_data* sss) {
 
     rctx->sss_filter_gaussian_coef_ubo.WriteMemory(shader_data);
     sss->textures[reflect_draw ? 3 : 1].Bind();
-    gl_state_set_viewport(0, 0, 320, 180);
+    gl_rend_state.set_viewport(0, 0, 320, 180);
     uniform->arr[U_SSS_FILTER] = 3;
     shaders_ft.set(SHADER_FT_SSS_FILT);
-    gl_state_bind_texture_2d(sss->textures[2].GetColorTex());
-    gl_state_bind_sampler(0, rctx->render_samplers[0]);
+    gl_rend_state.bind_texture_2d(sss->textures[2].GetColorTex());
+    gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
     rctx->sss_filter_gaussian_coef_ubo.Bind(1);
     render_get()->draw_quad(sss->textures[2].GetWidth(), sss->textures[2].GetHeight(),
         1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
-    gl_state_bind_texture_2d(0);
+    gl_rend_state.bind_texture_2d(0);
 }
 
 static int32_t draw_pass_3d_get_translucent_count() {
@@ -1885,8 +1885,8 @@ static int32_t draw_pass_3d_get_translucent_count() {
 }
 
 static void draw_pass_3d_shadow_reset() {
-    gl_state_active_bind_texture_2d(6, rctx->empty_texture_2d->glid);
-    gl_state_active_bind_texture_2d(7, rctx->empty_texture_2d->glid);
+    gl_rend_state.active_bind_texture_2d(6, rctx->empty_texture_2d->glid);
+    gl_rend_state.active_bind_texture_2d(7, rctx->empty_texture_2d->glid);
     draw_state.self_shadow = false;
     draw_state.shadow = false;
 }
@@ -1894,22 +1894,22 @@ static void draw_pass_3d_shadow_reset() {
 static void draw_pass_3d_shadow_set(Shadow* shad) {
     float_t esm_param;
     if (shad->self_shadow && shad->num_shadow > 0) {
-        gl_state_active_bind_texture_2d(19, shad->render_textures[3].GetColorTex());
-        gl_state_active_bind_texture_2d(20, shad->render_textures[5].GetColorTex());
-        gl_state_active_texture(0);
+        gl_rend_state.active_bind_texture_2d(19, shad->render_textures[3].GetColorTex());
+        gl_rend_state.active_bind_texture_2d(20, shad->render_textures[5].GetColorTex());
+        gl_rend_state.active_texture(0);
         esm_param = (shad->field_2D8 * shad->field_208 * 2.0f) * 1.442695f;
         draw_state.self_shadow = true;
     }
     else {
-        gl_state_active_bind_texture_2d(19, rctx->empty_texture_2d->glid);
-        gl_state_active_bind_texture_2d(20, rctx->empty_texture_2d->glid);
-        gl_state_active_texture(0);
+        gl_rend_state.active_bind_texture_2d(19, rctx->empty_texture_2d->glid);
+        gl_rend_state.active_bind_texture_2d(20, rctx->empty_texture_2d->glid);
+        gl_rend_state.active_texture(0);
         esm_param = 0.0f;
         draw_state.self_shadow = false;
     }
 
-    gl_state_bind_sampler(19, rctx->render_samplers[0]);
-    gl_state_bind_sampler(20, rctx->render_samplers[0]);
+    gl_rend_state.bind_sampler(19, rctx->render_samplers[0]);
+    gl_rend_state.bind_sampler(20, rctx->render_samplers[0]);
 
     mat4 mats[2];
     mats[0] = mat4_identity;
@@ -1955,14 +1955,14 @@ static void draw_pass_3d_shadow_set(Shadow* shad) {
         int32_t j = 0;
         for (int32_t i = 0; i < 2; i++)
             if (shad->shadow_enable[i]) {
-                gl_state_active_bind_texture_2d(6 + j, shad->curr_render_textures[1 + i]->GetColorTex());
+                gl_rend_state.active_bind_texture_2d(6 + j, shad->curr_render_textures[1 + i]->GetColorTex());
                 glTexParameterfDLL(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
                 j++;
             }
 
         for (; j < 2; j++)
-            gl_state_active_bind_texture_2d(6 + j, rctx->empty_texture_2d->glid);
-        gl_state_active_texture(0);
+            gl_rend_state.active_bind_texture_2d(6 + j, rctx->empty_texture_2d->glid);
+        gl_rend_state.active_texture(0);
 
         light_set* set = &light_set_data[LIGHT_SET_MAIN];
         light_data* data = &set->lights[LIGHT_SHADOW];
@@ -1980,8 +1980,8 @@ static void draw_pass_3d_shadow_set(Shadow* shad) {
         draw_state.shadow = false;
 
         for (int32_t i = 0; i < 2; i++)
-            gl_state_active_bind_texture_2d(6 + i, shad->curr_render_textures[1 + i]->GetColorTex());
-        gl_state_active_texture(0);
+            gl_rend_state.active_bind_texture_2d(6 + i, shad->curr_render_textures[1 + i]->GetColorTex());
+        gl_rend_state.active_texture(0);
 
         shadow_ambient = 1.0f;
         shadow_ambient1 = 0.0f;
@@ -1989,8 +1989,8 @@ static void draw_pass_3d_shadow_set(Shadow* shad) {
 
     rctx->set_scene_shadow_params(esm_param, mats, shadow_ambient, shadow_ambient1);
 
-    gl_state_bind_sampler(6, 0);
-    gl_state_bind_sampler(7, 0);
+    gl_rend_state.bind_sampler(6, 0);
+    gl_rend_state.bind_sampler(7, 0);
 }
 
 static void draw_pass_3d_translucent(mdl::ObjType opaque,
@@ -2013,9 +2013,9 @@ static void draw_pass_3d_translucent(mdl::ObjType opaque,
         if (render_manager.draw_pass_3d[DRAW_PASS_3D_TRANSPARENT] && disp_manager->get_obj_count(transparent))
             disp_manager->draw(transparent, 0, true, alpha);
         if (render_manager.draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT] && disp_manager->get_obj_count(translucent)) {
-            gl_state_enable_blend();
+            gl_rend_state.enable_blend();
             disp_manager->draw(translucent, 0, true, alpha);
-            gl_state_disable_blend();
+            gl_rend_state.disable_blend();
         }
         rend->transparency_combine((float_t)alpha * (float_t)(1.0 / 255.0));
     }
@@ -2058,7 +2058,7 @@ static void draw_pass_3d_translucent_has_objects(bool* arr, mdl::ObjType type) {
 }
 
 static void draw_pass_reflect_full(rndr::RenderManager& render_manager) {
-    gl_state_begin_event("pass_reflect");
+    gl_rend_state.begin_event("pass_reflect");
     RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
     RenderTexture& refl_buf_tex = reflect_full_ptr->reflect_buffer_texture;
     refl_tex.Bind();
@@ -2073,7 +2073,7 @@ static void draw_pass_reflect_full(rndr::RenderManager& render_manager) {
         if (!sss_data_get()->enable || !sss_data_get()->npr_contour)
             glClearDLL(GL_DEPTH_BUFFER_BIT);
 
-        gl_state_set_depth_func(GL_LEQUAL);
+        gl_rend_state.set_depth_func(GL_LEQUAL);
 
         for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
             lighting_set((light_set_id)i);
@@ -2086,10 +2086,10 @@ static void draw_pass_reflect_full(rndr::RenderManager& render_manager) {
         else
             glClearDLL(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        gl_state_enable_depth_test();
-        gl_state_set_depth_func(GL_LEQUAL);
-        gl_state_set_depth_mask(GL_TRUE);
-        gl_state_set_cull_face_mode(GL_FRONT);
+        gl_rend_state.enable_depth_test();
+        gl_rend_state.set_depth_func(GL_LEQUAL);
+        gl_rend_state.set_depth_mask(GL_TRUE);
+        gl_rend_state.set_cull_face_mode(GL_FRONT);
 
         reflect_draw = true;
         draw_state.shader_index = -1;
@@ -2104,17 +2104,17 @@ static void draw_pass_reflect_full(rndr::RenderManager& render_manager) {
             draw_pass_3d_shadow_reset();
 
         if (render_manager.effect_texture)
-            gl_state_active_bind_texture_2d(14, render_manager.effect_texture->glid);
+            gl_rend_state.active_bind_texture_2d(14, render_manager.effect_texture->glid);
         else
-            gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
+            gl_rend_state.active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
 
         uniform->arr[U_WATER_REFLECT] = 0;
 
         sss_data_get()->set_texture(3);
 
-        gl_state_bind_sampler(14, rctx->render_samplers[0]);
-        gl_state_bind_sampler(15, rctx->render_samplers[0]);
-        gl_state_bind_sampler(16, rctx->render_samplers[0]);
+        gl_rend_state.bind_sampler(14, rctx->render_samplers[0]);
+        gl_rend_state.bind_sampler(15, rctx->render_samplers[0]);
+        gl_rend_state.bind_sampler(16, rctx->render_samplers[0]);
 
         uniform->arr[U_STAGE_AMBIENT] = render_manager.light_stage_ambient ? 1 : 0;
 
@@ -2132,63 +2132,63 @@ static void draw_pass_reflect_full(rndr::RenderManager& render_manager) {
 
         uniform->arr[U_REFLECT] = 1;
         if (render_manager.draw_pass_3d[DRAW_PASS_3D_OPAQUE]) {
-            gl_state_enable_depth_test();
-            gl_state_set_depth_mask(GL_TRUE);
+            gl_rend_state.enable_depth_test();
+            gl_rend_state.set_depth_mask(GL_TRUE);
             disp_manager->draw(mdl::OBJ_TYPE_REFLECT_OPAQUE);
-            gl_state_disable_depth_test();
+            gl_rend_state.disable_depth_test();
         }
 
         Glitter::glt_particle_manager_x->DispScenes(Glitter::DISP_OPAQUE);
 
-        gl_state_enable_depth_test();
-        gl_state_set_depth_mask(GL_TRUE);
+        gl_rend_state.enable_depth_test();
+        gl_rend_state.set_depth_mask(GL_TRUE);
         if (render_manager.draw_pass_3d[DRAW_PASS_3D_TRANSPARENT])
             disp_manager->draw(mdl::OBJ_TYPE_REFLECT_TRANSPARENT);
 
         if (render_manager.npr_param == 1)
             render_manager.pass_3d_contour();
 
-        gl_state_disable_depth_test();
+        gl_rend_state.disable_depth_test();
 
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
         Glitter::glt_particle_manager_x->DispScenes(Glitter::DISP_ALPHA);
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         /*if (npr_param == 1) {
-            gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+            gl_rend_state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT);
-            gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         }*/
 
-        gl_state_enable_depth_test();
+        gl_rend_state.enable_depth_test();
 
         if (render_manager.draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT]) {
-            gl_state_enable_blend();
-            gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            gl_state_set_depth_mask(GL_FALSE);
+            gl_rend_state.enable_blend();
+            gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            gl_rend_state.set_depth_mask(GL_FALSE);
             disp_manager->draw(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS);
             disp_manager->draw(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT);
-            gl_state_disable_blend();
+            gl_rend_state.disable_blend();
         }
 
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // X
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // X
         Glitter::glt_particle_manager_x->DispScenes(Glitter::DISP_TYPE_2);
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        gl_state_disable_depth_test();
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        gl_rend_state.disable_depth_test();
 
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
         Glitter::glt_particle_manager_x->DispScenes(Glitter::DISP_NORMAL);
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-        gl_state_active_bind_texture_2d(14, 0);
-        gl_state_active_bind_texture_2d(15, 0);
+        gl_rend_state.active_bind_texture_2d(14, 0);
+        gl_rend_state.active_bind_texture_2d(15, 0);
 
         if (render_manager.shadow)
             draw_pass_3d_shadow_reset();
 
-        gl_state_set_cull_face_mode(GL_BACK);
-        gl_state_disable_depth_test();
+        gl_rend_state.set_cull_face_mode(GL_BACK);
+        gl_rend_state.disable_depth_test();
 
         reflect_full_ptr->dof->apply(&refl_tex, &refl_buf_tex);
 
@@ -2213,8 +2213,8 @@ static void draw_pass_reflect_full(rndr::RenderManager& render_manager) {
         glClearColorDLL(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
     }
     shader::unbind();
-    gl_state_bind_framebuffer(0);
-    gl_state_end_event();
+    gl_rend_state.bind_framebuffer(0);
+    gl_rend_state.end_event();
 }
 
 static bool draw_pass_reflect_get_obj_reflect_surface() {
@@ -2255,7 +2255,7 @@ static void blur_filter_apply(RenderTexture* dst, RenderTexture* src,
     if (!dst || !src)
         return;
 
-    gl_state_begin_event("`anonymous-namespace'::Impl::apply_blur_filter_sub");
+    gl_rend_state.begin_event("`anonymous-namespace'::Impl::apply_blur_filter_sub");
 
     dst->Bind();
     dst->SetViewport();
@@ -2277,14 +2277,14 @@ static void blur_filter_apply(RenderTexture* dst, RenderTexture* src,
     rctx->imgfilter_batch_ubo.WriteMemory(imgfilter_batch);
 
     uniform->arr[U_IMAGE_FILTER] = filter == BLUR_FILTER_32 ? 1 : 0;
-    gl_state_bind_vertex_array(rctx->box_vao);
+    gl_rend_state.bind_vertex_array(rctx->box_vao);
     shaders_ft.set(SHADER_FT_IMGFILT);
     rctx->filter_scene_ubo.Bind(0);
     rctx->imgfilter_batch_ubo.Bind(1);
-    gl_state_active_bind_texture_2d(0, src->GetColorTex());
-    gl_state_bind_sampler(0, rctx->render_samplers[0]);
+    gl_rend_state.active_bind_texture_2d(0, src->GetColorTex());
+    gl_rend_state.bind_sampler(0, rctx->render_samplers[0]);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, (GLint)(filter * 4LL), 4);
-    gl_state_end_event();
+    gl_rend_state.end_event();
 }
 
 static void fog_set(fog_id id) {
@@ -2591,7 +2591,7 @@ static void render_manager_init_render_textures(int32_t multisample) {
         glGenFramebuffers(1, &render_manager.multisample_framebuffer);
         glGenRenderbuffers(1, &render_manager.multisample_renderbuffer);
 
-        gl_state_bind_framebuffer(render_manager.multisample_framebuffer);
+        gl_rend_state.bind_framebuffer(render_manager.multisample_framebuffer);
         glBindRenderbuffer(GL_RENDERBUFFER, render_manager.multisample_renderbuffer);
         glRenderbufferStorageMultisample(GL_RENDERBUFFER, 8,
             GL_RGBA8, render_manager.width, render_manager.height);
@@ -2599,7 +2599,7 @@ static void render_manager_init_render_textures(int32_t multisample) {
             GL_RENDERBUFFER, render_manager.multisample_renderbuffer);
         glDrawBufferDLL(GL_COLOR_ATTACHMENT0);
         glDrawBufferDLL(GL_COLOR_ATTACHMENT0);
-        gl_state_bind_framebuffer(0);
+        gl_rend_state.bind_framebuffer(0);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
         if (glGetErrorDLL()) {
@@ -2622,7 +2622,7 @@ static void render_manager_init_render_textures(int32_t multisample) {
         glClearColorDLL(0.0f, 0.0f, 0.0f, 0.0f);
         glClearDLL(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
-    gl_state_bind_framebuffer(0);
+    gl_rend_state.bind_framebuffer(0);
 }
 
 static void set_reflect_mat(render_context* rctx) {

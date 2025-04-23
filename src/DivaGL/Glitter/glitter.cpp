@@ -4,7 +4,7 @@
 */
 
 #include "glitter.hpp"
-#include "../gl_state.hpp"
+#include "../gl_rend_state.hpp"
 #include "../wrap.hpp"
 #include <Helpers.h>
 
@@ -21,7 +21,7 @@ namespace Glitter {
         buffer = (Buffer*)_operator_new(sizeof(Buffer) * max_count);
 
         glGenVertexArrays(1, &vao);
-        gl_state_bind_vertex_array(vao, true);
+        gl_rend_state.bind_vertex_array(vao, true);
 
         static const GLsizei buffer_size = sizeof(Buffer);
 
@@ -54,10 +54,10 @@ namespace Glitter {
         glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
             (void*)offsetof(Buffer, color));
 
-        gl_state_bind_array_buffer(0);
-        gl_state_bind_vertex_array(0);
+        gl_rend_state.bind_array_buffer(0);
+        gl_rend_state.bind_vertex_array(0);
         if (is_quad)
-            gl_state_bind_element_array_buffer(0);
+            gl_rend_state.bind_element_array_buffer(0);
     }
 
     void DeleteBuffer(Buffer*& buffer, GLuint& vao, GL::ArrayBuffer& vbo, GL::ElementArrayBuffer& ebo) {

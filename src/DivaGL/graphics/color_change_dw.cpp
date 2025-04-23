@@ -6,7 +6,8 @@
 #include "color_change_dw.hpp"
 #include "../../AFTModsShared/dw.hpp"
 #include "../rob/rob.hpp"
-#include "../gl_state.hpp"
+#include "../gl_rend_state.hpp"
+#include "../shared.hpp"
 #include "../texture.hpp"
 #include <Helpers.h>
 
@@ -120,7 +121,7 @@ HOOK(void, FASTCALL, ColorChangeDw__Draw, 0x00000001402C2170, ColorChangeDw* Thi
                 else
                     dxt5_image_apply_color_tone(width_align, height_align, size, (dxt5_block*)data, col_tone);
 
-                gl_state_bind_texture_2d(org_tex->glid);
+                gl_rend_state.bind_texture_2d(org_tex->glid);
                 int32_t width = chg_tex->get_width_mip_level(i);
                 int32_t height = chg_tex->get_height_mip_level(i);
                 glCompressedTexSubImage2D(org_tex->target, i, 0, 0, width, height,
@@ -129,16 +130,16 @@ HOOK(void, FASTCALL, ColorChangeDw__Draw, 0x00000001402C2170, ColorChangeDw* Thi
             else if (chg_tex->internal_format == GL_RGB5) {
                 rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, col_tone);
 
-                gl_state_bind_texture_2d(org_tex->glid);
+                gl_rend_state.bind_texture_2d(org_tex->glid);
                 int32_t width = chg_tex->get_width_mip_level(i);
                 int32_t height = chg_tex->get_height_mip_level(i);
                 glTexSubImage2DDLL(org_tex->target, i, 0, 0, width, height,
                     GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
             }
-            gl_state_get_error();
+            gl_get_error_print();
             prj::HeapCMallocFree(prj::HeapCMallocTemp, data);
         }
-        gl_state_bind_texture_2d(0);
+        gl_rend_state.bind_texture_2d(0);
     }
 
     if (This->show) {
@@ -280,12 +281,12 @@ bool ColorChangeDw::LoadTexture() {
 
                 int32_t width_align = org_tex->get_width_align_mip_level(i);
                 int32_t height_align = org_tex->get_height_align_mip_level(i);
-                gl_state_bind_texture_2d(org_tex->glid);
+                gl_rend_state.bind_texture_2d(org_tex->glid);
                 if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION)
                     glGetCompressedTexImage(org_tex->target, i, data);
                 else
                     glGetTexImageDLL(org_tex->target, i, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
-                gl_state_get_error();
+                gl_get_error_print();
                 vec_data.push_back(data);
             }
 

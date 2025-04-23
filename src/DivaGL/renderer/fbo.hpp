@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../gl_state.hpp"
+#include "../gl_rend_state.hpp"
 #include "../shared.hpp"
 
 namespace renderer {
@@ -29,7 +29,7 @@ namespace renderer {
         void free();
 
         inline void bind_buffer() {
-            gl_state_bind_framebuffer(buffer);
+            gl_rend_state.bind_framebuffer(buffer);
         }
     };
 

@@ -79,14 +79,14 @@ int32_t Shadow::init() {
             return -1;
 
     for (int32_t i = 0; i < 3; i++) {
-        gl_state_bind_texture_2d(render_textures[i].GetColorTex());
+        gl_rend_state.bind_texture_2d(render_textures[i].GetColorTex());
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         static const vec4 border_color = 1.0f;
         glTexParameterfvDLL(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
     }
-    gl_state_bind_texture_2d(0);
-    gl_state_get_error();
+    gl_rend_state.bind_texture_2d(0);
+    gl_get_error_print();
     return 0;
 }
 

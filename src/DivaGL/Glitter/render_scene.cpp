@@ -4,7 +4,7 @@
 */
 
 #include "glitter.hpp"
-#include "../gl_state.hpp"
+#include "../gl_rend_state.hpp"
 #include "../render_context.hpp"
 #include "../shader_ft.hpp"
 #include "../wrap.hpp"
@@ -137,8 +137,8 @@ namespace Glitter {
             break;
         }
 
-        gl_state_set_blend_func(blend_src, blend_dst);
-        gl_state_set_blend_equation(GL_FUNC_ADD);
+        gl_rend_state.set_blend_func(blend_src, blend_dst);
+        gl_rend_state.set_blend_equation(GL_FUNC_ADD);
 
         GLuint texture = rctx->empty_texture_2d->glid;
         GLuint mask_texture = rctx->empty_texture_2d->glid;
@@ -170,8 +170,8 @@ namespace Glitter {
             uniform->arr[U_TEXTURE_BLEND] = 0;
         }
 
-        gl_state_active_bind_texture_2d(0, texture);
-        gl_state_active_bind_texture_2d(1, mask_texture);
+        gl_rend_state.active_bind_texture_2d(0, texture);
+        gl_rend_state.active_bind_texture_2d(1, mask_texture);
 
         switch (rend_group->type) {
         case PARTICLE_QUAD:
@@ -187,55 +187,55 @@ namespace Glitter {
                 break;
             }
 
-            gl_state_enable_depth_test();
+            gl_rend_state.enable_depth_test();
 
             if (alpha_test) {
                 uniform->arr[U_ALPHA_TEST] = 1;
                 rctx->set_batch_alpha_threshold(0.5f);
                 uniform->arr[U_ALPHA_BLEND] = 1;
-                gl_state_set_depth_mask(GL_TRUE);
-                gl_state_disable_blend();
+                gl_rend_state.set_depth_mask(GL_TRUE);
+                gl_rend_state.disable_blend();
             }
             else if (rend_group->disp_type) {
                 uniform->arr[U_ALPHA_TEST] = 0;
                 uniform->arr[U_ALPHA_BLEND] = 2;
-                gl_state_set_depth_mask(GL_FALSE);
-                gl_state_enable_blend();
+                gl_rend_state.set_depth_mask(GL_FALSE);
+                gl_rend_state.enable_blend();
             }
             else {
                 uniform->arr[U_ALPHA_TEST] = 0;
                 uniform->arr[U_ALPHA_BLEND] = 0;
-                gl_state_set_depth_mask(GL_TRUE);
-                gl_state_disable_blend();
+                gl_rend_state.set_depth_mask(GL_TRUE);
+                gl_rend_state.disable_blend();
             }
 
             if (rend_group->draw_type == DIRECTION_BILLBOARD) {
-                gl_state_enable_cull_face();
-                gl_state_set_cull_face_mode(GL_BACK);
+                gl_rend_state.enable_cull_face();
+                gl_rend_state.set_cull_face_mode(GL_BACK);
             }
             else
-                gl_state_disable_cull_face();
+                gl_rend_state.disable_cull_face();
             break;
         case PARTICLE_LINE:
             uniform->arr[U_ALPHA_TEST] = 0;
             uniform->arr[U_ALPHA_BLEND] = 2;
             uniform->arr[U_FOG_STAGE] = 0;
 
-            gl_state_enable_depth_test();
-            gl_state_set_depth_mask(GL_FALSE);
-            gl_state_enable_blend();
-            gl_state_enable_cull_face();
-            gl_state_set_cull_face_mode(GL_BACK);
+            gl_rend_state.enable_depth_test();
+            gl_rend_state.set_depth_mask(GL_FALSE);
+            gl_rend_state.enable_blend();
+            gl_rend_state.enable_cull_face();
+            gl_rend_state.set_cull_face_mode(GL_BACK);
             break;
         case PARTICLE_LOCUS:
             uniform->arr[U_ALPHA_TEST] = 0;
             uniform->arr[U_ALPHA_BLEND] = 2;
             uniform->arr[U_FOG_STAGE] = 0;
 
-            gl_state_enable_depth_test();
-            gl_state_set_depth_mask(GL_FALSE);
-            gl_state_enable_blend();
-            gl_state_disable_cull_face();
+            gl_rend_state.enable_depth_test();
+            gl_rend_state.set_depth_mask(GL_FALSE);
+            gl_rend_state.enable_blend();
+            gl_rend_state.disable_cull_face();
             break;
         }
 
@@ -244,18 +244,18 @@ namespace Glitter {
         rctx->glitter_batch_ubo.Bind(3);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
-            gl_state_bind_vertex_array(rend_group->vao);
+            gl_rend_state.bind_vertex_array(rend_group->vao);
             shaders_ft.enable_primitive_restart();
             shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
             shaders_ft.disable_primitive_restart();
             break;
         case PARTICLE_LINE:
-            gl_state_bind_vertex_array(rend_group->vao);
+            gl_rend_state.bind_vertex_array(rend_group->vao);
             for (std::pair<GLint, GLsizei>& i : *rend_group->draw_list)
                 shaders_ft.draw_arrays(GL_LINE_STRIP, i.first, i.second);
             break;
         case PARTICLE_LOCUS:
-            gl_state_bind_vertex_array(rend_group->vao);
+            gl_rend_state.bind_vertex_array(rend_group->vao);
             for (std::pair<GLint, GLsizei>& i : *rend_group->draw_list)
                 shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
             break;
@@ -1854,8 +1854,8 @@ namespace Glitter {
             break;
         }
 
-        gl_state_set_blend_func(blend_src, blend_dst);
-        gl_state_set_blend_equation(GL_FUNC_ADD);
+        gl_rend_state.set_blend_func(blend_src, blend_dst);
+        gl_rend_state.set_blend_equation(GL_FUNC_ADD);
 
         GLuint texture = rctx->empty_texture_2d->glid;
         GLuint mask_texture = rctx->empty_texture_2d->glid;
@@ -1887,8 +1887,8 @@ namespace Glitter {
             uniform->arr[U_TEXTURE_BLEND] = 0;
         }
 
-        gl_state_active_bind_texture_2d(0, texture);
-        gl_state_active_bind_texture_2d(1, mask_texture);
+        gl_rend_state.active_bind_texture_2d(0, texture);
+        gl_rend_state.active_bind_texture_2d(1, mask_texture);
 
         switch (rend_group->fog_type) {
         default:
@@ -1903,54 +1903,54 @@ namespace Glitter {
         }
 
         if (!(rend_group->flags & PARTICLE_DEPTH_TEST))
-            gl_state_enable_depth_test();
+            gl_rend_state.enable_depth_test();
         else
-            gl_state_disable_depth_test();
+            gl_rend_state.disable_depth_test();
 
         if (alpha_test) {
             uniform->arr[U_ALPHA_TEST] = 1;
             rctx->set_batch_alpha_threshold(0.5f);
             uniform->arr[U_ALPHA_BLEND] = rend_group->disp_type ? 3 : 1;
-            gl_state_set_depth_mask(GL_TRUE);
-            gl_state_disable_blend();
+            gl_rend_state.set_depth_mask(GL_TRUE);
+            gl_rend_state.disable_blend();
         }
         else if (rend_group->disp_type) {
             uniform->arr[U_ALPHA_TEST] = 0;
             uniform->arr[U_ALPHA_BLEND] = 2;
-            gl_state_set_depth_mask(GL_FALSE);
-            gl_state_enable_blend();
+            gl_rend_state.set_depth_mask(GL_FALSE);
+            gl_rend_state.enable_blend();
         }
         else {
             uniform->arr[U_ALPHA_TEST] = 0;
             uniform->arr[U_ALPHA_BLEND] = 0;
-            gl_state_set_depth_mask(GL_TRUE);
-            gl_state_disable_blend();
+            gl_rend_state.set_depth_mask(GL_TRUE);
+            gl_rend_state.disable_blend();
         }
 
         if (rend_group->draw_type == DIRECTION_BILLBOARD && !rend_group->use_culling) {
-            gl_state_enable_cull_face();
-            gl_state_set_cull_face_mode(GL_BACK);
+            gl_rend_state.enable_cull_face();
+            gl_rend_state.set_cull_face_mode(GL_BACK);
         }
         else
-            gl_state_disable_cull_face();
+            gl_rend_state.disable_cull_face();
 
         shaders_ft.set(SHADER_FT_GLITTER_PT);
         rctx->set_glitter_render_data();
         rctx->glitter_batch_ubo.Bind(3);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
-            gl_state_bind_vertex_array(rend_group->vao);
+            gl_rend_state.bind_vertex_array(rend_group->vao);
             shaders_ft.enable_primitive_restart();
             shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
             shaders_ft.disable_primitive_restart();
             break;
         case PARTICLE_LINE:
-            gl_state_bind_vertex_array(rend_group->vao);
+            gl_rend_state.bind_vertex_array(rend_group->vao);
             for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
                 shaders_ft.draw_arrays(GL_LINE_STRIP, i.first, i.second);
             break;
         case PARTICLE_LOCUS:
-            gl_state_bind_vertex_array(rend_group->vao);
+            gl_rend_state.bind_vertex_array(rend_group->vao);
             for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
                 shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
             break;

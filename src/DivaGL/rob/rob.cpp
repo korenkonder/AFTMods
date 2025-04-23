@@ -6,7 +6,7 @@
 #include "rob.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../mdl/disp_manager.hpp"
-#include "../gl_state.hpp"
+#include "../gl_rend_state.hpp"
 #include "../object.hpp"
 #include "../render_manager.hpp"
 #include <Helpers.h>

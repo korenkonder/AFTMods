@@ -41,7 +41,7 @@ namespace renderer {
             textures[count] = depth_texture;
 
         glGenFramebuffers(1, &buffer);
-        gl_state_bind_framebuffer(buffer, true);
+        gl_rend_state.bind_framebuffer(buffer, true);
         for (int32_t i = 0; i < count; i++)
             glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, textures[i], 0);
 
@@ -53,7 +53,7 @@ namespace renderer {
             color_attachments[i] = GL_COLOR_ATTACHMENT0 + i;
         glDrawBuffers(count, color_attachments);
         glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        gl_state_bind_framebuffer(0);
+        gl_rend_state.bind_framebuffer(0);
     }
 #pragma warning(pop)
 

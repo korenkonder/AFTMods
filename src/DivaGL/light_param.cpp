@@ -247,13 +247,13 @@ void light_param_data_storage_data_set_ibl() {
     };
 
     for (int32_t i = 0; i < 5; i++)
-        gl_state_active_bind_texture_cube_map(ibl_texture_index[i],
+        gl_rend_state.active_bind_texture_cube_map(ibl_texture_index[i],
             light_param_data_storage_data->textures[i]);
 }
 
 void light_param_data::set_ibl(const light_param_data_ibl* ibl, const light_param_data_storage* storage) {
     for (int32_t i = 0, j = -1; i < 5; i++, j++) {
-        gl_state_bind_texture_cube_map(storage->textures[i]);
+        gl_rend_state.bind_texture_cube_map(storage->textures[i]);
         glTexParameteriDLL(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteriDLL(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteriDLL(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -279,7 +279,7 @@ void light_param_data::set_ibl(const light_param_data_ibl* ibl, const light_para
             light_param_data::set_ibl_specular(&ibl->specular[j]);
         }
     }
-    gl_state_bind_texture_cube_map(0);
+    gl_rend_state.bind_texture_cube_map(0);
 
     ::light_set* set = &light_set_data[LIGHT_SET_MAIN];
     set->set_irradiance(ibl->diff_coef[1][0], ibl->diff_coef[1][1], ibl->diff_coef[1][2]);

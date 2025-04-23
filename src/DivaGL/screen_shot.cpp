@@ -4,7 +4,7 @@
 */
 
 #include "screen_shot.hpp"
-#include "gl_state.hpp"
+#include "gl_rend_state.hpp"
 #include "render_context.hpp"
 #include "shader_ft.hpp"
 #include "texture.hpp"
@@ -62,9 +62,9 @@ HOOK(bool, FASTCALL, sub_1401898E0, 0x00000001401898E0, __int64 a1, texture* tex
     struc_21 v9 = {};
     sub_140188010(&v9, tex->width, tex->height, 1);
 
-    gl_state_bind_texture_2d(tex->glid);
+    gl_rend_state.bind_texture_2d(tex->glid);
     glGetTexImageDLL(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, sub_140188410(&v9));
-    gl_state_bind_texture_2d(0);
+    gl_rend_state.bind_texture_2d(0);
 
     struc_21 v10 = {};
     sub_140188100(&v9, sub_140189B10(&v9, &v10, false, true));
@@ -75,7 +75,7 @@ HOOK(bool, FASTCALL, sub_1401898E0, 0x00000001401898E0, __int64 a1, texture* tex
 }
 
 HOOK(void, FASTCALL, ScreenShotImpl__get_data, 0x0000000140557F50, ScreenShotImpl* impl) {
-    gl_state_active_bind_texture_2d(0, impl->tex->glid);
+    gl_rend_state.active_bind_texture_2d(0, impl->tex->glid);
     glCopyTexSubImage2DDLL(GL_TEXTURE_2D, 0, 0, 0, 0, 0, impl->width, impl->height);
 
     float_t ratio = (float_t)(impl->curr_height * impl->curr_width) / (float_t)(impl->width * impl->height);
@@ -98,20 +98,20 @@ HOOK(void, FASTCALL, ScreenShotImpl__get_data, 0x0000000140557F50, ScreenShotImp
     rctx->quad_ubo.WriteMemory(quad);
     rctx->quad_ubo.Bind(0);
 
-    gl_state_disable_depth_test();
-    gl_state_disable_blend();
-    gl_state_disable_cull_face();
-    gl_state_set_viewport(0, 0, impl->curr_width, impl->curr_height);
+    gl_rend_state.disable_depth_test();
+    gl_rend_state.disable_blend();
+    gl_rend_state.disable_cull_face();
+    gl_rend_state.set_viewport(0, 0, impl->curr_width, impl->curr_height);
 
     shaders_ft.set(SHADER_FT_REDUCE);
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-    gl_state_bind_vertex_array(0);
+    gl_rend_state.bind_vertex_array(0);
     shader::unbind();
 
-    gl_state_enable_cull_face();
-    gl_state_enable_blend();
-    gl_state_enable_depth_test();
+    gl_rend_state.enable_cull_face();
+    gl_rend_state.enable_blend();
+    gl_rend_state.enable_depth_test();
 }
 
 HOOK(void, FASTCALL, ScreenShotData__get_data, 0x0000000140557BE0, ScreenShotData* data) {

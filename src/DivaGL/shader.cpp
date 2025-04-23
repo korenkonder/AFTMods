@@ -9,8 +9,9 @@
 #include "../KKdLib/prj/vector_pair.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
-#include "gl_state.hpp"
+#include "gl_rend_state.hpp"
 #include "print.hpp"
+#include "shared.hpp"
 #include "wrap.hpp"
 #include <shlobj_core.h>
 
@@ -59,7 +60,7 @@ int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
     GLuint program = sub_shader->programs[unival_shad];
     set->curr_program = program;
 
-    gl_state_use_program(program);
+    gl_rend_state.use_program(program);
     return 0;
 }
 
@@ -444,7 +445,7 @@ char* shader::parse_include(char* data, farc* f) {
 }
 
 void shader::unbind() {
-    gl_state_use_program(0);
+    gl_rend_state.use_program(0);
 }
 
 shader_set_data::shader_set_data() : size(), shaders(), curr_program(),
@@ -805,13 +806,13 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                             if (programs[k] && samplers.size()) {
                                 GLuint program = programs[k];
 
-                                gl_state_use_program(program);
+                                gl_rend_state.use_program(program);
                                 for (auto& i : samplers) {
                                     GLint loc = glGetUniformLocation(program, i.second.c_str());
                                     if (loc != -1)
                                         glUniform1i(loc, i.first);
                                 }
-                                gl_state_use_program(0);
+                                gl_rend_state.use_program(0);
                             }
 
                             if (programs[k] && uniforms.size()) {
@@ -870,13 +871,13 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                         if (programs[0] && samplers.size()) {
                             GLuint program = programs[0];
 
-                            gl_state_use_program(program);
+                            gl_rend_state.use_program(program);
                             for (auto& i : samplers) {
                                 GLint loc = glGetUniformLocation(program, i.second.c_str());
                                 if (loc != -1)
                                     glUniform1i(loc, i.first);
                             }
-                            gl_state_use_program(0);
+                            gl_rend_state.use_program(0);
                         }
 
                         if (programs[0] && uniforms.size()) {
@@ -1129,7 +1130,7 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
         return 0;
     }
     else {
-        gl_state_get_all_gl_errors();
+        gl_get_error_all_print();
         return program;
     }
 }
@@ -1203,13 +1204,13 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
         return 0;
     }
     else {
-        gl_state_get_all_gl_errors();
+        gl_get_error_all_print();
 
         GLenum binary_format = 0x0;
         GLsizei length = 0;
         while (*buffer_size < 0x7FFFFFF) {
             glGetProgramBinary(program, *buffer_size, &length, &binary_format, *binary);
-            if (!gl_state_get_error())
+            if (!gl_get_error_print())
                 break;
 
             free_def(*binary);
@@ -1249,11 +1250,11 @@ static bool shader_update_data(shader_set_data* set) {
         return false;
 
     if (set->primitive_restart) {
-        gl_state_enable_primitive_restart();
-        gl_state_set_primitive_restart_index(set->primitive_restart_index);
+        gl_rend_state.enable_primitive_restart();
+        gl_rend_state.set_primitive_restart_index(set->primitive_restart_index);
     }
     else
-        gl_state_disable_primitive_restart();
+        gl_rend_state.disable_primitive_restart();
 
     return true;
 }

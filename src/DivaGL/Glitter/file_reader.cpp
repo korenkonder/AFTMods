@@ -8,7 +8,7 @@
 #include "../../KKdLib/farc.hpp"
 #include "../rob/rob.hpp"
 #if SHARED_GLITTER_BUFFER
-#include "../gl_state.hpp"
+#include "../gl_rend_state.hpp"
 #endif
 
 namespace Glitter {
@@ -151,10 +151,10 @@ namespace Glitter {
                             k->buffer = buffer;
 
                             glGenVertexArrays(1, &k->vao);
-                            gl_state_bind_vertex_array(k->vao, true);
-                            gl_state_bind_array_buffer(vbo, true);
+                            gl_rend_state.bind_vertex_array(k->vao, true);
+                            gl_rend_state.bind_array_buffer(vbo, true);
                             if (k->data.type == PARTICLE_QUAD)
-                                gl_state_bind_element_array_buffer(ebo, true);
+                                gl_rend_state.bind_element_array_buffer(ebo, true);
 
                             glEnableVertexAttribArray(0);
                             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
@@ -174,9 +174,9 @@ namespace Glitter {
                     }
                 }
 
-                gl_state_bind_array_buffer(0);
-                gl_state_bind_vertex_array(0);
-                gl_state_bind_element_array_buffer(0);
+                gl_rend_state.bind_array_buffer(0);
+                gl_rend_state.bind_vertex_array(0);
+                gl_rend_state.bind_element_array_buffer(0);
             }
             else {
                 free_def(effect_group->buffer);

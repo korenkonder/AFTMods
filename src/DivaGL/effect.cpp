@@ -14,7 +14,7 @@
 #include "GL/uniform_buffer.hpp"
 #include "rob/rob.hpp"
 #include "auth_3d.hpp"
-#include "gl_state.hpp"
+#include "gl_rend_state.hpp"
 #include "render_context.hpp"
 #include "render_manager.hpp"
 #include "render_texture.hpp"
@@ -438,7 +438,7 @@ struct EffectStorage {
         if (DIVA_GL_VERSION_4_3)
             ssbo.Bind(index, force);
         else
-            gl_state_bind_vertex_array(vao);
+            gl_rend_state.bind_vertex_array(vao);
     }
 
     void Create(size_t size, size_t count, const EffectStorageAttrib* attribs) {
@@ -450,7 +450,7 @@ struct EffectStorage {
             return;
 
         glGenVertexArrays(1, &vao);
-        gl_state_bind_vertex_array(vao, true);
+        gl_rend_state.bind_vertex_array(vao, true);
 
         vbo.Create(size * count);
         vbo.Bind(true);
@@ -464,8 +464,8 @@ struct EffectStorage {
             attrib++;
         }
 
-        gl_state_bind_array_buffer(0);
-        gl_state_bind_vertex_array(0);
+        gl_rend_state.bind_array_buffer(0);
+        gl_rend_state.bind_vertex_array(0);
     }
 
     void Create(size_t size, size_t count, const EffectStorageAttrib* attribs,
@@ -478,7 +478,7 @@ struct EffectStorage {
             return;
 
         glGenVertexArrays(1, &vao);
-        gl_state_bind_vertex_array(vao, true);
+        gl_rend_state.bind_vertex_array(vao, true);
 
         vbo.Create(size * count, data, true);
         vbo.Bind(true);
@@ -492,8 +492,8 @@ struct EffectStorage {
             attrib++;
         }
 
-        gl_state_bind_array_buffer(0);
-        gl_state_bind_vertex_array(0);
+        gl_rend_state.bind_array_buffer(0);
+        gl_rend_state.bind_vertex_array(0);
     }
 
     void Destroy() {
@@ -683,12 +683,12 @@ void leaf_particle_draw() {
         &shader_data.g_lit_dir, &shader_data.g_lit_luce, 0, 0);
     leaf_particle_scene_ubo.WriteMemory(shader_data);
 
-    gl_state_active_bind_texture_2d(0, tex->glid);
+    gl_rend_state.active_bind_texture_2d(0, tex->glid);
     shaders_ft.set(SHADER_FT_LEAF_PT);
     leaf_particle_scene_ubo.Bind(0);
-    gl_state_bind_vertex_array(leaf_ptcl_vao);
+    gl_rend_state.bind_vertex_array(leaf_ptcl_vao);
     shaders_ft.draw_elements(GL_TRIANGLES, count / 4 * 6, GL_UNSIGNED_INT, 0);
-    gl_state_bind_vertex_array(0);
+    gl_rend_state.bind_vertex_array(0);
 }
 
 void rain_particle_draw() {
@@ -722,11 +722,11 @@ void rain_particle_draw() {
     scene_shader_data.g_range_offset = { range_offset.x, range_offset.y, range_offset.z, 0.0f };
     rain_particle_scene_ubo.WriteMemory(scene_shader_data);
 
-    gl_state_enable_blend();
-    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    gl_state_enable_depth_test();
-    gl_state_set_depth_mask(GL_FALSE);
-    gl_state_active_bind_texture_2d(0, tex->glid);
+    gl_rend_state.enable_blend();
+    gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gl_rend_state.enable_depth_test();
+    gl_rend_state.set_depth_mask(GL_FALSE);
+    gl_rend_state.active_bind_texture_2d(0, tex->glid);
     shaders_ft.set(SHADER_FT_RAIN);
 
     float_t tangent_sign = -rain->psize.x;
@@ -737,7 +737,7 @@ void rain_particle_draw() {
 
     vec4 color = rain->color;
     float_t color_a = color.w;
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     rain_particle_scene_ubo.Bind(0);
     rain_particle_batch_ubo.Bind(1);
     rain_storage.Bind(0);
@@ -754,10 +754,10 @@ void rain_particle_draw() {
         rain_particle_batch_ubo.WriteMemory(batch_shader_data);
         rain_storage.Draw(GL_TRIANGLES, first, count);
     }
-    gl_state_bind_vertex_array(0);
-    gl_state_active_bind_texture_2d(0, 0);
-    gl_state_set_depth_mask(GL_TRUE);
-    gl_state_disable_blend();
+    gl_rend_state.bind_vertex_array(0);
+    gl_rend_state.active_bind_texture_2d(0, 0);
+    gl_rend_state.set_depth_mask(GL_TRUE);
+    gl_rend_state.disable_blend();
 }
 
 void particle_draw() {
@@ -791,9 +791,9 @@ void particle_draw() {
 
     shaders_ft.set(SHADER_FT_PARTICL);
     particle_scene_ubo.Bind(0);
-    gl_state_bind_vertex_array(ptcl_vao);
+    gl_rend_state.bind_vertex_array(ptcl_vao);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
-    gl_state_bind_vertex_array(0);
+    gl_rend_state.bind_vertex_array(0);
 }
 
 void snow_particle_draw() {
@@ -807,10 +807,10 @@ void snow_particle_draw() {
     stage_param_data_snow* snow = stage_param_data_snow_current;
     draw_pass_set_camera();
 
-    gl_state_enable_blend();
-    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    gl_state_enable_depth_test();
-    gl_state_set_depth_mask(GL_FALSE);
+    gl_rend_state.enable_blend();
+    gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gl_rend_state.enable_depth_test();
+    gl_rend_state.set_depth_mask(GL_FALSE);
 
     float_t point_attenuation = powf(tanf((float_t)camera_data.fov
         * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.1f;
@@ -843,9 +843,9 @@ void snow_particle_draw() {
     snow_batch.start_vertex_location.x = 0;
     snow_particle_batch_ubo.WriteMemory(snow_batch);
 
-    gl_state_active_bind_texture_2d(0, tex->glid);
-    gl_state_active_bind_texture_2d(1, render_get()->rend_texture[0].GetDepthTex());
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.active_bind_texture_2d(0, tex->glid);
+    gl_rend_state.active_bind_texture_2d(1, render_get()->rend_texture[0].GetDepthTex());
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
 
     uniform->arr[U_SNOW_PARTICLE] = 0;
     shaders_ft.set(SHADER_FT_SNOW_PT);
@@ -891,12 +891,12 @@ void snow_particle_draw() {
         first += count;
     }
 
-    gl_state_active_bind_texture_2d(1, 0);
-    gl_state_active_bind_texture_2d(0, 0);
+    gl_rend_state.active_bind_texture_2d(1, 0);
+    gl_rend_state.active_bind_texture_2d(0, 0);
 
-    gl_state_disable_depth_test();
-    gl_state_set_depth_mask(GL_TRUE);
-    gl_state_disable_blend();
+    gl_rend_state.disable_depth_test();
+    gl_rend_state.set_depth_mask(GL_TRUE);
+    gl_rend_state.disable_blend();
 }
 
 void star_catalog_draw() {
@@ -1054,7 +1054,7 @@ HOOK(void, FASTCALL, leaf_particle_init, 0x000000014034C530, bool change_stage) 
     leaf_ptcl_vbo.Create(buffer_size * leaf_ptcl_vtx_count);
     leaf_ptcl_vbo.Bind();
 
-    gl_state_bind_vertex_array(leaf_ptcl_vao);
+    gl_rend_state.bind_vertex_array(leaf_ptcl_vao);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(leaf_particle_vertex_data, position));
@@ -1068,9 +1068,9 @@ HOOK(void, FASTCALL, leaf_particle_init, 0x000000014034C530, bool change_stage) 
     leaf_ptcl_ebo.Create(sizeof(uint32_t) * ebo_count, ebo_data);
     leaf_ptcl_ebo.Bind();
 
-    gl_state_bind_vertex_array(0);
-    gl_state_bind_array_buffer(0);
-    gl_state_bind_element_array_buffer(0);
+    gl_rend_state.bind_vertex_array(0);
+    gl_rend_state.bind_array_buffer(0);
+    gl_rend_state.bind_element_array_buffer(0);
     free_def(ebo_data);
 
     leaf_particle_scene_ubo.Create(sizeof(leaf_particle_scene_shader_data));
@@ -1121,7 +1121,7 @@ HOOK(void, FASTCALL, particle_init, 0x0000000140351C50, vec3* offset) {
     ptcl_vbo.Create(buffer_size * ptcl_vtx_count);
     ptcl_vbo.Bind();
 
-    gl_state_bind_vertex_array(ptcl_vao);
+    gl_rend_state.bind_vertex_array(ptcl_vao);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(particle_vertex_data, position));
@@ -1135,8 +1135,8 @@ HOOK(void, FASTCALL, particle_init, 0x0000000140351C50, vec3* offset) {
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(particle_vertex_data, normal));
 
-    gl_state_bind_vertex_array(0);
-    gl_state_bind_array_buffer(0);
+    gl_rend_state.bind_vertex_array(0);
+    gl_rend_state.bind_array_buffer(0);
 
     particle_scene_ubo.Create(sizeof(particle_scene_shader_data));
 }
@@ -1576,16 +1576,16 @@ void EffectFogRing::draw() {
     draw_state.set_fog_height(true);
     RenderTexture& rt = render_manager.get_render_texture(8);
     rt.Bind();
-    gl_state_set_viewport(0, 0,
+    gl_rend_state.set_viewport(0, 0,
         rt.color_texture->get_width_align_mip_level(),
         rt.color_texture->get_height_align_mip_level());
     glClearColorDLL(density_offset, density_offset, density_offset, 1.0f);
     glClearDLL(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (disp_manager->get_obj_count(mdl::OBJ_TYPE_USER))
         disp_manager->draw(mdl::OBJ_TYPE_USER);
-    gl_state_bind_framebuffer(0);
+    gl_rend_state.bind_framebuffer(0);
     render_manager.set_effect_texture(rt.color_texture);
-    gl_state_get_error();
+    gl_get_error_print();
 }
 
 static void sub_1403B6F60(texture* a1, texture* a2, texture* a3, EffectRipple::Params& params) {
@@ -1595,8 +1595,8 @@ static void sub_1403B6F60(texture* a1, texture* a2, texture* a3, EffectRipple::P
     int32_t width = a2->width;
     int32_t height = a2->height;
 
-    gl_state_rect viewport_rect = gl_state_get_viewport();
-    gl_state_set_viewport(1, 1, width - 2, height - 2);
+    gl_rend_state_rect viewport_rect = gl_rend_state.get_viewport();
+    gl_rend_state.set_viewport(1, 1, width - 2, height - 2);
 
     ripple_scene_shader_data ripple_scene = {};
     ripple_scene.g_transform = {
@@ -1610,18 +1610,18 @@ static void sub_1403B6F60(texture* a1, texture* a2, texture* a3, EffectRipple::P
     ripple_batch.g_params = { params.wake_attn, params.speed, params.field_8, params.field_C };
     ripple_batch_ubo.WriteMemory(ripple_batch);
 
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     shaders_ft.set(SHADER_FT_RIPPLE);
     ripple_scene_ubo.Bind(0);
     ripple_batch_ubo.Bind(1);
-    gl_state_active_bind_texture_2d(0, a2->glid);
-    gl_state_active_bind_texture_2d(1, a3->glid);
+    gl_rend_state.active_bind_texture_2d(0, a2->glid);
+    gl_rend_state.active_bind_texture_2d(1, a3->glid);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-    gl_state_active_bind_texture_2d(1, 0);
-    gl_state_active_bind_texture_2d(0, 0);
-    gl_state_bind_vertex_array(0);
+    gl_rend_state.active_bind_texture_2d(1, 0);
+    gl_rend_state.active_bind_texture_2d(0, 0);
+    gl_rend_state.bind_vertex_array(0);
 
-    gl_state_set_viewport(viewport_rect);
+    gl_rend_state.set_viewport(viewport_rect);
 }
 
 static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a3, EffectRipple::Params& params) {
@@ -1632,14 +1632,14 @@ static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a
     else
         uniform->arr[U_RIPPLE] = 0;
     sub_1403B6F60(a1->color_texture, a2->color_texture, a3->color_texture, params);
-    gl_state_bind_framebuffer(0);
+    gl_rend_state.bind_framebuffer(0);
 }
 
 void EffectRipple::draw() {
     if (!stage_set)
         return;
 
-    gl_state_disable_cull_face();
+    gl_rend_state.disable_cull_face();
 
     RenderTexture* rt[3];
     for (int32_t i = 0, j = 2; i < 3; i++, j++)
@@ -1653,22 +1653,22 @@ void EffectRipple::draw() {
 
         rt[(counter + 1) % 3]->Bind();
 
-        gl_state_rect viewport_rect = gl_state_get_viewport();
+        gl_rend_state_rect viewport_rect = gl_rend_state.get_viewport();
 
         int32_t width = rt[0]->GetWidth();
         int32_t height = rt[0]->GetHeight();
 
-        gl_state_set_viewport(1, 1, width - 2, height - 2);
+        gl_rend_state.set_viewport(1, 1, width - 2, height - 2);
 
         draw_pass_set_camera();
         glClearDLL(GL_DEPTH_BUFFER_BIT);
         if (disp_manager->get_obj_count(mdl::OBJ_TYPE_USER)) {
-            gl_state_active_bind_texture_2d(7, rt[counter % 3]->GetColorTex());
+            gl_rend_state.active_bind_texture_2d(7, rt[counter % 3]->GetColorTex());
             disp_manager->draw(mdl::OBJ_TYPE_USER);
-            gl_state_active_bind_texture_2d(7, 0);
+            gl_rend_state.active_bind_texture_2d(7, 0);
         }
 
-        gl_state_bind_framebuffer(0);
+        gl_rend_state.bind_framebuffer(0);
 
         params.field_8 = 0.0005f;
         params.field_C = 0.97f;
@@ -1679,7 +1679,7 @@ void EffectRipple::draw() {
 
         sub_1403B6ED0(rt[(counter + 2) % 3], rt[(counter + 1) % 3], rt[counter % 3], params);
 
-        gl_state_set_viewport(viewport_rect);
+        gl_rend_state.set_viewport(viewport_rect);
 
         sub_1403584A0(rt[(counter + 2) % 3]);
 
@@ -1695,7 +1695,7 @@ void EffectRipple::draw() {
 
     update = false;
 
-    gl_state_enable_cull_face();
+    gl_rend_state.enable_cull_face();
 }
 
 void EffectRipple::sub_1403584A0(RenderTexture* rt) {
@@ -1710,7 +1710,7 @@ void EffectRipple::sub_1403584A0(RenderTexture* rt) {
     field_BB8.Bind();
 
     image_filter_scale(&field_BB8, rt->color_texture);
-    gl_state_bind_framebuffer(0);
+    gl_rend_state.bind_framebuffer(0);
 }
 
 void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scale_u, float_t uv_rec_scale_v,
@@ -1722,9 +1722,9 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
     const int32_t vtx_count = (subdivs - 1) * sectors_count + 2;
     restart_index = (uint16_t)0xFFFFFFFF;
 
-    gl_state_bind_vertex_array(0);
-    gl_state_bind_array_buffer(0);
-    gl_state_bind_element_array_buffer(0);
+    gl_rend_state.bind_vertex_array(0);
+    gl_rend_state.bind_array_buffer(0);
+    gl_rend_state.bind_element_array_buffer(0);
 
     const float_t rec_longitude_degs_10 = 1.0f / (float_t)longitude_degs_10;
     const float_t rec_latitude_degs_10 = 1.0f / (float_t)latitude_degs_10;
@@ -1802,7 +1802,7 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
     vbo.Create((size_t)buffer_size * vtx_count, vtx_data);
     vbo.Bind();
 
-    gl_state_bind_vertex_array(vao);
+    gl_rend_state.bind_vertex_array(vao);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(star_catalog_vertex, position));
@@ -1813,9 +1813,9 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
     ebo.Create(sizeof(uint16_t) * ebo_count, ebo_data);
     ebo.Bind();
 
-    gl_state_bind_vertex_array(0);
-    gl_state_bind_array_buffer(0);
-    gl_state_bind_element_array_buffer(0);
+    gl_rend_state.bind_vertex_array(0);
+    gl_rend_state.bind_array_buffer(0);
+    gl_rend_state.bind_element_array_buffer(0);
     free_def(vtx_data);
     free_def(ebo_data);
 
@@ -1891,27 +1891,27 @@ void star_catalog_milky_way::draw(const mat4& vp, const mat4& mat, texture* tex,
     scene_shader_data.g_transform[3] = temp.row3;
     scene_ubo.WriteMemory(scene_shader_data);
 
-    gl_state_enable_cull_face();
-    gl_state_disable_blend();
-    gl_state_set_depth_mask(GL_FALSE);
-    gl_state_active_bind_texture_2d(0, tex->glid);
-    gl_state_bind_sampler(0, star_sampler);
-    gl_state_enable_primitive_restart();
-    gl_state_set_primitive_restart_index(restart_index);
+    gl_rend_state.enable_cull_face();
+    gl_rend_state.disable_blend();
+    gl_rend_state.set_depth_mask(GL_FALSE);
+    gl_rend_state.active_bind_texture_2d(0, tex->glid);
+    gl_rend_state.bind_sampler(0, star_sampler);
+    gl_rend_state.enable_primitive_restart();
+    gl_rend_state.set_primitive_restart_index(restart_index);
     uniform->arr[U_STAR] = 1;
     shaders_ft.set(SHADER_FT_STAR);
 
-    gl_state_bind_vertex_array(vao);
+    gl_rend_state.bind_vertex_array(vao);
     scene_ubo.Bind(0);
     shaders_ft.draw_elements(GL_TRIANGLE_STRIP, idx_count, GL_UNSIGNED_SHORT, 0);
-    gl_state_bind_vertex_array(0);
+    gl_rend_state.bind_vertex_array(0);
 
-    gl_state_bind_sampler(0, 0);
-    gl_state_active_bind_texture_2d(0, 0);
-    gl_state_disable_primitive_restart();
-    gl_state_set_depth_mask(GL_TRUE);
-    gl_state_enable_blend();
-    gl_state_disable_cull_face();
+    gl_rend_state.bind_sampler(0, 0);
+    gl_rend_state.active_bind_texture_2d(0, 0);
+    gl_rend_state.disable_primitive_restart();
+    gl_rend_state.set_depth_mask(GL_TRUE);
+    gl_rend_state.enable_blend();
+    gl_rend_state.disable_cull_face();
 
 
 }
@@ -1962,11 +1962,11 @@ void star_catalog::draw() {
 
     uniform->arr[U_STAR] = 0;
     shaders_ft.set(SHADER_FT_STAR);
-    gl_state_enable_blend();
-    gl_state_set_blend_func(GL_ONE, GL_ONE);
-    gl_state_enable_depth_test();
-    gl_state_set_depth_mask(false);
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.enable_blend();
+    gl_rend_state.set_blend_func(GL_ONE, GL_ONE);
+    gl_rend_state.enable_depth_test();
+    gl_rend_state.set_depth_mask(false);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     for (int32_t i = 0; i < 2; i++) {
         stage_param_data_star_modifiers& modifiers = stage_param_data.modifiers[i];
 
@@ -1985,16 +1985,16 @@ void star_catalog::draw() {
         stars_batch_ubo.Bind(1);
         stars_storage.Bind(0);
         if (i) {
-            gl_state_active_bind_texture_2d(0, star_b_tex->glid);
+            gl_rend_state.active_bind_texture_2d(0, star_b_tex->glid);
             stars_storage.Draw(GL_TRIANGLES, 0, star_b_count * 6);
         }
         else {
-            gl_state_active_bind_texture_2d(0, star_tex->glid);
+            gl_rend_state.active_bind_texture_2d(0, star_tex->glid);
             stars_storage.Draw(GL_TRIANGLES, 0, star_count * 6);
         }
     }
-    gl_state_active_bind_texture_2d(0, 0);
-    gl_state_bind_vertex_array(0);
+    gl_rend_state.active_bind_texture_2d(0, 0);
+    gl_rend_state.bind_vertex_array(0);
 
 }
 
@@ -2133,20 +2133,20 @@ void water_particle::draw(mat4* mat) {
     scene_shader_data.g_size_in_projection.w = 60.0;
     water_particle_scene_ubo.WriteMemory(scene_shader_data);
 
-    gl_state_disable_cull_face();
+    gl_rend_state.disable_cull_face();
     shaders_ft.set(SHADER_FT_W_PTCL);
 
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     water_particle_scene_ubo.Bind(0);
     storage.Bind(0);
     texture* tex = texture_manager_get_texture(splash_tex_id);
     if (tex)
-        gl_state_active_bind_texture_2d(0, tex->glid);
+        gl_rend_state.active_bind_texture_2d(0, tex->glid);
     storage.Draw(GL_TRIANGLES, 0, count * 6);
-    gl_state_bind_vertex_array(0);
+    gl_rend_state.bind_vertex_array(0);
 
     shader::unbind();
-    gl_state_enable_cull_face();
+    gl_rend_state.enable_cull_face();
 }
 
 static void TaskEffectAuth3D__SetVisibility(size_t This, bool value) {
@@ -2183,15 +2183,15 @@ static void draw_fog_particle(EffectFogRing* data, mat4* mat) {
     EffectStorage& storage = elem->second;
 
     shaders_ft.set(SHADER_FT_FOGPTCL);
-    gl_state_enable_blend();
+    gl_rend_state.enable_blend();
     texture* tex = texture_manager_get_texture(data->tex_id);
     if (tex)
-        gl_state_active_bind_texture_2d(0, tex->glid);
-    gl_state_bind_vertex_array(rctx->common_vao);
+        gl_rend_state.active_bind_texture_2d(0, tex->glid);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
     storage.Bind(0);
     storage.Draw(GL_TRIANGLES, 0, data->num_vtx);
-    gl_state_bind_vertex_array(0);
-    gl_state_disable_blend();
+    gl_rend_state.bind_vertex_array(0);
+    gl_rend_state.disable_blend();
     shader::unbind();
 }
 
@@ -2237,9 +2237,9 @@ static void draw_ripple_particles(ripple_struct* data, mat4* mat) {
     uniform->arr[U_RIPPLE] = data->ripple_uniform;
     uniform->arr[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
 
-    gl_state_begin_event("EffectRipple::Impl::draw_ripple_particles");
-    gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
-    gl_state_bind_vertex_array(rctx->common_vao);
+    gl_rend_state.begin_event("EffectRipple::Impl::draw_ripple_particles");
+    gl_rend_state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+    gl_rend_state.bind_vertex_array(rctx->common_vao);
 
     shaders_ft.set(SHADER_FT_RIPEMIT);
     ripple_emit_scene_ubo.Bind(0);
@@ -2248,9 +2248,9 @@ static void draw_ripple_particles(ripple_struct* data, mat4* mat) {
 
     shader::unbind();
 
-    gl_state_bind_vertex_array(0);
-    gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    gl_state_end_event();
+    gl_rend_state.bind_vertex_array(0);
+    gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    gl_rend_state.end_event();
 }
 
 static void draw_water_particle(water_particle* data, mat4* mat) {

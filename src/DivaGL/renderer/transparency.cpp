@@ -6,7 +6,7 @@
 #include "transparency.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../render_context.hpp"
-#include "../gl_state.hpp"
+#include "../gl_rend_state.hpp"
 #include "../shader_ft.hpp"
 
 extern render_context* rctx;
@@ -44,16 +44,16 @@ namespace renderer {
         shader_data.g_opacity = { alpha, 0.0f, 0.0f, 0.0f };
         rctx->transparency_batch_ubo.WriteMemory(shader_data);
 
-        gl_state_disable_blend();
-        gl_state_disable_depth_test();
+        gl_rend_state.disable_blend();
+        gl_rend_state.disable_depth_test();
         rctx->render_buffer.Bind();
         shaders_ft.set(SHADER_FT_TRANSPARENCY);
         rctx->transparency_batch_ubo.Bind(0);
-        gl_state_active_bind_texture_2d(0, fbo.textures[0]);
-        gl_state_active_bind_texture_2d(1, rt->GetColorTex());
-        gl_state_bind_vertex_array(vao);
+        gl_rend_state.active_bind_texture_2d(0, fbo.textures[0]);
+        gl_rend_state.active_bind_texture_2d(1, rt->GetColorTex());
+        gl_rend_state.bind_vertex_array(vao);
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-        gl_state_enable_depth_test();
+        gl_rend_state.enable_depth_test();
 
         if (DIVA_GL_VERSION_4_3)
             glCopyImageSubData(rctx->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
@@ -70,17 +70,17 @@ namespace renderer {
                 fbo.textures[0], GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
 
         fbo.bind_buffer();
-        gl_state_set_viewport(0, 0, fbo.width, fbo.height);
+        gl_rend_state.set_viewport(0, 0, fbo.width, fbo.height);
 
         if (!DIVA_GL_VERSION_4_3) {
-            gl_state_disable_depth_test();
+            gl_rend_state.disable_depth_test();
             uniform->arr[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);
-            gl_state_active_bind_texture_2d(0, texture);
-            gl_state_bind_sampler(0, rctx->render_samplers[1]);
+            gl_rend_state.active_bind_texture_2d(0, texture);
+            gl_rend_state.bind_sampler(0, rctx->render_samplers[1]);
             render_get()->draw_quad(fbo.width, fbo.height, 1.0f, 1.0f,
                 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-            gl_state_enable_depth_test();
+            gl_rend_state.enable_depth_test();
         }
     }
 

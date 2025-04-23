@@ -48,8 +48,8 @@ void sss_data::init() {
 }
 
 void sss_data::set_texture(int32_t texture_index) {
-    gl_state_active_bind_texture_2d(16, textures[texture_index].GetColorTex());
-    gl_state_active_texture(0);
+    gl_rend_state.active_bind_texture_2d(16, textures[texture_index].GetColorTex());
+    gl_rend_state.active_texture(0);
 }
 
 void draw_state_struct::set_fog_height(bool value) {
@@ -471,7 +471,7 @@ samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height(
     };
 
     glGenVertexArrays(1, &box_vao);
-    gl_state_bind_vertex_array(box_vao);
+    gl_rend_state.bind_vertex_array(box_vao);
 
     box_vbo.Create(sizeof(box_texcoords), box_texcoords);
     box_vbo.Bind();
@@ -486,7 +486,7 @@ samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height(
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 16, (void*)(sizeof(float_t) * 12));
 
     glGenVertexArrays(1, &lens_ghost_vao);
-    gl_state_bind_vertex_array(lens_ghost_vao);
+    gl_rend_state.bind_vertex_array(lens_ghost_vao);
 
     lens_ghost_vbo.Create(sizeof(float_t) * 5 * (6 * 16));
     lens_ghost_vbo.Bind();
@@ -495,8 +495,8 @@ samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height(
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float_t) * 5, (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float_t) * 5, (void*)(sizeof(float_t) * 2));
-    gl_state_bind_array_buffer(0);
-    gl_state_bind_vertex_array(0);
+    gl_rend_state.bind_array_buffer(0);
+    gl_rend_state.bind_vertex_array(0);
 
     glGenVertexArrays(1, &common_vao);
 
@@ -966,20 +966,22 @@ void render_context::pre_proc() {
                 if (!i.offset)
                     continue;
 
-                size_t align = align_val(i.offset, sv_min_storage_buffer_alignment) - i.offset;
+                const size_t size = align_val(i.offset, sv_min_uniform_buffer_alignment);
+                const size_t align = size - i.offset;
                 if (align)
                     memset((void*)((size_t)i.data + i.offset), 0, align);
-                i.buffer.WriteMemory(0, i.size, i.data);
+                i.buffer.WriteMemory(0, size, i.data);
             }
 
         for (render_context::shared_uniform_buffer& i : shared_uniform_buffers) {
             if (!i.offset)
                 continue;
 
-            size_t align = align_val(i.offset, sv_min_uniform_buffer_alignment) - i.offset;
+            const size_t size = align_val(i.offset, sv_min_uniform_buffer_alignment);
+            const size_t align = size - i.offset;
             if (align)
                 memset((void*)((size_t)i.data + i.offset), 0, align);
-            i.buffer.WriteMemory(0, i.size, i.data);
+            i.buffer.WriteMemory(0, size, i.data);
         }
     }
 }
