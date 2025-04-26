@@ -259,9 +259,17 @@ static void parse_define_inner(std::string& temp) {
     size_t off = 0;
     while (true) {
         size_t pos_set = temp.find("set = ", off);
-        size_t pos_binding = temp.find("binding = ", off);
-        if (pos_set == -1 || pos_binding == -1)
+        if (pos_set == -1)
             break;
+
+        size_t pos_binding = temp.find("binding = ", pos_set);
+        if (pos_binding == -1)
+            break;
+
+        if (pos_binding - pos_set > 10) {
+            off = pos_binding + 10;
+            continue;
+        }
 
         temp.erase(pos_set, pos_binding - pos_set);
         off = pos_set + 10;
