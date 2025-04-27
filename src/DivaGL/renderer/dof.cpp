@@ -83,12 +83,11 @@ namespace renderer {
         }
         else if (dof_pv_data->enable && dof_pv_data->f2.ratio > 0.0f) {
             float_t fuzzing_range = max_def(dof_pv_data->f2.fuzzing_range, 0.01f);
-            if (dof_pv_data->f2.fuzzing_range >= 0.0099999998)
-                apply_f2(rt, buf_rt, rt->GetColorTex(), rt->GetDepthTex(),
-                    camera_data.min_distance, camera_data.max_distance,
-                    camera_data.fov * DEG_TO_RAD_FLOAT,
-                    dof_pv_data->f2.focus, dof_pv_data->f2.focus_range,
-                    fuzzing_range, dof_pv_data->f2.ratio);
+            apply_f2(rt, buf_rt, rt->GetColorTex(), rt->GetDepthTex(),
+                camera_data.min_distance, camera_data.max_distance,
+                camera_data.fov * DEG_TO_RAD_FLOAT,
+                dof_pv_data->f2.focus, dof_pv_data->f2.focus_range,
+                fuzzing_range, dof_pv_data->f2.ratio);
             enum_or(dof_debug_data->flags, DOF_DEBUG_ENABLE_DOF);
             dof_debug_data->f2 = dof_pv_data->f2;
         }
