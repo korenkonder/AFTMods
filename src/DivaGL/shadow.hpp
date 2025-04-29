@@ -22,12 +22,12 @@ struct Shadow {
     float_t shadow_range_factor;
     vec3 view_point[2];
     vec3 interest[2];
-    vec3 field_1A8[2];
+    vec3 position[2];
     float_t field_1C0[2];
     float_t field_1C8[2];
-    prj::vector<vec3> field_1D0[2];
-    int32_t field_200[2];
-    float_t field_208;
+    prj::vector<vec3> positions[2];
+    int32_t index[2];
+    float_t z_half_range;
     vec3 direction;
     vec3 view_point_shared;
     vec3 interest_shared;

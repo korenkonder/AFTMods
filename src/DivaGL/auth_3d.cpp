@@ -176,9 +176,10 @@ HOOK(void, FASTCALL, auth_3d_m_object_hrc_disp, 0x00000001401D0760, auth_3d_m_ob
             mat4_mul(m, &mat, &mat);
             mat4_transpose(&mat, &mat);
 
-            vec3 pos = *(vec3*)&mat.row3;
+            vec3 pos;
+            mat4_get_translation(&mat, &pos);
             pos.y -= 0.2f;
-            shad->field_1D0[shadow_type].push_back(pos);
+            shad->positions[shadow_type].push_back(pos);
         }
 
         if (i.mats.size())
@@ -238,7 +239,7 @@ HOOK(void, FASTCALL, auth_3d_object_hrc_disp, 0x00000001401D04A0, auth_3d_object
             vec3 pos;
             mat4_get_translation(&mat, &pos);
             pos.y -= 0.2f;
-            shad->field_1D0[SHADOW_STAGE].push_back(pos);
+            shad->positions[SHADOW_STAGE].push_back(pos);
         }
     }
 

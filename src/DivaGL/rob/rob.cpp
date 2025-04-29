@@ -455,7 +455,7 @@ HOOK(void, FASTCALL, rob_chara_item_equip_disp, 0x0000000140512950,
         if (rob_item_equip->field_A0 & 0x04) {
             vec3 pos = rob_item_equip->position;
             pos.y -= 0.2f;
-            shadow_ptr_get()->field_1D0[rob_item_equip->shadow_type].push_back(pos);
+            shadow_ptr_get()->positions[rob_item_equip->shadow_type].push_back(pos);
 
             float_t v9;
             if (sub_140512F60(rob_item_equip) <= -0.2f)
