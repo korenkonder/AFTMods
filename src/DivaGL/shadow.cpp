@@ -5,8 +5,8 @@
 
 #include "shadow.hpp"
 #include "../AFTModsShared/light_param/light.hpp"
+#include "gl_state.hpp"
 #include "render_context.hpp"
-#include "render_manager.hpp"
 #include <Helpers.h>
 
 #define MIN_SHADOW_RANGE (1.2f)
@@ -24,6 +24,40 @@ static void sub_1405E63D0(Shadow* shad);
 static void sub_1405E6840(Shadow* shad);
 static void sub_1405E6910(Shadow* shad);
 static void sub_1405E6B70(Shadow* shad);
+
+void Shadow::calc_proj_view_mat(cam_data& cam, const vec3& view_point,
+    const vec3& interest, float_t range, float_t offset, float_t scale) {
+    cam.set_view_point(view_point);
+    cam.set_interest(interest);
+
+    vec3 up = { 0.0f, 1.0f, 0.0f };
+    const vec3 dir = interest - view_point;
+    if (vec3::length_squared(dir) <= 0.000001f) {
+        up.x = 0.0f;
+        up.y = 0.0f;
+        if (dir.z < 0.0f)
+            up.z = 1.0f;
+        else
+            up.z = -1.0f;
+    }
+    cam.set_up(up);
+
+    cam.calc_view_mat();
+    cam.set_min_distance(z_near);
+    cam.set_max_distance(z_far);
+    cam.calc_ortho_proj_mat(-range, range, -range, range, scale, { offset, 0.0f });
+    cam.calc_view_proj_mat();
+}
+
+void Shadow::clear_textures(p_gl_rend_state& p_gl_rend_st) {
+    for (int32_t i = 1; i < 3; i++)
+        for (int32_t j = 0; j < 4; j++) {
+            curr_render_textures[i]->Bind(p_gl_rend_st, j);
+            p_gl_rend_st.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
+            p_gl_rend_st.clear(GL_COLOR_BUFFER_BIT);
+        }
+    p_gl_rend_st.bind_framebuffer(0);
+}
 
 void Shadow::ctrl() {
     for (int32_t i = 0; i < 2; i++)
@@ -79,13 +113,17 @@ int32_t Shadow::init() {
             return -1;
 
     for (int32_t i = 0; i < 3; i++) {
-        gl_rend_state.bind_texture_2d(render_textures[i].GetColorTex());
+        gl_state.bind_texture_2d(render_textures[i].GetColorTex());
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         static const vec4 border_color = 1.0f;
         glTexParameterfvDLL(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
     }
-    gl_rend_state.bind_texture_2d(0);
+
+    gl_state.bind_texture_2d(render_textures[0].GetDepthTex());
+    GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
+    glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+    gl_state.bind_texture_2d(0);
     gl_get_error_print();
     return 0;
 }

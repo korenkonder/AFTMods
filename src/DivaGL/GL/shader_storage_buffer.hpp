@@ -8,6 +8,9 @@
 #include "../../KKdLib/default.hpp"
 #include "../wrap.hpp"
 
+struct gl_state_struct;
+struct p_gl_rend_state;
+
 namespace GL {
     struct ShaderStorageBuffer {
     private:
@@ -26,13 +29,15 @@ namespace GL {
 
         }
 
-        void Bind(int32_t index, bool force = false);
-        void Create(size_t size);
-        void Create(size_t size, const void* data, bool dynamic = false);
+        void Create(gl_state_struct& gl_st, size_t size);
+        void Create(gl_state_struct& gl_st, size_t size, const void* data, bool dynamic = false);
         void Destroy();
-        void* MapMemory();
-        void UnmapMemory();
-        void WriteMemory(size_t offset, size_t size, const void* data);
+        void* MapMemory(gl_state_struct& gl_st);
+        void* MapMemory(p_gl_rend_state& p_gl_rend_st);
+        void UnmapMemory(gl_state_struct& gl_st);
+        void UnmapMemory(p_gl_rend_state& p_gl_rend_st);
+        void WriteMemory(gl_state_struct& gl_st, size_t offset, size_t size, const void* data);
+        void WriteMemory(p_gl_rend_state& p_gl_rend_st, size_t offset, size_t size, const void* data);
 
         inline bool IsNull() {
             return !buffer;
@@ -43,8 +48,13 @@ namespace GL {
         }
 
         template<typename T>
-        inline void WriteMemory(T& data) {
-            WriteMemory(0, sizeof(T), &data);
+        inline void WriteMemory(gl_state_struct& gl_st, T& data) {
+            WriteMemory(gl_st, 0, sizeof(T), &data);
+        }
+
+        template<typename T>
+        inline void WriteMemory(p_gl_rend_state& p_gl_rend_st, T& data) {
+            WriteMemory(p_gl_rend_st, 0, sizeof(T), &data);
         }
 
         inline operator GLuint() const {

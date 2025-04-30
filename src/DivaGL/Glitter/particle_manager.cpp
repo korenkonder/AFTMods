@@ -4,7 +4,7 @@
 */
 
 #include "glitter.hpp"
-#include "../gl_rend_state.hpp"
+#include "../render_context.hpp"
 #include <Helpers.h>
 
 namespace Glitter {
@@ -20,18 +20,18 @@ namespace Glitter {
                 i->CalcDisp();
     }
 
-    void GltParticleManager::DispScenes(DispType disp_type) {
+    void GltParticleManager::DispScenes(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         if (flags & PARTICLE_MANAGER_NOT_DISP)
             return;
 
         for (Scene*& i : scenes)
             if (i)
-                i->Disp(disp_type);
+                i->Disp(rend_data_ctx, disp_type, cam);
 
-        gl_rend_state.bind_vertex_array(0);
-        gl_rend_state.disable_blend();
-        gl_rend_state.enable_cull_face();
-        gl_rend_state.disable_depth_test();
+        rend_data_ctx.state.bind_vertex_array(0);
+        rend_data_ctx.state.disable_blend();
+        rend_data_ctx.state.enable_cull_face();
+        rend_data_ctx.state.disable_depth_test();
     }
 
     GltParticleManagerX::GltParticleManagerX() : frame_rate(),
@@ -262,18 +262,18 @@ namespace Glitter {
         init_buffers = max_def(init_buffers - count, 0);
     }
 
-    void GltParticleManagerX::DispScenes(DispType disp_type) {
+    void GltParticleManagerX::DispScenes(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         if (flags & PARTICLE_MANAGER_NOT_DISP)
             return;
 
         for (SceneX*& i : scenes)
             if (i)
-                i->Disp(disp_type);
+                i->Disp(rend_data_ctx, disp_type, cam);
 
-        gl_rend_state.bind_vertex_array(0);
-        gl_rend_state.disable_blend();
-        gl_rend_state.enable_cull_face();
-        gl_rend_state.disable_depth_test();
+        rend_data_ctx.state.bind_vertex_array(0);
+        rend_data_ctx.state.disable_blend();
+        rend_data_ctx.state.enable_cull_face();
+        rend_data_ctx.state.disable_depth_test();
     }
 
     void GltParticleManagerX::FreeEffects() {

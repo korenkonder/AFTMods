@@ -20,11 +20,16 @@ enum draw_pass_3d_type {
     DRAW_PASS_3D_MAX,
 };
 
+typedef void(*draw_pre_process_func)(struct render_data_context& rend_data_ctx,
+    void* data, const struct cam_data& cam);
+
 struct draw_pre_process {
     int32_t type;
-    void(FASTCALL* func)(void*);
+    draw_pre_process_func func;
     void* data;
 };
+
+struct render_data_context;
 
 namespace rndr {
     enum RenderPassID {
@@ -88,7 +93,7 @@ namespace rndr {
         bool light_stage_ambient;
         bool npr;
 
-        void add_pre_process(int32_t type, void(*func)(void*), void* data);
+        void add_pre_process(int32_t type, draw_pre_process_func func, void* data);
         void clear_pre_process(int32_t type);
         RenderTexture& get_render_texture(int32_t index);
         void reset();
@@ -109,25 +114,25 @@ namespace rndr {
 
         void render_all();
 
-        void render_single_pass(rndr::RenderPassID id);
+        void render_single_pass(render_data_context& rend_data_ct, rndr::RenderPassID id);
 
         void render_pass_begin();
         void render_pass_end(rndr::RenderPassID id);
 
-        void pass_shadow();
-        void pass_ss_sss();
-        void pass_reflect();
-        void pass_refract();
-        void pass_pre_process();
-        void pass_clear();
-        void pass_pre_sprite();
-        void pass_3d();
-        void pass_show_vector();
-        void pass_post_process();
-        void pass_sprite();
+        void pass_shadow(render_data_context& rend_data_ct);
+        void pass_ss_sss(render_data_context& rend_data_ct);
+        void pass_reflect(render_data_context& rend_data_ct);
+        void pass_refract(render_data_context& rend_data_ct);
+        void pass_pre_process(render_data_context& rend_data_ct);
+        void pass_clear(render_data_context& rend_data_ct);
+        void pass_pre_sprite(render_data_context& rend_data_ct);
+        void pass_3d(render_data_context& rend_data_ct);
+        void pass_show_vector(render_data_context& rend_data_ct);
+        void pass_post_process(render_data_context& rend_data_ct);
+        void pass_sprite(render_data_context& rend_data_ct);
 
-        void pass_3d_contour();
-        void pass_sprite_surf();
+        void pass_3d_contour(render_data_context& rend_data_ct);
+        void pass_sprite_surf(render_data_context& rend_data_ct);
     };
 
     static_assert(sizeof(rndr::RenderManager) == 0x328, "\"rndr::RenderManager\" struct should have a size of 0x328");
@@ -137,9 +142,8 @@ extern RenderTexture* litproj_shadow;
 extern RenderTexture* litproj_texture;
 extern rndr::RenderManager& render_manager;
 
-extern void image_filter_scale(RenderTexture* dst, texture* src, const vec4& scale = 1.0f);
-
-extern void draw_pass_set_camera();
+extern void image_filter_scale(render_data_context& rend_data_ctx,
+    RenderTexture* dst, texture* src, const vec4& scale = 1.0f);
 
 extern void reflect_full_init();
 extern void reflect_full_free();

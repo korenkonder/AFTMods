@@ -1261,23 +1261,39 @@ const size_t shader_ft_table_size =
     sizeof(shader_ft_table) / sizeof(shader_table);
 
 static void glass_eye_calc(glass_eye_struct* glass_eye);
-static void glass_eye_set(glass_eye_struct* glass_eye);
-static void shader_bind_blinn(shader_set_data* set, shader* shad);
-static void shader_bind_cloth(shader_set_data* set, shader* shad);
-static void shader_bind_hair(shader_set_data* set, shader* shad);
-static void shader_bind_glass_eye(shader_set_data* set, shader* shad);
-static void shader_bind_tone_map(shader_set_data* set, shader* shad);
-static void shader_bind_sss_filter(shader_set_data* set, shader* shad);
-static void shader_bind_esm_filter(shader_set_data* set, shader* shad);
-static void shader_bind_reduce_tex(shader_set_data* set, shader* shad);
-static void shader_bind_magnify(shader_set_data* set, shader* shad);
-static void shader_bind_mlaa(shader_set_data* set, shader* shad);
-static void shader_bind_exposure(shader_set_data* set, shader* shad);
-static void shader_bind_gauss(shader_set_data* set, shader* shad);
-static void shader_bind_snow_particle(shader_set_data* set, shader* shad);
-static void shader_bind_star(shader_set_data* set, shader* shad);
-static void shader_bind_imgfilter(shader_set_data* set, shader* shad);
-static void shader_bind_dof(shader_set_data* set, shader* shad);
+static void glass_eye_set(p_gl_rend_state& p_gl_rend_st, glass_eye_struct* glass_eye);
+static void shader_bind_blinn(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_cloth(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_hair(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_glass_eye(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_tone_map(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_sss_filter(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_esm_filter(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_reduce_tex(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_magnify(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_mlaa(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_exposure(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_gauss(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_snow_particle(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_star(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_imgfilter(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
+static void shader_bind_dof(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad);
 
 const shader_bind_func shader_ft_bind_func_table[] = {
     {
@@ -1483,7 +1499,7 @@ static void glass_eye_calc(glass_eye_struct* glass_eye) {
     glass_eye->tex_offset.w = 0.0f;
 }
 
-static void glass_eye_set(glass_eye_struct* glass_eye) {
+static void glass_eye_set(p_gl_rend_state& p_gl_rend_st, glass_eye_struct* glass_eye) {
     glass_eye_batch_shader_data glass_eye_batch = {};
 
     vec3 ellipsoid_radius = glass_eye->cornea_radius * glass_eye->cornea_radius;
@@ -1530,228 +1546,244 @@ static void glass_eye_set(glass_eye_struct* glass_eye) {
     glass_eye_batch.g_tex_scale.w = glass_eye->lens_depth;
 
     extern render_context* rctx;
-    rctx->glass_eye_batch_ubo.WriteMemory(glass_eye_batch);
-    rctx->glass_eye_batch_ubo.Bind(3);
+    rctx->glass_eye_batch_ubo.WriteMemory(p_gl_rend_st, glass_eye_batch);
+    p_gl_rend_st.bind_uniform_buffer_base(3, rctx->glass_eye_batch_ubo);
 }
 
-static void shader_bind_blinn(shader_set_data* set, shader* shad) {
-    shad->bind(set, uniform->arr[U_NORMAL]
+static void shader_bind_blinn(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    shad->bind(p_gl_rend_st, shader_flags, set, shader_flags.arr[U_NORMAL]
         ? SHADER_FT_SUB_BLINN_FRAG : SHADER_FT_SUB_BLINN_VERT);
 }
 
-static void shader_bind_cloth(shader_set_data* set, shader* shad) {
-    shad->bind(set, uniform->arr[U_NPR] ? SHADER_FT_SUB_CLOTH_NPR1
-        : (uniform->arr[U_ANISO] ? SHADER_FT_SUB_CLOTH_ANISO : SHADER_FT_SUB_CLOTH_DEFAULT));
+static void shader_bind_cloth(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    shad->bind(p_gl_rend_st, shader_flags, set, shader_flags.arr[U_NPR] ? SHADER_FT_SUB_CLOTH_NPR1
+        : (shader_flags.arr[U_ANISO] ? SHADER_FT_SUB_CLOTH_ANISO : SHADER_FT_SUB_CLOTH_DEFAULT));
 }
 
-static void shader_bind_hair(shader_set_data* set, shader* shad) {
-    shad->bind(set, uniform->arr[U_NPR] ? SHADER_FT_SUB_HAIR_NPR1 : SHADER_FT_SUB_HAIR_DEFAULT);
+static void shader_bind_hair(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    shad->bind(p_gl_rend_st, shader_flags, set, shader_flags.arr[U_NPR] ? SHADER_FT_SUB_HAIR_NPR1 : SHADER_FT_SUB_HAIR_DEFAULT);
 }
 
-static void shader_bind_glass_eye(shader_set_data* set, shader* shad) {
-    uniform->arr[U_EYE_LENS] = 0;
-    if (set->shaders[SHADER_FT_GLASEYE].bind(set, SHADER_FT_SUB_GLASS_EYE) >= 0) {
+static void shader_bind_glass_eye(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    shader_flags.arr[U_EYE_LENS] = 0;
+    if (set->shaders[SHADER_FT_GLASEYE].bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_GLASS_EYE) >= 0) {
         glass_eye_calc(&glass_eye);
-        glass_eye_set(&glass_eye);
+        glass_eye_set(p_gl_rend_st, &glass_eye);
     }
 }
 
-static void shader_bind_tone_map(shader_set_data* set, shader* shad) {
-    shad->bind(set, uniform->arr[U_NPR] == 1
+static void shader_bind_tone_map(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    shad->bind(p_gl_rend_st, shader_flags, set, shader_flags.arr[U_NPR] == 1
         ? SHADER_FT_SUB_TONEMAP_NPR1 : SHADER_FT_SUB_TONEMAP);
 }
 
-static void shader_bind_sss_filter(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_SSS_FILTER]) {
+static void shader_bind_sss_filter(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_SSS_FILTER]) {
     case 0:
-        shad->bind(set, uniform->arr[U_NPR]
+        shad->bind(p_gl_rend_st, shader_flags, set, shader_flags.arr[U_NPR]
             ? SHADER_FT_SUB_SSS_FILTER_MIN_NPR : SHADER_FT_SUB_SSS_FILTER_MIN);
         break;
     case 3:
-        shad->bind(set, SHADER_FT_SUB_SSS_FILTER_GAUSS_2D);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_SSS_FILTER_GAUSS_2D);
         break;
     }
 }
 
-static void shader_bind_esm_filter(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_ESM_FILTER]) {
+static void shader_bind_esm_filter(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_ESM_FILTER]) {
     case 0:
-        shad->bind(set, SHADER_FT_SUB_ESM_FILTER_MIN);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_ESM_FILTER_MIN);
         break;
     case 1:
-        shad->bind(set, SHADER_FT_SUB_ESM_FILTER_EROSION);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_ESM_FILTER_EROSION);
         break;
     }
 }
 
-static void shader_bind_reduce_tex(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_REDUCE]) {
+static void shader_bind_reduce_tex(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_REDUCE]) {
     case 0:
-        switch (uniform->arr[U_ALPHA_MASK]) {
+        switch (shader_flags.arr[U_ALPHA_MASK]) {
         case 0:
-            shad->bind(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_2);
+            shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_2);
             break;
         default:
-            shad->bind(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_2_ALPHAMASK);
+            shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_2_ALPHAMASK);
             break;
         }
         break;
     case 1:
-        switch (uniform->arr[U_ALPHA_MASK]) {
+        switch (shader_flags.arr[U_ALPHA_MASK]) {
         case 0:
-            shad->bind(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_4);
+            shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_4);
             break;
         }
         break;
     case 3:
-        switch (uniform->arr[U_ALPHA_MASK]) {
+        switch (shader_flags.arr[U_ALPHA_MASK]) {
         case 0:
-            shad->bind(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_4_EXTRACT);
+            shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_4_EXTRACT);
             break;
         }
         break;
     case 4:
-        switch (uniform->arr[U_ALPHA_MASK]) {
+        switch (shader_flags.arr[U_ALPHA_MASK]) {
         case 0:
-            shad->bind(set, SHADER_FT_SUB_GHOST);
+            shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_GHOST);
             break;
         }
         break;
     case 5:
-        switch (uniform->arr[U_ALPHA_MASK]) {
+        switch (shader_flags.arr[U_ALPHA_MASK]) {
         case 0:
-            shad->bind(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_COMPOSITE_2);
+            shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_COMPOSITE_2);
             break;
         }
         break;
     case 6:
-        switch (uniform->arr[U_ALPHA_MASK]) {
+        switch (shader_flags.arr[U_ALPHA_MASK]) {
         case 0:
-            shad->bind(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_COMPOSITE_BLUR);
+            shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_COMPOSITE_BLUR);
             break;
         }
         break;
     case 7:
-        switch (uniform->arr[U_ALPHA_MASK]) {
+        switch (shader_flags.arr[U_ALPHA_MASK]) {
         case 0:
-            shad->bind(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_COMPOSITE_4);
+            shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_COMPOSITE_4);
             break;
         }
         break;
     }
 }
 
-static void shader_bind_magnify(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_MAGNIFY]) {
+static void shader_bind_magnify(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_MAGNIFY]) {
     case 0:
-        shad->bind(set, SHADER_FT_SUB_MAGNIFY_LINEAR);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_MAGNIFY_LINEAR);
         break;
     case 2:
-        shad->bind(set, SHADER_FT_SUB_MAGNIFY_DIFF);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_MAGNIFY_DIFF);
         break;
     case 3:
-        shad->bind(set, SHADER_FT_SUB_MAGNIFY_DIFF2);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_MAGNIFY_DIFF2);
         break;
     case 4:
-        shad->bind(set, SHADER_FT_SUB_MAGNIFY_CONE);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_MAGNIFY_CONE);
         break;
     case 5:
-        shad->bind(set, SHADER_FT_SUB_MAGNIFY_CONE2);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_MAGNIFY_CONE2);
         break;
     }
 }
 
-static void shader_bind_mlaa(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_MLAA]) {
+static void shader_bind_mlaa(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_MLAA]) {
     case 0:
-        shad->bind(set, SHADER_FT_SUB_MLAA_EDGE);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_MLAA_EDGE);
         break;
     case 1:
-        shad->bind(set, SHADER_FT_SUB_MLAA_AREA);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_MLAA_AREA);
         break;
     case 2:
-        shad->bind(set, SHADER_FT_SUB_MLAA_BLEND);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_MLAA_BLEND);
         break;
     }
 }
 
-static void shader_bind_exposure(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_EXPOSURE]) {
+static void shader_bind_exposure(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_EXPOSURE]) {
     case 0:
-        shad->bind(set, SHADER_FT_SUB_EXPOSURE_MINIFY);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_EXPOSURE_MINIFY);
         break;
     case 1:
-        shad->bind(set, SHADER_FT_SUB_EXPOSURE_MEASURE);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_EXPOSURE_MEASURE);
         break;
     case 2:
-        shad->bind(set, SHADER_FT_SUB_EXPOSURE_AVERAGE);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_EXPOSURE_AVERAGE);
         break;
     }
 }
 
-static void shader_bind_gauss(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_GAUSS]) {
+static void shader_bind_gauss(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_GAUSS]) {
     case 0:
-        shad->bind(set, SHADER_FT_SUB_PP_GAUSS_USUAL);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_PP_GAUSS_USUAL);
         break;
     case 1:
-        shad->bind(set, SHADER_FT_SUB_PP_GAUSS_CONE);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_PP_GAUSS_CONE);
         break;
     }
 }
 
-static void shader_bind_snow_particle(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_SNOW_PARTICLE]) {
+static void shader_bind_snow_particle(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_SNOW_PARTICLE]) {
     case 0:
-        shad->bind(set, SHADER_FT_SUB_SNOW_PARTICLE_CPU);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_SNOW_PARTICLE_CPU);
         break;
     case 1:
-        shad->bind(set, SHADER_FT_SUB_SNOW_PARTICLE);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_SNOW_PARTICLE);
         break;
     }
 }
 
-static void shader_bind_star(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_STAR]) {
+static void shader_bind_star(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_STAR]) {
     case 0:
-        shad->bind(set, SHADER_FT_SUB_STAR);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_STAR);
         break;
     case 1:
-        shad->bind(set, SHADER_FT_SUB_STAR_MILKY_WAY);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_STAR_MILKY_WAY);
         break;
     }
 }
 
-static void shader_bind_imgfilter(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_IMAGE_FILTER]) {
+static void shader_bind_imgfilter(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_IMAGE_FILTER]) {
     case 0:
-        shad->bind(set, SHADER_FT_SUB_BOX4);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_BOX4);
         break;
     case 1:
-        shad->bind(set, SHADER_FT_SUB_BOX8);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_BOX8);
         break;
     case 5:
-        shad->bind(set, SHADER_FT_SUB_COPY);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_COPY);
         break;
     }
 }
 
-static void shader_bind_dof(shader_set_data* set, shader* shad) {
-    switch (uniform->arr[U_DOF_STAGE]) {
+static void shader_bind_dof(p_gl_rend_state& p_gl_rend_st,
+    uniform_value& shader_flags, shader_set_data* set, shader* shad) {
+    switch (shader_flags.arr[U_DOF_STAGE]) {
     case 0:
-        shad->bind(set, SHADER_FT_SUB_DOF_RENDER_TILE);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_DOF_RENDER_TILE);
         break;
     case 1:
-        shad->bind(set, SHADER_FT_SUB_DOF_GATHER_TILE);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_DOF_GATHER_TILE);
         break;
     case 2:
-        shad->bind(set, SHADER_FT_SUB_DOF_DOWNSAMPLE);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_DOF_DOWNSAMPLE);
         break;
     case 3:
-        shad->bind(set, SHADER_FT_SUB_DOF_MAIN_FILTER);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_DOF_MAIN_FILTER);
         break;
     case 4:
-        shad->bind(set, SHADER_FT_SUB_DOF_UPSAMPLE);
+        shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_DOF_UPSAMPLE);
         break;
     }
 }

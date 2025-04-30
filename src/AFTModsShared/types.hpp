@@ -294,7 +294,7 @@ namespace prj {
             this->begin = str;
             this->end = str + utf16_length(str);
         }
-        
+
         inline wstring_range(const wchar_t* str, size_t length) {
             this->begin = str;
             this->end = str + length;

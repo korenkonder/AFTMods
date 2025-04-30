@@ -981,7 +981,7 @@ void RobOsageTest::disp_coli() {
         return;
 
     disp_coli_cls_list(ex_node, cls_param);
-    
+
     if (osg && osg->rob.nodes.size() >= 1) {
         RobOsageNode* j_begin = osg->rob.nodes.data() + 1;
         RobOsageNode* j_end = osg->rob.nodes.data() + osg->rob.nodes.size();

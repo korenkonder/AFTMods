@@ -2613,6 +2613,9 @@ PFNWGLGETPROCADDRESSGLUTPROC* divagl_wglGetProcAddressGLUT = 0;
 PFNWGLMAKECURRENTGLUTPROC* divagl_wglMakeCurrentGLUT = 0;
 
 PFNGLTEXPARAMETERIVPROC divagl_glTexParameteriv = 0;
+PFNGLSTENCILMASKPROC diva_glStencilMask = 0;
+PFNGLSTENCILFUNCPROC diva_glStencilFunc = 0;
+PFNGLSTENCILOPPROC diva_glStencilOp = 0;
 PFNGLDRAWARRAYSINSTANCEDPROC divagl_glDrawArraysInstanced = 0;
 PFNGLPRIMITIVERESTARTINDEXPROC divagl_glPrimitiveRestartIndex = 0;
 PFNGLGETUNIFORMBLOCKINDEXPROC divagl_glGetUniformBlockIndex = 0;
@@ -2632,6 +2635,8 @@ PFNGLMAPNAMEDBUFFERPROC divagl_glMapNamedBuffer = 0;
 PFNGLMAPNAMEDBUFFERRANGEPROC divagl_glMapNamedBufferRange = 0;
 PFNGLUNMAPNAMEDBUFFERPROC divagl_glUnmapNamedBuffer = 0;
 PFNGLTEXTURESUBIMAGE2DPROC divagl_glTextureSubImage2D = 0;
+PFNGLGENERATETEXTUREMIPMAPPROC divagl_glGenerateTextureMipmap = 0;
+PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit = 0;
 
 PFNGLGETBOOLEANVDLLPROC divagl_glGetBooleanvDLL_orig = 0;
 PFNGLTEXIMAGE1DDLLPROC divagl_glTexImage1DDLL_orig = 0;
@@ -2767,6 +2772,9 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
     REPLACE_FUNC(glTexImage2DDLL);
 
     glTexParameteriv = (PFNGLTEXPARAMETERIVPROC)GetProcAddress((HMODULE)opengl32_handle, "glTexParameteriv");
+    glStencilMask = (PFNGLSTENCILMASKPROC)GetProcAddress((HMODULE)opengl32_handle, "glStencilMask");
+    glStencilFunc = (PFNGLSTENCILFUNCPROC)GetProcAddress((HMODULE)opengl32_handle, "glStencilFunc");
+    glStencilOp = (PFNGLSTENCILOPPROC)GetProcAddress((HMODULE)opengl32_handle, "glStencilOp");
 
     // 3.1
     glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)wglGetProcAddressDLL("glDrawArraysInstanced");
@@ -2809,6 +2817,8 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
         glMapNamedBufferRange = (PFNGLMAPNAMEDBUFFERRANGEPROC)wglGetProcAddressDLL("glMapNamedBufferRange");
         glUnmapNamedBuffer = (PFNGLUNMAPNAMEDBUFFERPROC)wglGetProcAddressDLL("glUnmapNamedBuffer");
         glTextureSubImage2D = (PFNGLTEXTURESUBIMAGE2DPROC)wglGetProcAddressDLL("glTextureSubImage2D");
+        glGenerateTextureMipmap = (PFNGLGENERATETEXTUREMIPMAPPROC)wglGetProcAddressDLL("glGenerateTextureMipmap");
+        glBindTextureUnit = (PFNGLBINDTEXTUREUNITPROC)wglGetProcAddressDLL("glBindTextureUnit");
     }
 
 #undef REPLACE_FUNC
@@ -2827,11 +2837,7 @@ void wrap_patch() {
 }
 
 void GLAPIENTRY glAlphaFuncDLL(GLenum func, GLfloat ref) {
-    if (func == GL_GREATER && ref >= 0.5f)
-        uniform->arr[U_ALPHA_TEST] = 1;
-    else
-        uniform->arr[U_ALPHA_TEST] = 0;
-    //((PFNGLALPHAFUNCDLLPROC)wrap_addr_dll[GLALPHAFUNCDLL].orig_func)(func, ref);
+    ((PFNGLALPHAFUNCDLLPROC)wrap_addr_dll[GLALPHAFUNCDLL].orig_func)(func, ref);
 }
 
 void GLAPIENTRY glBeginDLL(GLenum mode) {

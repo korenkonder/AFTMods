@@ -8,7 +8,7 @@
 #include "../../KKdLib/farc.hpp"
 #include "../rob/rob.hpp"
 #if SHARED_GLITTER_BUFFER
-#include "../gl_rend_state.hpp"
+#include "../gl_state.hpp"
 #endif
 
 namespace Glitter {
@@ -110,7 +110,7 @@ namespace Glitter {
 
                 static const GLsizei buffer_size = sizeof(Buffer);
 
-                effect_group->vbo.Create(buffer_size * max_count);
+                effect_group->vbo.Create(gl_state, buffer_size * max_count);
 
                 if (max_count_quad) {
                     size_t count = max_count_quad / 4 * 5;
@@ -123,7 +123,7 @@ namespace Glitter {
                         ebo_data[i + 4] = 0xFFFFFFFF;
                     }
 
-                    effect_group->ebo.Create(sizeof(uint32_t) * count, ebo_data);
+                    effect_group->ebo.Create(gl_state, sizeof(uint32_t) * count, ebo_data);
                     free_def(ebo_data);
                 }
                 else
@@ -151,10 +151,10 @@ namespace Glitter {
                             k->buffer = buffer;
 
                             glGenVertexArrays(1, &k->vao);
-                            gl_rend_state.bind_vertex_array(k->vao, true);
-                            gl_rend_state.bind_array_buffer(vbo, true);
+                            gl_state.bind_vertex_array(k->vao, true);
+                            gl_state.bind_array_buffer(vbo, true);
                             if (k->data.type == PARTICLE_QUAD)
-                                gl_rend_state.bind_element_array_buffer(ebo, true);
+                                gl_state.bind_element_array_buffer(ebo, true);
 
                             glEnableVertexAttribArray(0);
                             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
@@ -174,9 +174,11 @@ namespace Glitter {
                     }
                 }
 
-                gl_rend_state.bind_array_buffer(0);
-                gl_rend_state.bind_vertex_array(0);
-                gl_rend_state.bind_element_array_buffer(0);
+                if (offset) {
+                    gl_state.bind_array_buffer(0);
+                    gl_state.bind_vertex_array(0);
+                    gl_state.bind_element_array_buffer(0);
+                }
             }
             else {
                 free_def(effect_group->buffer);
@@ -888,7 +890,7 @@ namespace Glitter {
         emit->data.rotation_add_random = *(vec3*)(d + 48);
         d += 60;
 
-        
+
         switch (emit->data.type) {
         case EMITTER_BOX:
             emit->data.box.size = *(vec3*)d;

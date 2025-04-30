@@ -21,6 +21,9 @@
 
 #define SHARED_GLITTER_BUFFER (1)
 
+struct cam_data;
+struct render_data_context;
+
 namespace Glitter {
     enum CurveFlag {
         CURVE_RANDOM_RANGE        = 0x01,
@@ -32,7 +35,7 @@ namespace Glitter {
         CURVE_BAKED               = 0x40,
         CURVE_BAKED_FULL          = 0x80,
     };
-    
+
     enum CurveType {
         CURVE_TRANSLATION_X          = 0,
         CURVE_TRANSLATION_Y          = 1,
@@ -259,7 +262,7 @@ namespace Glitter {
         PARTICLE_LOCAL             = 0x10000,
         PARTICLE_EMISSION          = 0x20000,
     };
-    
+
     enum ParticleInstFlag {
         PARTICLE_INST_NONE     = 0x00,
         PARTICLE_INST_ENDED    = 0x01,
@@ -273,7 +276,7 @@ namespace Glitter {
         PARTICLE_MANAGER_READ_FILES          = 0x08,
         PARTICLE_MANAGER_LOCAL               = 0x20,
     };
-    
+
     enum ParticleSubFlag {
         PARTICLE_SUB_NONE       = 0x00000000,
         PARTICLE_SUB_UV_2ND_ADD = 0x00400000,
@@ -298,7 +301,7 @@ namespace Glitter {
         PIVOT_BOTTOM_CENTER = 7,
         PIVOT_BOTTOM_RIGHT  = 8,
     };
-    
+
     enum SceneFlag {
         SCENE_NONE     = 0x00,
         SCENE_FLAG_1   = 0x01,
@@ -455,7 +458,7 @@ namespace Glitter {
         prj::string name;
         Animation animation;
     };
-    
+
     class ItemBaseX {
     public:
         AnimationX animation;
@@ -494,7 +497,7 @@ namespace Glitter {
 
         NodeX& operator=(const NodeX& node);
     };
-    
+
     class EffectX : public NodeX {
     public:
         struct ExtAnim {
@@ -537,7 +540,7 @@ namespace Glitter {
 
         EffectX& operator=(const EffectX& eff);
     };
-    
+
     struct EffectGroup {
         void* __vftable;
         prj::vector<Effect*> effects;
@@ -610,8 +613,8 @@ namespace Glitter {
 
         void CalcDisp();
         void CalcDisp(RenderGroup* rend_group);
-        void Disp(Glitter::DispType disp_type);
-        void Disp(RenderGroup* rend_group);
+        void Disp(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
+        void Disp(render_data_context& rend_data_ctx, RenderGroup* rend_group, const cam_data& cam);
 
         static void CalcDispLine(RenderGroup* rend_group);
         static void CalcDispLocus(RenderGroup* rend_group);
@@ -652,8 +655,8 @@ namespace Glitter {
         bool CanDisp(DispType disp_type, bool a3);
         void CheckUseCamera();
         void Ctrl(float_t delta_frame, bool copy_mats);
-        void Disp(DispType disp_type);
-        void Disp(RenderGroupX* rend_group);
+        void Disp(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
+        void Disp(render_data_context& rend_data_ctx, RenderGroupX* rend_group, const cam_data& cam);
         void DispMesh();
         void DispMesh(RenderGroupX* rend_group);
         size_t GetCtrlCount(ParticleType type);
@@ -664,7 +667,7 @@ namespace Glitter {
         static void CalcDispQuadSetPivot(Pivot pivot,
             float_t w, float_t h, float_t& v00, float_t& v01, float_t& v10, float_t& v11);
     };
-    
+
     struct EffectInstX {
         bool init;
         EffectX* effect;
@@ -729,7 +732,7 @@ namespace Glitter {
         void CtrlFlags(float_t delta_frame);
         void CtrlInit(float_t delta_frame);
         void CtrlMat();
-        void Disp(DispType disp_type);
+        void Disp(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
         void DispMesh();
         void Emit(float_t delta_frame, float_t emission);
         void EmitInit(float_t delta_frame, float_t emission);
@@ -910,7 +913,7 @@ namespace Glitter {
         bool UnpackParticle(void* data, ParticleX* ptcl,
             uint32_t ptcl_version, EffectX* eff, EffectGroupX* eff_group);
     };
-    
+
     struct LocusHistory {
         struct Data {
             vec3 translation;
@@ -943,9 +946,9 @@ namespace Glitter {
 
         void Append(RenderElementX* rend_elem, ParticleInstX* ptcl_inst);
     };
-    
+
     typedef prj::vector<prj::pair<GLint, GLsizei>> DrawListData;
-    
+
     class Particle : ItemBase {
     public:
         struct Data {
@@ -1266,7 +1269,7 @@ namespace Glitter {
         static mat4 RotateToPrevPosition(RenderGroupX* rend_group,
             RenderElementX* rend_elem, vec3* vec);
     };
-    
+
     struct RenderElement {
         bool alive;
         uint8_t uv_counter;
@@ -1353,7 +1356,7 @@ namespace Glitter {
 
         operator uint32_t() const { return (counter << 8) || index; }
     };
-    
+
     struct Scene {
         void* __vftable;
         prj::vector<SceneEffect*> effects;
@@ -1365,7 +1368,7 @@ namespace Glitter {
         RenderScene render_scene;
 
         void CalcDisp();
-        void Disp(DispType disp_type);
+        void Disp(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
     };
 
     struct SceneEffectX {
@@ -1392,7 +1395,7 @@ namespace Glitter {
         void CheckUpdate(float_t delta_frame);
         bool Copy(EffectInstX* eff_inst, SceneX* dst);
         void Ctrl(float_t delta_frame);
-        void Disp(DispType disp_type);
+        void Disp(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
         void DispMesh();
         size_t GetCtrlCount(ParticleType ptcl_type);
         size_t GetDispCount(ParticleType ptcl_type);
@@ -1433,7 +1436,7 @@ namespace Glitter {
         uint32_t texture_counter;
 
         void CalcDisp();
-        void DispScenes(DispType disp_type);
+        void DispScenes(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
     };
 
     class GltParticleManagerX : app::Task {
@@ -1469,7 +1472,7 @@ namespace Glitter {
         void CheckSceneHasLocalEffect(SceneX* sc);
         void CtrlScenes();
         void DecrementInitBuffersByCount(int32_t count = 1);
-        void DispScenes(DispType disp_type);
+        void DispScenes(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam);
         void FreeEffects();
         void FreeSceneEffect(SceneCounter scene_counter, bool force_kill = true);
         void FreeSceneEffect(uint32_t effect_group_hash, uint32_t effect_hash, bool force_kill = true);

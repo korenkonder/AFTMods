@@ -13,6 +13,7 @@
 #include "auth_3d.hpp"
 #include "camera.hpp"
 #include "effect.hpp"
+#include "gl_state.hpp"
 #include "light_param.hpp"
 #include "object.hpp"
 #include "print.hpp"
@@ -113,13 +114,15 @@ HOOK(int32_t, FASTCALL, data_free, 0x000000140192490) {
     return ret;
 }
 
-HOOK(void, FASTCALL, sub_140194CD0, 0x000000140194CD0) {
+HOOK(void, FASTCALL, display_callback, 0x000000140194CD0) {
     rctx->ctrl();
-    originalsub_140194CD0();
+    originaldisplay_callback();
+    render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
+    rend_data_ctx.state.update();
 }
 
 HOOK(void, FASTCALL, gl_rend_state__get, 0x0000000140442DF0) {
-    gl_rend_state.get();
+
 }
 
 HOOK(void, FASTCALL, rndr__Render__update_res, 0x00000001404A9480, rndr::Render* rend, bool set, int32_t base_downsample) {
@@ -128,11 +131,12 @@ HOOK(void, FASTCALL, rndr__Render__update_res, 0x00000001404A9480, rndr::Render*
 
 HOOK(void, FASTCALL, rndr__Render__take_ss, 0x00000001404A9CD0,
     rndr::Render* rend, texture* tex, bool vertical, float_t horizontal_offset) {
-    rend->take_ss(tex, vertical, horizontal_offset);
+    render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
+    rend->take_ss(rend_data_ctx, tex, vertical, horizontal_offset);
 }
 
-HOOK(void, FASTCALL, rndr__Render__init_tone_map_buffers, 0x00000001404A9FF0, rndr::Render* rend) {
-    rend->init_tone_map_buffers();
+HOOK(void, FASTCALL, rndr__Render__init_post_process_buffers, 0x00000001404A9FF0, rndr::Render* rend) {
+    rend->init_post_process_buffers();
 }
 
 HOOK(void, FASTCALL, rndr__Render__init_render_buffers, 0x00000001404AB0C0, rndr::Render* rend,
@@ -165,12 +169,13 @@ HOOK(void, FASTCALL, rndr__Render__movie_texture_free, 0x00000001404B18F0,
 }
 
 HOOK(void, FASTCALL, rndr__RenderManager__rndpass_pre_proc, 0x0000000140502C90) {
-    gl_rend_state.begin_event("rndpass_pre_proc");
-    render_manager.render->pre_proc();
+    render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
+    rend_data_ctx.state.begin_event("rndpass_pre_proc");
+    render_manager.render->pre_proc(rend_data_ctx);
     Glitter::glt_particle_manager->CalcDisp();
     Glitter::glt_particle_manager_x->CalcDisp();
     rctx->pre_proc();
-    gl_rend_state.end_event();
+    rend_data_ctx.state.end_event();
 }
 
 HOOK(void, FASTCALL, rndr__RenderManager__render_all, 0x0000000140502CA0) {
@@ -178,39 +183,13 @@ HOOK(void, FASTCALL, rndr__RenderManager__render_all, 0x0000000140502CA0) {
 }
 
 HOOK(void, FASTCALL, rndr__RenderManager__rndpass_post_proc, 0x0000000140502C70) {
-    gl_rend_state.begin_event("rndpass_post_proc");
+    render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
+    rend_data_ctx.state.begin_event("rndpass_post_proc");
     rctx->post_proc();
     render_manager.render->post_proc();
     render_manager.field_31C = false;
-    gl_rend_state.end_event();
+    rend_data_ctx.state.end_event();
 }
-
-struct ScreenShotData {
-    prj::string path;
-    int32_t format;
-    bool screen_shot_4x;
-    int32_t width;
-    int32_t height;
-    GLuint buffer;
-    const void* tex_data;
-};
-
-struct ScreenShotImpl {
-    void* __vftable;
-    prj::string path;
-    int32_t format;
-    bool screen_shot_4x;
-    int32_t width;
-    int32_t height;
-    int32_t curr_width;
-    int32_t curr_height;
-    bool capture;
-    texture* tex;
-    GLuint data_buffers[2];
-    ScreenShotData ss_data[2];
-    int32_t data_buffer_index;
-    void* thread; // Thrd_t
-};
 
 HOOK(void, FASTCALL, shader_free, 0x00000001405E4DB0) {
     shaders_ft.unload();
@@ -236,11 +215,11 @@ HOOK(int32_t, FASTCALL, shader_get_index_by_name, 0x00000001405E4ED0, const char
 }
 
 HOOK(void, FASTCALL, env_set_blend_color, 0x00000001405E5600, float_t r, float_t g, float_t b, float_t a) {
-    rctx->set_batch_blend_color({ r, g, b, a });
+
 }
 
 HOOK(void, FASTCALL, env_set_offset_color, 0x00000001405E5630, float_t r, float_t g, float_t b, float_t a) {
-    rctx->set_batch_offset_color({ r, g, b, a });
+
 }
 
 HOOK(void, FASTCALL, set_render_defaults, 0x00000001401948B0) {
@@ -277,13 +256,13 @@ void hook_funcs() {
     INSTALL_HOOK(data_init);
     INSTALL_HOOK(data_free);
 
-    INSTALL_HOOK(sub_140194CD0);
+    INSTALL_HOOK(display_callback);
 
     INSTALL_HOOK(gl_rend_state__get);
 
     INSTALL_HOOK(rndr__Render__update_res);
     INSTALL_HOOK(rndr__Render__take_ss);
-    INSTALL_HOOK(rndr__Render__init_tone_map_buffers);
+    INSTALL_HOOK(rndr__Render__init_post_process_buffers);
     INSTALL_HOOK(rndr__Render__init_render_buffers);
     INSTALL_HOOK(rndr__Render__free);
     INSTALL_HOOK(rndr__Render__render_texture_set);

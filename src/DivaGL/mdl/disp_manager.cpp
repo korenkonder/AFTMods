@@ -10,6 +10,7 @@
 #include "../Glitter/glitter.hpp"
 #include "../rob/rob.hpp"
 #include "../gl_rend_state.hpp"
+#include "../gl_state.hpp"
 #include "../object.hpp"
 #include "../render_manager.hpp"
 #include "../shader_ft.hpp"
@@ -49,7 +50,7 @@ static void rob_chara_item_cos_data_disp_item_object(rob_chara_item_cos_data* it
     object_info obj_info, const mat4& mat, int32_t item_no);
 static void rob_chara_item_cos_data_set_chara_index(rob_chara_item_cos_data* item_cos_data, ::chara_index chara_index);
 
-static void sub_140436760(mat4* view);
+static void sub_140436760(const cam_data& cam);
 
 extern bool reflect_draw;
 extern mat4 reflect_mat;
@@ -293,17 +294,19 @@ namespace mdl {
     void DispManager::vertex_array::reset_vertex_attrib() {
         alive_time = 0;
         vertex_buffer = 0;
+        vertex_buffer_offset = 0;
         morph_vertex_buffer = 0;
+        morph_vertex_buffer_offset = 0;
 
-        gl_rend_state.bind_vertex_array(vertex_array);
+        gl_state.bind_vertex_array(vertex_array);
         for (int32_t i = 0; i < 16; i++)
             if (vertex_attrib_array[i]) {
                 glDisableVertexAttribArray(i);
                 vertex_attrib_array[i] = false;
             }
-        gl_rend_state.bind_array_buffer(0, true);
-        gl_rend_state.bind_element_array_buffer(0, true);
-        gl_rend_state.bind_vertex_array(0);
+        gl_state.bind_array_buffer(0, true);
+        gl_state.bind_element_array_buffer(0, true);
+        gl_state.bind_vertex_array(0);
     }
 
     void DispManager::add_vertex_array(ObjSubMeshArgs* args) {
@@ -374,10 +377,11 @@ namespace mdl {
             vertex_array = &vertex_array_cache.back();
         }
 
+        bool new_vertex_array = false;
         if (!vertex_array->vertex_array) {
             glGenVertexArrays(1, &vertex_array->vertex_array);
 
-            gl_rend_state.bind_vertex_array(vertex_array->vertex_array);
+            gl_state.bind_vertex_array(vertex_array->vertex_array);
             glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
             glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -394,6 +398,7 @@ namespace mdl {
             glVertexAttrib4f(MORPH_TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(MORPH_TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(     BONE_INDEX_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
+            new_vertex_array = true;
         }
 
         vertex_array->vertex_buffer = vertex_buffer;
@@ -409,10 +414,11 @@ namespace mdl {
         memcpy(&vertex_array->vertex_attrib_buffer_binding,
             vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding));
 
-        gl_rend_state.bind_vertex_array(vertex_array->vertex_array);
-        gl_rend_state.bind_array_buffer(vertex_buffer, true);
+        if (!new_vertex_array)
+            gl_state.bind_vertex_array(vertex_array->vertex_array);
+        gl_state.bind_array_buffer(vertex_buffer, true);
         if (index_buffer)
-            gl_rend_state.bind_element_array_buffer(index_buffer, true);
+            gl_state.bind_element_array_buffer(index_buffer, true);
 
         size_t offset = vertex_buffer_offset;
         if (vertex_format & OBJ_VERTEX_POSITION) {
@@ -424,7 +430,7 @@ namespace mdl {
             glVertexAttribPointer(POSITION_INDEX,
                 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
             offset += 12;
-    }
+        }
         else if (vertex_array->vertex_attrib_array[POSITION_INDEX]) {
             glDisableVertexAttribArray(POSITION_INDEX);
             vertex_array->vertex_attrib_array[POSITION_INDEX] = false;
@@ -651,7 +657,7 @@ namespace mdl {
         }
 
         if (morph_vertex_buffer) {
-            gl_rend_state.bind_array_buffer(morph_vertex_buffer, true);
+            gl_state.bind_array_buffer(morph_vertex_buffer, true);
 
             size_t offset = morph_vertex_buffer_offset;
             if (vertex_format & OBJ_VERTEX_POSITION) {
@@ -802,8 +808,6 @@ namespace mdl {
             }
 
             if (vertex_format & OBJ_VERTEX_COLOR0) {
-                uniform->arr[U_MORPH_COLOR] = 1;
-
                 if (!vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX]) {
                     glEnableVertexAttribArray(MORPH_COLOR_INDEX);
                     vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX] = true;
@@ -883,10 +887,10 @@ namespace mdl {
             }
         }
 
-        gl_rend_state.bind_array_buffer(0);
-        gl_rend_state.bind_vertex_array(0);
+        gl_state.bind_array_buffer(0);
+        gl_state.bind_vertex_array(0);
         if (index_buffer)
-            gl_rend_state.bind_element_array_buffer(0);
+            gl_state.bind_element_array_buffer(0);
     }
 
     static size_t gen_grid_vertices(prj::vector<prj::pair<vec3, vec3>>& data,
@@ -1647,10 +1651,11 @@ namespace mdl {
             etc_vertex_array = &etc_vertex_array_cache.back();
         }
 
+        bool new_vertex_array = false;
         if (!etc_vertex_array->vertex_array) {
             glGenVertexArrays(1, &etc_vertex_array->vertex_array);
 
-            gl_rend_state.bind_vertex_array(etc_vertex_array->vertex_array);
+            gl_state.bind_vertex_array(etc_vertex_array->vertex_array);
             glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
             glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -1667,11 +1672,13 @@ namespace mdl {
             glVertexAttrib4f(MORPH_TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(MORPH_TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(     BONE_INDEX_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
+            new_vertex_array = true;
         }
 
         etc_vertex_array->alive_time = 2;
         etc_vertex_array->data = etc->data;
         etc_vertex_array->type = type;
+        etc_vertex_array->indexed = indexed;
 
         prj::vector<prj::pair<vec3, vec3>> vtx_data;
         prj::vector<uint32_t> vtx_indices;
@@ -1787,20 +1794,21 @@ namespace mdl {
 
         GLsizei size_vertex = sizeof(vec3) * 2;
 
-        gl_rend_state.bind_vertex_array(etc_vertex_array->vertex_array);
+        if (!new_vertex_array)
+            gl_state.bind_vertex_array(etc_vertex_array->vertex_array);
 
         if (etc_vertex_array->vertex_buffer.IsNull())
-            etc_vertex_array->vertex_buffer.Create(sizeof(vec3) * 2 * vtx_data.size());
+            etc_vertex_array->vertex_buffer.Create(gl_state, sizeof(vec3) * 2 * vtx_data.size());
 
-        etc_vertex_array->vertex_buffer.Bind(true);
+        gl_state.bind_array_buffer(etc_vertex_array->vertex_buffer, true);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec3) * 2
             * vtx_data.size(), vtx_data.data());
 
         if (indexed) {
             if (etc_vertex_array->index_buffer.IsNull())
-                etc_vertex_array->index_buffer.Create(sizeof(uint32_t) * vtx_indices.size());
+                etc_vertex_array->index_buffer.Create(gl_state, sizeof(uint32_t) * vtx_indices.size());
 
-            etc_vertex_array->index_buffer.Bind(true);
+            gl_state.bind_element_array_buffer(etc_vertex_array->index_buffer, true);
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(uint32_t)
                 * vtx_indices.size(), vtx_indices.data());
         }
@@ -1813,10 +1821,10 @@ namespace mdl {
         glVertexAttribPointer(NORMAL_INDEX,
             3, GL_FLOAT, GL_FALSE, size_vertex, (void*)sizeof(vec3));
 
-        gl_rend_state.bind_array_buffer(0);
-        gl_rend_state.bind_vertex_array(0);
+        gl_state.bind_array_buffer(0);
+        gl_state.bind_vertex_array(0);
         if (indexed)
-            gl_rend_state.bind_element_array_buffer(0);
+            gl_state.bind_element_array_buffer(0);
     }
 
     void* DispManager::alloc_data(int32_t size) {
@@ -1853,7 +1861,7 @@ namespace mdl {
         buff_offset = 0;
     }
 
-    void DispManager::calc_obj_radius(mat4* view, ObjType type) {
+    void DispManager::calc_obj_radius(const cam_data& cam, ObjType type) {
         prj::vector<vec3> alpha_center;
         prj::vector<vec3> mat_center;
 
@@ -1864,9 +1872,9 @@ namespace mdl {
             case OBJ_KIND_NORMAL: {
                 mat4 mat = i->mat;
                 if (i->args.sub_mesh.mesh->attrib.m.billboard)
-                    model_mat_face_camera_view(view, &mat, &mat);
+                    model_mat_face_camera_view(cam, &mat, &mat);
                 else if (i->args.sub_mesh.mesh->attrib.m.billboard_y_axis)
-                    model_mat_face_camera_position(view, &mat, &mat);
+                    model_mat_face_camera_position(cam, &mat, &mat);
 
                 get_obj_center(mat, &i->args.sub_mesh, center);
 
@@ -1900,7 +1908,7 @@ namespace mdl {
             if (show_mat_center && type == OBJ_TYPE_TRANSLUCENT && v50)
                 mat_center.push_back(center);
 
-            mat4_transform_point(view, &center, &center);
+            mat4_transform_point(&cam.get_view_mat(), &center, &center);
             i->view_z = center.z;
         }
 
@@ -1935,7 +1943,7 @@ namespace mdl {
             }
     }
 
-    void DispManager::calc_obj_radius(mat4* view, ObjTypeLocal type) {
+    void DispManager::calc_obj_radius(const cam_data& cam, ObjTypeLocal type) {
         for (ObjData*& i : get_obj_list(type)) {
             vec3 center = 0.0f;
             bool v50 = false;
@@ -1943,9 +1951,9 @@ namespace mdl {
             case OBJ_KIND_NORMAL: {
                 mat4 mat = i->mat;
                 if (i->args.sub_mesh.mesh->attrib.m.billboard)
-                    model_mat_face_camera_view(view, &mat, &mat);
+                    model_mat_face_camera_view(cam, &mat, &mat);
                 else if (i->args.sub_mesh.mesh->attrib.m.billboard_y_axis)
-                    model_mat_face_camera_position(view, &mat, &mat);
+                    model_mat_face_camera_position(cam, &mat, &mat);
 
                 get_obj_center(mat, &i->args.sub_mesh, center);
 
@@ -1970,13 +1978,12 @@ namespace mdl {
                 break;
             }
 
-            mat4_transform_point(view, &center, &center);
+            mat4_transform_point(&cam.get_view_mat(), &center, &center);
             i->view_z = center.z;
         }
-
     }
 
-    void DispManager::calc_obj_radius(mat4* view, ObjTypeReflect type) {
+    void DispManager::calc_obj_radius(const cam_data& cam, ObjTypeReflect type) {
         for (ObjData*& i : get_obj_list(type)) {
             vec3 center = 0.0f;
             bool v50 = false;
@@ -1984,9 +1991,9 @@ namespace mdl {
             case OBJ_KIND_NORMAL: {
                 mat4 mat = i->mat;
                 if (i->args.sub_mesh.mesh->attrib.m.billboard)
-                    model_mat_face_camera_view(view, &mat, &mat);
+                    model_mat_face_camera_view(cam, &mat, &mat);
                 else if (i->args.sub_mesh.mesh->attrib.m.billboard_y_axis)
-                    model_mat_face_camera_position(view, &mat, &mat);
+                    model_mat_face_camera_position(cam, &mat, &mat);
 
                 get_obj_center(mat, &i->args.sub_mesh, center);
 
@@ -2011,10 +2018,9 @@ namespace mdl {
                 break;
             }
 
-            mat4_transform_point(view, &center, &center);
+            mat4_transform_point(&cam.get_view_mat(), &center, &center);
             i->view_z = center.z;
         }
-
     }
 
     void DispManager::check_index_buffer(GLuint buffer) {
@@ -2030,12 +2036,13 @@ namespace mdl {
 
         for (DispManager::etc_vertex_array& i : etc_vertex_array_cache)
             if (i.alive_time > 0 && --i.alive_time <= 0) {
-                gl_rend_state.bind_vertex_array(i.vertex_array);
+                gl_state.bind_vertex_array(i.vertex_array);
                 glDisableVertexAttribArray(POSITION_INDEX);
                 glDisableVertexAttribArray(NORMAL_INDEX);
-                gl_rend_state.bind_array_buffer(0, true);
-                gl_rend_state.bind_element_array_buffer(0, true);
-                gl_rend_state.bind_vertex_array(0);
+                gl_state.bind_array_buffer(0);
+                if (i.indexed)
+                    gl_state.bind_element_array_buffer(0);
+                gl_state.bind_vertex_array(0);
             }
     }
 
@@ -2046,31 +2053,32 @@ namespace mdl {
                 i.reset_vertex_attrib();
     }
 
-    void DispManager::draw(ObjType type, int32_t depth_mask, bool reflect_texture_mask, int32_t alpha) {
+    void DispManager::draw(render_data_context& rend_data_ctx, ObjType type,
+        const cam_data& cam, int32_t depth_mask, bool reflect_texture_mask, int32_t alpha) {
         if (type < 0 || type >= OBJ_TYPE_MAX || get_obj_count(type) < 1)
             return;
 
         int32_t alpha_test = 0;
         float_t min_alpha = 1.0f;
         float_t alpha_threshold = 0.0f;
-        bool reflect = uniform->arr[U_REFLECT] == 1;
-        void(*func)(const ObjSubMeshArgs * args) = draw_sub_mesh_default;
+        bool reflect = rend_data_ctx.shader_flags.arr[U_REFLECT] == 1;
+        void(*func)(render_data_context & rend_data_ctx, const ObjSubMeshArgs * args,
+            const cam_data & cam, const mat4 * mat) = draw_sub_mesh_default;
 
         for (int32_t i = 0; i < 5; i++)
-            gl_rend_state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
-        gl_rend_state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
-        gl_rend_state.active_texture(0);
-        gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        uniform_value_reset();
-        gl_rend_state.get();
+            rend_data_ctx.state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
+        rend_data_ctx.state.active_texture(0);
+        rend_data_ctx.state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        rend_data_ctx.reset_shader_flags();
 
         switch (type) {
         case OBJ_TYPE_TRANSLUCENT:
         case OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS:
             if (depth_mask)
-                func = draw_sub_mesh_translucent;
+                func = draw_sub_mesh_no_mat;
             else
-                gl_rend_state.set_depth_mask(GL_FALSE);
+                rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
             alpha_test = 1;
             min_alpha = 0.0f;
@@ -2088,43 +2096,43 @@ namespace mdl {
             func = draw_sub_mesh_shadow;
             break;
         case OBJ_TYPE_TYPE_6:
-            func = draw_sub_mesh_translucent;
-            gl_rend_state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-            draw_state.shader_index = SHADER_FT_SIL;
+            func = draw_sub_mesh_no_mat;
+            rend_data_ctx.state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+            rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
             break;
         case OBJ_TYPE_TYPE_7:
-            func = draw_sub_mesh_translucent;
-            gl_rend_state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-            draw_state.shader_index = SHADER_FT_SIL;
+            func = draw_sub_mesh_no_mat;
+            rend_data_ctx.state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+            rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
 
             alpha_test = 1;
             min_alpha = 0.0f;
             alpha_threshold = 0.99999994f;
             break;
         case OBJ_TYPE_REFLECT_CHARA_OPAQUE:
-            gl_rend_state.set_cull_face_mode(GL_FRONT);
+            rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
 
             if (!reflect_draw) {
                 if (reflect)
-                    func = draw_sub_mesh_reflect;
+                    func = draw_sub_mesh_cheap;
                 else if (render_manager.reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
-                    func = draw_sub_mesh_reflect_reflect_map;
+                    func = draw_sub_mesh_cheap_reflect_map;
             }
             break;
         case OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT:
-            gl_rend_state.set_cull_face_mode(GL_FRONT);
+            rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
 
             min_alpha = 0.0f;
 
             if (!reflect_draw) {
                 if (reflect)
-                    func = draw_sub_mesh_reflect;
+                    func = draw_sub_mesh_cheap;
                 else if (render_manager.reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
-                    func = draw_sub_mesh_reflect_reflect_map;
+                    func = draw_sub_mesh_cheap_reflect_map;
             }
             break;
         case OBJ_TYPE_REFLECT_CHARA_TRANSPARENT:
-            gl_rend_state.set_cull_face_mode(GL_FRONT);
+            rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
 
             alpha_test = 1;
             min_alpha = 0.1f;
@@ -2132,9 +2140,9 @@ namespace mdl {
 
             if (!reflect_draw) {
                 if (reflect)
-                    func = draw_sub_mesh_reflect;
+                    func = draw_sub_mesh_cheap;
                 else if (render_manager.reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
-                    func = draw_sub_mesh_reflect_reflect_map;
+                    func = draw_sub_mesh_cheap_reflect_map;
             }
             break;
         case OBJ_TYPE_REFLECT_OPAQUE:
@@ -2142,18 +2150,18 @@ namespace mdl {
             alpha_threshold = 0.5f;
 
             if (reflect_draw)
-                gl_rend_state.set_cull_face_mode(GL_FRONT);
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             else if (!reflect_texture_mask)
-                func = draw_sub_mesh_reflect_reflect_map;
+                func = draw_sub_mesh_cheap_reflect_map;
             break;
         case OBJ_TYPE_REFLECT_TRANSLUCENT:
-            gl_rend_state.set_depth_mask(GL_FALSE);
+            rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
 
             if (reflect_draw)
-                gl_rend_state.set_cull_face_mode(GL_FRONT);
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_REFLECT_TRANSPARENT:
             alpha_test = 1;
@@ -2161,10 +2169,10 @@ namespace mdl {
             alpha_threshold = 0.5f;
 
             if (reflect_draw)
-                gl_rend_state.set_cull_face_mode(GL_FRONT);
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_REFRACT_TRANSLUCENT:
-            gl_rend_state.set_depth_mask(GL_FALSE);
+            rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
@@ -2178,7 +2186,7 @@ namespace mdl {
             func = draw_sub_mesh_sss;
 
             if (reflect_draw)
-                gl_rend_state.set_cull_face_mode(GL_FRONT);
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
@@ -2190,35 +2198,35 @@ namespace mdl {
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
-            gl_rend_state.set_depth_mask(GL_FALSE);
+            rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
             alpha_test = 1;
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
             break;
         case OBJ_TYPE_USER:
-            func = draw_sub_mesh_translucent;
+            func = draw_sub_mesh_no_mat;
             break;
         }
-        rctx->set_batch_alpha_threshold(alpha_threshold);
-        rctx->set_batch_min_alpha(min_alpha);
-        uniform->arr[U_ALPHA_TEST] = alpha_test;
+        rend_data_ctx.set_batch_alpha_threshold(alpha_threshold);
+        rend_data_ctx.set_batch_min_alpha(min_alpha);
+        rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = alpha_test;
 
         if (alpha < 0)
             for (ObjData*& i : get_obj_list(type)) {
                 switch (i->kind) {
                 case OBJ_KIND_NORMAL: {
-                    draw_sub_mesh(&i->args.sub_mesh, &i->mat, func);
+                    draw_sub_mesh(rend_data_ctx, &i->args.sub_mesh, &i->mat, func, cam);
                 } break;
                 case OBJ_KIND_ETC: {
-                    draw_etc_obj(&i->args.etc, &i->mat);
+                    draw_etc_obj(rend_data_ctx, &i->args.etc, &i->mat);
                 } break;
                 case OBJ_KIND_USER: {
-                    i->args.user.func(i->args.user.data, &i->mat);
+                    i->args.user.func(rend_data_ctx, i->args.user.data, cam, &i->mat);
                 } break;
                 case OBJ_KIND_TRANSLUCENT: {
                     for (int32_t j = 0; j < i->args.translucent.count; j++)
-                        draw_sub_mesh(i->args.translucent.sub_mesh[j], &i->mat, func);
+                        draw_sub_mesh(rend_data_ctx, i->args.translucent.sub_mesh[j], &i->mat, func, cam);
                 } break;
                 }
             }
@@ -2229,7 +2237,7 @@ namespace mdl {
                     int32_t a = (int32_t)(i->args.sub_mesh.blend_color.w * 255.0f);
                     a = clamp_def(a, 0, 255);
                     if (a == alpha)
-                        draw_sub_mesh(&i->args.sub_mesh, &i->mat, func);
+                        draw_sub_mesh(rend_data_ctx, &i->args.sub_mesh, &i->mat, func, cam);
                 } break;
                 case OBJ_KIND_TRANSLUCENT: {
                     for (int32_t j = 0; j < i->args.translucent.count; j++) {
@@ -2237,7 +2245,7 @@ namespace mdl {
                         int32_t a = (int32_t)(args->blend_color.w * 255.0f);
                         a = clamp_def(a, 0, 255);
                         if (a == alpha)
-                            draw_sub_mesh(args, &i->mat, func);
+                            draw_sub_mesh(rend_data_ctx, args, &i->mat, func, cam);
                     }
                 } break;
                 }
@@ -2247,78 +2255,79 @@ namespace mdl {
         case OBJ_TYPE_TRANSLUCENT:
         case OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS:
             if (!depth_mask)
-                gl_rend_state.set_depth_mask(GL_TRUE);
+                rend_data_ctx.state.set_depth_mask(GL_TRUE);
             break;
         case OBJ_TYPE_TYPE_6:
         case OBJ_TYPE_TYPE_7:
-            draw_state.shader_index = -1;
-            gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
+            rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
             break;
         case OBJ_TYPE_REFLECT_CHARA_OPAQUE:
         case OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT:
         case OBJ_TYPE_REFLECT_CHARA_TRANSPARENT:
-            gl_rend_state.set_cull_face_mode(GL_BACK);
+            rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             break;
         case OBJ_TYPE_REFLECT_OPAQUE:
             if (reflect_draw)
-                gl_rend_state.set_cull_face_mode(GL_FRONT);
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_REFLECT_TRANSLUCENT:
             if (reflect_draw)
-                gl_rend_state.set_cull_face_mode(GL_FRONT);
-            gl_rend_state.set_depth_mask(GL_TRUE);
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
+            rend_data_ctx.state.set_depth_mask(GL_TRUE);
             break;
         case OBJ_TYPE_REFLECT_TRANSPARENT:
             if (reflect_draw)
-                gl_rend_state.set_cull_face_mode(GL_FRONT);
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_REFRACT_TRANSLUCENT:
             if (reflect_draw)
-                gl_rend_state.set_cull_face_mode(GL_FRONT);
-            gl_rend_state.set_depth_mask(GL_TRUE);
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
+            rend_data_ctx.state.set_depth_mask(GL_TRUE);
             break;
         case OBJ_TYPE_SSS:
             if (reflect_draw)
-                gl_rend_state.set_cull_face_mode(GL_BACK);
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             break;
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
-            gl_rend_state.set_depth_mask(GL_TRUE);
+            rend_data_ctx.state.set_depth_mask(GL_TRUE);
             break;
         }
 
-        uniform_value_reset();
-        gl_rend_state.bind_vertex_array(0);
-        shader::unbind();
-        gl_rend_state.set_blend_func(GL_ONE, GL_ZERO);
+        rend_data_ctx.reset_shader_flags();
+        rend_data_ctx.state.bind_vertex_array(0);
+        shader::unbind(rend_data_ctx.state);
+        rend_data_ctx.state.set_blend_func(GL_ONE, GL_ZERO);
         for (int32_t i = 0; i < 5; i++)
-            gl_rend_state.bind_sampler(i, 0);
+            rend_data_ctx.state.bind_sampler(i, 0);
     }
 
-    void DispManager::draw(mdl::ObjTypeLocal type, int32_t depth_mask) {
+    void DispManager::draw(render_data_context& rend_data_ctx, mdl::ObjTypeLocal type,
+        const cam_data& cam, int32_t depth_mask, bool reflect_texture_mask) {
         if (type < 0 || type >= OBJ_TYPE_LOCAL_MAX || get_obj_count(type) < 1)
             return;
 
         int32_t alpha_test = 0;
         float_t min_alpha = 1.0f;
         float_t alpha_threshold = 0.0f;
-        void(*func)(const ObjSubMeshArgs * args) = draw_sub_mesh_default;
+        void(*func)(render_data_context & rend_data_ctx, const ObjSubMeshArgs * args,
+            const cam_data & cam, const mat4 * mat) = draw_sub_mesh_default;
 
         for (int32_t i = 0; i < 5; i++)
-            gl_rend_state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
-        gl_rend_state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
-        gl_rend_state.active_texture(0);
-        gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        uniform_value_reset();
-        gl_rend_state.get();
+            rend_data_ctx.state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
+        rend_data_ctx.state.active_texture(0);
+        rend_data_ctx.state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        rend_data_ctx.reset_shader_flags();
 
         switch (type) {
         case OBJ_TYPE_LOCAL_TRANSLUCENT:
             if (depth_mask)
-                func = draw_sub_mesh_translucent;
+                func = draw_sub_mesh_no_mat;
             else
-                gl_rend_state.set_depth_mask(GL_FALSE);
+                rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
             alpha_test = 1;
             min_alpha = 0.0f;
@@ -2330,18 +2339,18 @@ namespace mdl {
             alpha_threshold = 0.5f;
             break;
         }
-        rctx->set_batch_alpha_threshold(alpha_threshold);
-        rctx->set_batch_min_alpha(min_alpha);
-        uniform->arr[U_ALPHA_TEST] = alpha_test;
+        rend_data_ctx.set_batch_alpha_threshold(alpha_threshold);
+        rend_data_ctx.set_batch_min_alpha(min_alpha);
+        rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = alpha_test;
 
         for (ObjData*& i : get_obj_list(type)) {
             switch (i->kind) {
             case OBJ_KIND_NORMAL: {
-                draw_sub_mesh(&i->args.sub_mesh, &i->mat, func);
+                draw_sub_mesh(rend_data_ctx, &i->args.sub_mesh, &i->mat, func, cam);
             } break;
             case OBJ_KIND_TRANSLUCENT: {
                 for (int32_t j = 0; j < i->args.translucent.count; j++)
-                    draw_sub_mesh(i->args.translucent.sub_mesh[j], &i->mat, func);
+                    draw_sub_mesh(rend_data_ctx, i->args.translucent.sub_mesh[j], &i->mat, func, cam);
             } break;
             }
         }
@@ -2349,62 +2358,63 @@ namespace mdl {
         switch (type) {
         case OBJ_TYPE_LOCAL_TRANSLUCENT:
             if (!depth_mask)
-                gl_rend_state.set_depth_mask(GL_TRUE);
+                rend_data_ctx.state.set_depth_mask(GL_TRUE);
             break;
         }
 
-        uniform_value_reset();
-        gl_rend_state.bind_vertex_array(0);
-        shader::unbind();
-        gl_rend_state.set_blend_func(GL_ONE, GL_ZERO);
+        rend_data_ctx.reset_shader_flags();
+        rend_data_ctx.state.bind_vertex_array(0);
+        shader::unbind(rend_data_ctx.state);
+        rend_data_ctx.state.set_blend_func(GL_ONE, GL_ZERO);
         for (int32_t i = 0; i < 5; i++)
-            gl_rend_state.bind_sampler(i, 0);
+            rend_data_ctx.state.bind_sampler(i, 0);
     }
 
-    void DispManager::draw(mdl::ObjTypeReflect type, int32_t depth_mask) {
+    void DispManager::draw(render_data_context& rend_data_ctx, mdl::ObjTypeReflect type,
+        const cam_data& cam, int32_t depth_mask, bool reflect_texture_mask) {
         if (type < 0 || type >= OBJ_TYPE_REFLECT_MAX || get_obj_count(type) < 1)
             return;
 
         int32_t alpha_test = 0;
         float_t min_alpha = 1.0f;
         float_t alpha_threshold = 0.0f;
-        bool reflect = uniform->arr[U_REFLECT] == 1;
-        void(*func)(const ObjSubMeshArgs * args) = draw_sub_mesh_default;
+        bool reflect = rend_data_ctx.shader_flags.arr[U_REFLECT] == 1;
+        void(*func)(render_data_context & rend_data_ctx, const ObjSubMeshArgs * args,
+            const cam_data & cam, const mat4 * mat) = draw_sub_mesh_default;
 
         for (int32_t i = 0; i < 5; i++)
-            gl_rend_state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
-        gl_rend_state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
-        gl_rend_state.active_texture(0);
-        gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        uniform_value_reset();
-        gl_rend_state.get();
+            rend_data_ctx.state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
+        rend_data_ctx.state.active_texture(0);
+        rend_data_ctx.state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        rend_data_ctx.reset_shader_flags();
 
         switch (type) {
         case OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS:
             if (depth_mask)
-                func = draw_sub_mesh_translucent;
+                func = draw_sub_mesh_no_mat;
             else
-                gl_rend_state.set_depth_mask(GL_FALSE);
+                rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
             alpha_test = 1;
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
 
-            gl_rend_state.set_cull_face_mode(GL_FRONT);
+            rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             break;
         }
-        rctx->set_batch_alpha_threshold(alpha_threshold);
-        rctx->set_batch_min_alpha(min_alpha);
-        uniform->arr[U_ALPHA_TEST] = alpha_test;
+        rend_data_ctx.set_batch_alpha_threshold(alpha_threshold);
+        rend_data_ctx.set_batch_min_alpha(min_alpha);
+        rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = alpha_test;
 
         for (ObjData*& i : get_obj_list(type)) {
             switch (i->kind) {
             case OBJ_KIND_NORMAL: {
-                draw_sub_mesh(&i->args.sub_mesh, &i->mat, func);
+                draw_sub_mesh(rend_data_ctx, &i->args.sub_mesh, &i->mat, func, cam);
             } break;
             case OBJ_KIND_TRANSLUCENT: {
                 for (int32_t j = 0; j < i->args.translucent.count; j++)
-                    draw_sub_mesh(i->args.translucent.sub_mesh[j], &i->mat, func);
+                    draw_sub_mesh(rend_data_ctx, i->args.translucent.sub_mesh[j], &i->mat, func, cam);
             } break;
             }
         }
@@ -2412,16 +2422,16 @@ namespace mdl {
         switch (type) {
         case OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS:
             if (!depth_mask)
-                gl_rend_state.set_cull_face_mode(GL_BACK);
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             break;
         }
 
-        uniform_value_reset();
-        gl_rend_state.bind_vertex_array(0);
-        shader::unbind();
-        gl_rend_state.set_blend_func(GL_ONE, GL_ZERO);
+        rend_data_ctx.reset_shader_flags();
+        rend_data_ctx.state.bind_vertex_array(0);
+        shader::unbind(rend_data_ctx.state);
+        rend_data_ctx.state.set_blend_func(GL_ONE, GL_ZERO);
         for (int32_t i = 0; i < 5; i++)
-            gl_rend_state.bind_sampler(i, 0);
+            rend_data_ctx.state.bind_sampler(i, 0);
     }
 
     /*void DispManager::draw_show_vector(ObjType type, int32_t show_vector) {
@@ -2431,12 +2441,12 @@ namespace mdl {
         render_context* rctx = rctx_ptr;
 
         for (int32_t i = 0; i < 5; i++)
-            gl_rend_state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
-        gl_rend_state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
-        gl_rend_state.active_texture(0);
-        gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        uniform_value_reset();
-        gl_rend_state.get();
+            rend_data_ctx.state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
+        rend_data_ctx.state.active_texture(0);
+        rend_data_ctx.state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        rend_data_ctx.reset_shader_flags();
+        rend_data_ctx.state.get();
 
         for (ObjData*& i : get_obj_list(type)) {
             switch (i->type) {
@@ -2451,7 +2461,7 @@ namespace mdl {
             } break;
             }
         }
-        gl_rend_state.set_blend_func(GL_ONE, GL_ZERO);
+        rend_data_ctx.state.set_blend_func(GL_ONE, GL_ZERO);
     }*/
 
     void DispManager::entry_list(ObjType type, ObjData* data) {
@@ -3654,11 +3664,11 @@ namespace mdl {
     int32_t DispManager::get_obj_count(ObjType type) {
         return (int32_t)get_obj_list(type).size();
     }
-    
+
     int32_t DispManager::get_obj_count(ObjTypeLocal type) {
         return (int32_t)get_obj_list(type).size();
     }
-    
+
     int32_t DispManager::get_obj_count(ObjTypeReflect type) {
         return (int32_t)get_obj_list(type).size();
     }
@@ -3705,15 +3715,16 @@ namespace mdl {
         return wet_param;
     }
 
-    void DispManager::obj_sort(mat4* view, ObjType type, int32_t compare_func, bool a3) {
+    void DispManager::obj_sort(render_data_context& rend_data_ctx,
+        ObjType type, int32_t compare_func, const cam_data& cam, bool a3) {
         prj::list<ObjData*>& list = get_obj_list(type);
         if (list.size() < 1)
             return;
 
         if (a3 && type == OBJ_TYPE_TRANSLUCENT)
-            sub_140436760(view);
+            sub_140436760(cam);
 
-        calc_obj_radius(view, type);
+        calc_obj_radius(cam, type);
 
         switch (compare_func) {
         case 0:
@@ -3734,12 +3745,13 @@ namespace mdl {
         }
     }
 
-    void DispManager::obj_sort(mat4* view, ObjTypeLocal type, int32_t compare_func, bool a3) {
+    void DispManager::obj_sort(render_data_context& rend_data_ctx,
+        ObjTypeLocal type, int32_t compare_func, const cam_data& cam) {
         prj::list<ObjData*>& list = get_obj_list(type);
         if (list.size() < 1)
             return;
 
-        calc_obj_radius(view, type);
+        calc_obj_radius(cam, type);
 
         switch (compare_func) {
         case 0:
@@ -3760,12 +3772,13 @@ namespace mdl {
         }
     }
 
-    void DispManager::obj_sort(mat4* view, ObjTypeReflect type, int32_t compare_func, bool a3) {
+    void DispManager::obj_sort(render_data_context& rend_data_ctx,
+        ObjTypeReflect type, int32_t compare_func, const cam_data& cam) {
         prj::list<ObjData*>& list = get_obj_list(type);
         if (list.size() < 1)
             return;
 
-        calc_obj_radius(view, type);
+        calc_obj_radius(cam, type);
 
         switch (compare_func) {
         case 0:
@@ -4150,7 +4163,7 @@ static void rob_chara_item_cos_data_set_chara_index(rob_chara_item_cos_data* ite
     item_cos_data->chara_index = chara_index;
 }
 
-static void sub_140436760(mat4* view) {
+static void sub_140436760(const cam_data& cam) {
     for (auto& i : disp_manager->obj[mdl::OBJ_TYPE_TRANSLUCENT]) {
         if (i->kind != mdl::OBJ_KIND_NORMAL)
             continue;
@@ -4184,7 +4197,7 @@ static void sub_140436760(mat4* view) {
         mat4 mat;
         mat4_transpose(&i->mat, &mat);
         mat4_mul_translate(&mat, &aabb->center, &mat);
-        mat4_mul(&mat, view, &mat);
+        mat4_mul(&mat, &cam.get_view_mat(), &mat);
         mat4_transpose(&mat, &mat);
 
         vec4 t;

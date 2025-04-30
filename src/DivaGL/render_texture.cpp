@@ -5,6 +5,7 @@
 
 #include "render_texture.hpp"
 #include "gl_rend_state.hpp"
+#include "gl_state.hpp"
 #include <Helpers.h>
 
 static uint32_t& render_texture_counter = *(uint32_t*)0x00000001411AD648;
@@ -22,17 +23,30 @@ RenderTexture::~RenderTexture() {
     Free();
 }
 
-int32_t RenderTexture::Bind(int32_t index) {
+int32_t RenderTexture::Bind(gl_state_struct& gl_st, int32_t index) {
     if (index < 0 || index > max_level)
         return -1;
 
-    gl_rend_state.bind_framebuffer(fbos[index]);
+    gl_st.bind_framebuffer(fbos[index]);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         return -1;
 
     gl_get_error_print();
     return 0;
 }
+
+int32_t RenderTexture::Bind(p_gl_rend_state& p_gl_rend_st, int32_t index) {
+    if (index < 0 || index > max_level)
+        return -1;
+
+    p_gl_rend_st.bind_framebuffer(fbos[index]);
+    if (p_gl_rend_st.check_framebuffer_status(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        return -1;
+
+    gl_get_error_print();
+    return 0;
+}
+
 
 void RenderTexture::Free() {
     if (depth_texture) {
@@ -82,12 +96,12 @@ int32_t RenderTexture::Init(int32_t width, int32_t height,
 
         render_texture_counter++;
         color_texture = GetColorTex();
-        gl_rend_state.bind_texture_2d(GetColorTex());
         if (color_format == GL_RGBA32F) {
+            gl_state.bind_texture_2d(GetColorTex());
             glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            gl_state.bind_texture_2d(0);
         }
-        gl_rend_state.bind_texture_2d(0);
     }
     else {
         this->color_texture = 0;
@@ -150,6 +164,10 @@ int32_t RenderTexture::SetColorDepthTextures(GLuint color_texture,
     return error;
 }
 
+void RenderTexture::SetViewport(p_gl_rend_state& p_gl_rend_st) {
+    p_gl_rend_st.set_viewport(0, 0, GetWidth(), GetHeight());
+}
+
 void render_texture_counter_reset() {
     render_texture_counter = 0;
 }
@@ -169,7 +187,7 @@ static int32_t render_texture_set_framebuffer_texture(RenderTexture* rt,
     if (level < 0 || level > rt->max_level)
         return -1;
 
-    gl_rend_state.bind_framebuffer(rt->fbos[level]);
+    gl_state.bind_framebuffer(rt->fbos[level]);
     gl_get_error_print();
 
     if (color_texture) {
@@ -202,7 +220,7 @@ static int32_t render_texture_set_framebuffer_texture(RenderTexture* rt,
     int32_t ret = 0;
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         ret = -1;
-    gl_rend_state.bind_framebuffer(0);
+    gl_state.bind_framebuffer(0);
     gl_get_error_print();
     return ret;
 }

@@ -4,6 +4,7 @@
 */
 
 #include "sprite.hpp"
+#include "gl_state.hpp"
 #include "render_context.hpp"
 #include "shader_ft.hpp"
 #include <Helpers.h>
@@ -93,7 +94,8 @@ namespace spr {
         mat4 mat;
         resolution_mode resolution_mode;
 
-        void Draw(int32_t index, bool font, texture* overlay_tex);
+        void Draw(render_data_context& rend_data_ctx,
+            int32_t index, bool font, texture* overlay_tex);
         void PostDraw();
         void PreDraw();
     };
@@ -111,12 +113,13 @@ namespace spr {
     static void add_draw_sprite(spr::SprArgs** args_array, int32_t count, bool font,
         spr::SprArgsInner& args_inner, std::vector<sprite_draw_param>& draw_param_buffer,
         std::vector<sprite_draw_vertex>& vertex_buffer, std::vector<uint32_t>& index_buffer);
-    static void draw_sprite(const SprArgs& args, const mat4& mat,
+    static void draw_sprite(render_data_context& rend_data_ctx, const SprArgs& args, const mat4& mat,
         int32_t x_min, int32_t y_min, int32_t x_max, int32_t y_max, texture* overlay_tex);
-    static void draw_sprite_begin();
-    static void draw_sprite_copy_overlay_texture(const SprArgs& args, const mat4& mat,
-        const vec3* vtx, int32_t overlay_x_min, int32_t overlay_y_min, int32_t overlay_x_max, int32_t overlay_y_max);
-    static void draw_sprite_end();
+    static void draw_sprite_begin(render_data_context& rend_data_ctx);
+    static void draw_sprite_copy_overlay_texture(
+        render_data_context& rend_data_ctx, const SprArgs& args, const mat4& mat, const vec3* vtx,
+        int32_t overlay_x_min, int32_t overlay_y_min, int32_t overlay_x_max, int32_t overlay_y_max);
+    static void draw_sprite_end(render_data_context& rend_data_ctx);
     static void draw_sprite_scale(spr::SprArgs* args);
 }
 
@@ -138,16 +141,16 @@ static const GLenum spr_blend_param[6][4] = {
 };
 
 namespace spr {
-    SpriteManager::RenderData::RenderData() {
+    SpriteManager::RenderData::RenderData() : vao() {
         glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
+        gl_state.bind_vertex_array(vao);
 
         vbo_vertex_count = 4096;
 
         static const GLsizei buffer_size = sizeof(sprite_draw_vertex);
 
-        vbo.Create(buffer_size * vbo_vertex_count);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        vbo.Create(gl_state, buffer_size * vbo_vertex_count);
+        gl_state.bind_array_buffer(vbo, true);
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
@@ -161,12 +164,12 @@ namespace spr {
 
         ebo_index_count = 4096;
 
-        ebo.Create(sizeof(uint32_t) * ebo_index_count);
-        ebo.Bind();
+        ebo.Create(gl_state, sizeof(uint32_t) * ebo_index_count);
+        gl_state.bind_element_array_buffer(ebo, true);
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        gl_state.bind_array_buffer(0);
+        gl_state.bind_vertex_array(0);
+        gl_state.bind_element_array_buffer(0);
     }
 
     SpriteManager::RenderData::~RenderData() {
@@ -194,10 +197,10 @@ namespace spr {
 
             vbo.Destroy();
 
-            glBindVertexArray(vao);
+            gl_state.bind_vertex_array(vao);
 
-            vbo.Create(buffer_size * vbo_vertex_count);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            vbo.Create(gl_state, buffer_size * vbo_vertex_count);
+            gl_state.bind_array_buffer(vbo, true);
 
             glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
                 * vertex_buffer.size()), vertex_buffer.data());
@@ -212,11 +215,11 @@ namespace spr {
             glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
                 (void*)offsetof(sprite_draw_vertex, uv));
 
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
+            gl_state.bind_array_buffer(0);
+            gl_state.bind_vertex_array(0);
         }
         else
-            vbo.WriteMemory(0, buffer_size * vertex_buffer.size(), vertex_buffer.data());
+            vbo.WriteMemory(gl_state, 0, buffer_size * vertex_buffer.size(), vertex_buffer.data());
 
         if (ebo_index_count < index_buffer.size()) {
             while (ebo_index_count < index_buffer.size())
@@ -224,23 +227,24 @@ namespace spr {
 
             ebo.Destroy();
 
-            glBindVertexArray(vao);
+            gl_state.bind_vertex_array(vao);
 
-            ebo.Create(sizeof(uint32_t) * ebo_index_count);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+            ebo.Create(gl_state, sizeof(uint32_t) * ebo_index_count);
+            gl_state.bind_element_array_buffer(ebo, true);
 
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (GLsizeiptr)(sizeof(uint32_t)
                 * index_buffer.size()), index_buffer.data());
 
-            glBindVertexArray(0);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            gl_state.bind_vertex_array(0);
+            gl_state.bind_element_array_buffer(0);
         }
         else
-            ebo.WriteMemory(0, sizeof(uint32_t) * index_buffer.size(), index_buffer.data());
+            ebo.WriteMemory(gl_state, 0, sizeof(uint32_t) * index_buffer.size(), index_buffer.data());
     }
 
-    void SpriteManager::Draw(int32_t index, bool font, texture* overlay_tex) {
-        draw_sprite_begin();
+    void SpriteManager::Draw(render_data_context& rend_data_ctx,
+        int32_t index, bool font, texture* overlay_tex) {
+        draw_sprite_begin(rend_data_ctx);
 
         size_t count = 0;
         for (auto& i : reqlist[index])
@@ -251,7 +255,7 @@ namespace spr {
         if (index == 2 && resolution_mode != RESOLUTION_MODE_MAX)
             res_window_get()->resolution_mode = resolution_mode;
 
-        gl_rend_state_rect viewport_rect = gl_rend_state.get_viewport();
+        gl_rend_state_rect viewport_rect = rend_data_ctx.state.get_viewport();
 
         for (int32_t i = 0; i < 2; i++) {
             auto reqlist = this->reqlist[index][i];
@@ -298,7 +302,7 @@ namespace spr {
                 y_min = (int32_t)min.y;
                 x_max = (int32_t)(max.x - min.x);
                 y_max = (int32_t)(max.y - min.y);
-                gl_rend_state.set_viewport(x_min, y_min, x_max, y_max);
+                rend_data_ctx.state.set_viewport(x_min, y_min, x_max, y_max);
             }
             else {
                 view_projection = view_projection_aet;
@@ -333,23 +337,23 @@ namespace spr {
                 1.0f / (float_t)overlay_tex->height, 0.0f, 0.0f
             };
             shader_data.g_transform = view_projection;
-            rctx->sprite_scene_ubo.WriteMemory(shader_data);
-            rctx->sprite_scene_ubo.Bind(0);
+            rctx->sprite_scene_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+            rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->sprite_scene_ubo);
 
             RenderData& render_data = *sprite_manager_render_data;
 
-            gl_rend_state.bind_vertex_array(render_data.vao);
+            rend_data_ctx.state.bind_vertex_array(render_data.vao);
             for (uint32_t j = SPR_PRIO_MAX; j; j--, reqlist++)
                 for (auto& k : *reqlist)
                     if (k.sprite_draw_param_index >= 0)
-                        draw_sprite(k, mat, x_min, y_min, x_max, y_max, overlay_tex);
-            gl_rend_state.bind_vertex_array(0);
+                        draw_sprite(rend_data_ctx, k, mat, x_min, y_min, x_max, y_max, overlay_tex);
+            rend_data_ctx.state.bind_vertex_array(0);
         }
 
         if (index == 2 && resolution_mode != RESOLUTION_MODE_MAX)
             res_window_get()->resolution_mode = mode;
 
-        draw_sprite_end();
+        draw_sprite_end(rend_data_ctx);
     }
 
     void SpriteManager::PostDraw() {
@@ -1067,7 +1071,7 @@ namespace spr {
             args_array[i]->sprite_draw_param_index = -1;
     }
 
-    static void draw_sprite(const SprArgs& args, const mat4& mat,
+    static void draw_sprite(render_data_context& rend_data_ctx, const SprArgs& args, const mat4& mat,
         int32_t x_min, int32_t y_min, int32_t x_max, int32_t y_max, texture* overlay_tex) {
         sprite_draw_param& draw_param
             = sprite_manager_render_data->draw_param_buffer.data()[args.sprite_draw_param_index];
@@ -1075,8 +1079,9 @@ namespace spr {
         int32_t combiner = 0;
         if (draw_param.attrib.m.enable_blend) {
             if (draw_param.attrib.m.blend == 5) {
-                gl_rend_state.active_bind_texture_2d(7, overlay_tex->glid);
-                draw_sprite_copy_overlay_texture(args, mat, draw_param.vtx, x_min, y_min, x_max, y_max);
+                rend_data_ctx.state.active_bind_texture_2d(7, overlay_tex->glid);
+                draw_sprite_copy_overlay_texture(rend_data_ctx,
+                    args, mat, draw_param.vtx, x_min, y_min, x_max, y_max);
                 combiner = 2;
             }
             else
@@ -1084,11 +1089,11 @@ namespace spr {
 
             const GLenum* blend = spr_blend_param[draw_param.attrib.m.blend];
 
-            gl_rend_state.enable_blend();
-            gl_rend_state.set_blend_func_separate(blend[0], blend[1], blend[2], blend[3]);
+            rend_data_ctx.state.enable_blend();
+            rend_data_ctx.state.set_blend_func_separate(blend[0], blend[1], blend[2], blend[3]);
         }
         else
-            gl_rend_state.disable_blend();
+            rend_data_ctx.state.disable_blend();
 
         if (draw_param.shader == SHADER_FT_SPRITE) {
             int32_t tex_0_type = 0;
@@ -1111,51 +1116,50 @@ namespace spr {
                 }
             }
 
-            uniform->arr[U_TEX_0_TYPE] = tex_0_type;
-            uniform->arr[U_TEX_1_TYPE] = tex_1_type;
-            uniform->arr[U_COMBINER] = combiner;
+            rend_data_ctx.shader_flags.arr[U_TEX_0_TYPE] = tex_0_type;
+            rend_data_ctx.shader_flags.arr[U_TEX_1_TYPE] = tex_1_type;
+            rend_data_ctx.shader_flags.arr[U_COMBINER] = combiner;
         }
 
         if (draw_param.textures[0]) {
-            gl_rend_state.active_bind_texture_2d(0, draw_param.textures[0]->glid);
-            gl_rend_state.bind_sampler(0, rctx->sprite_samplers[draw_param.attrib.m.sampler]);
+            rend_data_ctx.state.active_bind_texture_2d(0, draw_param.textures[0]->glid);
+            rend_data_ctx.state.bind_sampler(0, rctx->sprite_samplers[draw_param.attrib.m.sampler]);
 
             if (draw_param.textures[1]) {
-                gl_rend_state.active_bind_texture_2d(1, draw_param.textures[1]->glid);
-                gl_rend_state.bind_sampler(1, rctx->sprite_samplers[draw_param.attrib.m.sampler]);
+                rend_data_ctx.state.active_bind_texture_2d(1, draw_param.textures[1]->glid);
+                rend_data_ctx.state.bind_sampler(1, rctx->sprite_samplers[draw_param.attrib.m.sampler]);
             }
-            else if (!gl_rend_state.texture_binding_2d[1])
-                gl_rend_state.active_bind_texture_2d(1, rctx->empty_texture_2d->glid);
+            else
+                rend_data_ctx.state.active_bind_texture_2d(1, rctx->empty_texture_2d->glid);
         }
         else {
-            if (!gl_rend_state.texture_binding_2d[0])
-                gl_rend_state.active_bind_texture_2d(0, rctx->empty_texture_2d->glid);
-            if (!gl_rend_state.texture_binding_2d[1])
-                gl_rend_state.active_bind_texture_2d(1, rctx->empty_texture_2d->glid);
+            rend_data_ctx.state.active_bind_texture_2d(0, rctx->empty_texture_2d->glid);
+            rend_data_ctx.state.active_bind_texture_2d(1, rctx->empty_texture_2d->glid);
         }
 
-        shaders_ft.set(draw_param.shader);
+        shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, draw_param.shader);
         if (draw_param.attrib.m.primitive != GL_TRIANGLES)
-            shaders_ft.draw_arrays(draw_param.attrib.m.primitive, draw_param.first, draw_param.count);
+            rend_data_ctx.state.draw_arrays(draw_param.attrib.m.primitive, draw_param.first, draw_param.count);
         else
-            shaders_ft.draw_range_elements(draw_param.attrib.m.primitive, draw_param.start, draw_param.end,
+            rend_data_ctx.state.draw_range_elements(draw_param.attrib.m.primitive, draw_param.start, draw_param.end,
                 draw_param.count, GL_UNSIGNED_INT, (void*)draw_param.offset);
     }
 
-    static void draw_sprite_begin() {
-        gl_rend_state.disable_blend(true);
-        gl_rend_state.active_bind_texture_2d(0, rctx->empty_texture_2d->glid, true);
-        gl_rend_state.bind_sampler(0, 0, true);
-        gl_rend_state.active_bind_texture_2d(1, rctx->empty_texture_2d->glid, true);
-        gl_rend_state.bind_sampler(1, 0, true);
-        gl_rend_state.bind_sampler(7, 0, true);
-        gl_rend_state.set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO, true);
-        gl_rend_state.bind_vertex_array(0, true);
-        gl_rend_state.bind_uniform_buffer_base(0, 0, true);
+    static void draw_sprite_begin(render_data_context& rend_data_ctx) {
+        rend_data_ctx.state.disable_blend();
+        rend_data_ctx.state.active_bind_texture_2d(0, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.bind_sampler(0, 0);
+        rend_data_ctx.state.active_bind_texture_2d(1, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.bind_sampler(1, 0);
+        rend_data_ctx.state.bind_sampler(7, 0);
+        rend_data_ctx.state.set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
+        rend_data_ctx.state.bind_vertex_array(0);
+        rend_data_ctx.state.bind_uniform_buffer_base(0, 0);
     }
 
-    static void draw_sprite_copy_overlay_texture(const SprArgs& args, const mat4& mat,
-        const vec3* vtx, int32_t overlay_x_min, int32_t overlay_y_min, int32_t overlay_x_max, int32_t overlay_y_max) {
+    static void draw_sprite_copy_overlay_texture(
+        render_data_context& rend_data_ctx, const SprArgs& args, const mat4& mat, const vec3* vtx,
+        int32_t overlay_x_min, int32_t overlay_y_min, int32_t overlay_x_max, int32_t overlay_y_max) {
         if (args.num_vertex || args.kind != SPR_KIND_NORMAL)
             return;
 
@@ -1210,21 +1214,21 @@ namespace spr {
         const int32_t width = x_max - x_min + 1;
         const int32_t height = y_max - y_min + 1;
         if (width * height > 0) {
-            gl_rend_state.active_texture(7);
-            glCopyTexSubImage2DDLL(GL_TEXTURE_2D, 0, x_min, y_min, x_min, y_min, width, height);
+            rend_data_ctx.state.active_texture(7);
+            rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D, 0, x_min, y_min, x_min, y_min, width, height);
         }
     }
 
-    static void draw_sprite_end() {
-        gl_rend_state.disable_blend();
-        gl_rend_state.active_bind_texture_2d(0, 0);
-        gl_rend_state.bind_sampler(0, 0);
-        gl_rend_state.active_bind_texture_2d(1, 0);
-        gl_rend_state.bind_sampler(1, 0);
-        gl_rend_state.active_bind_texture_2d(7, 0);
-        gl_rend_state.bind_sampler(7, 0);
-        gl_rend_state.set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
-        shaders_ft.set(-1);
+    static void draw_sprite_end(render_data_context& rend_data_ctx) {
+        rend_data_ctx.state.disable_blend();
+        rend_data_ctx.state.active_bind_texture_2d(0, 0);
+        rend_data_ctx.state.bind_sampler(0, 0);
+        rend_data_ctx.state.active_bind_texture_2d(1, 0);
+        rend_data_ctx.state.bind_sampler(1, 0);
+        rend_data_ctx.state.active_bind_texture_2d(7, 0);
+        rend_data_ctx.state.bind_sampler(7, 0);
+        rend_data_ctx.state.set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
+        shader::unbind(rend_data_ctx.state);
     }
 
     static void draw_sprite_scale(spr::SprArgs* args) {
@@ -1266,8 +1270,9 @@ void sprite_manager_init() {
         sprite_manager_render_data = new spr::SpriteManager::RenderData;
 }
 
-void sprite_manager_draw(int32_t index, bool font, texture* overlay_tex) {
-    sprite_manager->Draw(index, font, overlay_tex);
+void sprite_manager_draw(render_data_context& rend_data_ctx,
+    int32_t index, bool font, texture* overlay_tex) {
+    sprite_manager->Draw(rend_data_ctx, index, font, overlay_tex);
 }
 
 void sprite_manager_post_draw() {
@@ -1308,7 +1313,8 @@ HOOK(void, FASTCALL, spr__SprArgs__Reset, 0x000000014063CA10, spr::SprArgs* This
 }
 
 HOOK(void, FASTCALL, sprite_manager_draw, 0x000000014063F870, int32_t index, bool font, texture* tex) {
-    sprite_manager_draw(index, font, tex);
+    render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
+    sprite_manager_draw(rend_data_ctx, index, font, tex);
 }
 
 void sprite_patch() {

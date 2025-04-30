@@ -8,7 +8,7 @@
 #include "../AFTModsShared/file_handler.hpp"
 #include "mdl/disp_manager.hpp"
 #include "pv_game/firstread.hpp"
-#include "gl_rend_state.hpp"
+#include "gl_state.hpp"
 #include "wrap.hpp"
 #include <Helpers.h>
 
@@ -206,9 +206,9 @@ GLsizeiptr obj_mesh_vertex_buffer_divagl::get_size() {
         GLint buffer;
         GLint size;
         glGetIntegervDLL(GL_ARRAY_BUFFER_BINDING, &buffer);
-        gl_rend_state.bind_element_array_buffer(buffers[0]);
+        gl_state.bind_element_array_buffer(buffers[0]);
         glGetBufferParameteriv(target, GL_BUFFER_SIZE, &size);
-        gl_rend_state.bind_element_array_buffer(buffer);
+        gl_state.bind_element_array_buffer(buffer);
         return size;
     }
 #endif
@@ -1163,12 +1163,12 @@ bool ObjsetInfo::vertex_buffer_load() {
 static GLuint create_index_buffer(size_t size, const void* data) {
     GLuint buffer = 0;
     glGenBuffers(1, &buffer);
-    gl_rend_state.bind_element_array_buffer(buffer);
+    gl_state.bind_element_array_buffer(buffer);
     if (DIVA_GL_VERSION_4_4)
         glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, 0);
     else
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, GL_STATIC_DRAW);
-    gl_rend_state.bind_element_array_buffer(0);
+    gl_state.bind_element_array_buffer(0);
 
     if (glGetErrorDLL()) {
         glDeleteBuffers(1, &buffer);
@@ -1183,14 +1183,14 @@ static GLuint create_index_buffer(size_t size, const void* data) {
 static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic) {
     GLuint buffer = 0;
     glGenBuffers(1, &buffer);
-    gl_rend_state.bind_array_buffer(buffer);
+    gl_state.bind_array_buffer(buffer);
     if (DIVA_GL_VERSION_4_4)
         glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
             dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
     else
         glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
             dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
-    gl_rend_state.bind_array_buffer(0);
+    gl_state.bind_array_buffer(0);
 
     if (glGetErrorDLL()) {
         glDeleteBuffers(1, &buffer);
@@ -1209,9 +1209,9 @@ static void free_index_buffer(GLuint buffer) {
     disp_manager->check_index_buffer(buffer);
 
     GLint size;
-    gl_rend_state.bind_element_array_buffer(buffer);
+    gl_state.bind_element_array_buffer(buffer);
     glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-    gl_rend_state.bind_element_array_buffer(0);
+    gl_state.bind_element_array_buffer(0);
     bufobj_mgr.ib_all_size -= size;
 
     glDeleteBuffers(1, &buffer);
@@ -1225,9 +1225,9 @@ static void free_vertex_buffer(GLuint buffer) {
     disp_manager->check_vertex_buffer(buffer);
 
     GLint size = 0;
-    gl_rend_state.bind_array_buffer(buffer);
+    gl_state.bind_array_buffer(buffer);
     glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-    gl_rend_state.bind_array_buffer(0);
+    gl_state.bind_array_buffer(0);
     bufobj_mgr.vb_all_size -= size;
 
     glDeleteBuffers(1, &buffer);

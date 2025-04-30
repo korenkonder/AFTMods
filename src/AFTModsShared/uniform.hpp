@@ -88,7 +88,3 @@ enum uniform_name {
 struct uniform_value {
     int32_t arr[U_MAX];
 };
-
-extern uniform_value* uniform;
-
-extern void(FASTCALL* uniform_value_reset)();

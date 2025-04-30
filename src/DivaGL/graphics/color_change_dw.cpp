@@ -6,7 +6,7 @@
 #include "color_change_dw.hpp"
 #include "../../AFTModsShared/dw.hpp"
 #include "../rob/rob.hpp"
-#include "../gl_rend_state.hpp"
+#include "../gl_state.hpp"
 #include "../shared.hpp"
 #include "../texture.hpp"
 #include <Helpers.h>
@@ -121,7 +121,7 @@ HOOK(void, FASTCALL, ColorChangeDw__Draw, 0x00000001402C2170, ColorChangeDw* Thi
                 else
                     dxt5_image_apply_color_tone(width_align, height_align, size, (dxt5_block*)data, col_tone);
 
-                gl_rend_state.bind_texture_2d(org_tex->glid);
+                gl_state.bind_texture_2d(org_tex->glid);
                 int32_t width = chg_tex->get_width_mip_level(i);
                 int32_t height = chg_tex->get_height_mip_level(i);
                 glCompressedTexSubImage2D(org_tex->target, i, 0, 0, width, height,
@@ -130,7 +130,7 @@ HOOK(void, FASTCALL, ColorChangeDw__Draw, 0x00000001402C2170, ColorChangeDw* Thi
             else if (chg_tex->internal_format == GL_RGB5) {
                 rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, col_tone);
 
-                gl_rend_state.bind_texture_2d(org_tex->glid);
+                gl_state.bind_texture_2d(org_tex->glid);
                 int32_t width = chg_tex->get_width_mip_level(i);
                 int32_t height = chg_tex->get_height_mip_level(i);
                 glTexSubImage2DDLL(org_tex->target, i, 0, 0, width, height,
@@ -139,7 +139,7 @@ HOOK(void, FASTCALL, ColorChangeDw__Draw, 0x00000001402C2170, ColorChangeDw* Thi
             gl_get_error_print();
             prj::HeapCMallocFree(prj::HeapCMallocTemp, data);
         }
-        gl_rend_state.bind_texture_2d(0);
+        gl_state.bind_texture_2d(0);
     }
 
     if (This->show) {
@@ -249,7 +249,7 @@ bool ColorChangeDw::LoadTexture() {
         return false;
 
     int32_t tex_num = objset_info_storage_get_set_tex_num(obj_set_id);
-    
+
     /*for (int32_t i = 0; i < tex_num; i++) {
         ::texture* chg_tex = 0;
         ::texture* org_tex = textures[i];
@@ -281,7 +281,7 @@ bool ColorChangeDw::LoadTexture() {
 
                 int32_t width_align = org_tex->get_width_align_mip_level(i);
                 int32_t height_align = org_tex->get_height_align_mip_level(i);
-                gl_rend_state.bind_texture_2d(org_tex->glid);
+                gl_state.bind_texture_2d(org_tex->glid);
                 if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION)
                     glGetCompressedTexImage(org_tex->target, i, data);
                 else

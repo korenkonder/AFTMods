@@ -277,8 +277,8 @@ namespace Glitter {
             i->CtrlInit(this, delta_frame);
     }
 
-    void EffectInstX::Disp(DispType disp_type) {
-        render_scene.Disp(disp_type);
+    void EffectInstX::Disp(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
+        render_scene.Disp(rend_data_ctx, disp_type, cam);
     }
 
     void EffectInstX::DispMesh() {
@@ -501,7 +501,7 @@ namespace Glitter {
     void EffectInstX::GetExtAnim() {
         if (!ext_anim)
             return;
-        
+
         if (!(flags & EFFECT_INST_EXT_ANIM) && !(flags & EFFECT_INST_EXT_ANIM_MAT)
             || (flags & EFFECT_INST_EXT_ANIM_END)
             || (flags & EFFECT_INST_EXT_ANIM_SET_ONCE) && (flags & EFFECT_INST_EXT_ANIM_TRANS))

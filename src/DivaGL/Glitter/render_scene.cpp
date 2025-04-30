@@ -5,6 +5,7 @@
 
 #include "glitter.hpp"
 #include "../gl_rend_state.hpp"
+#include "../gl_state.hpp"
 #include "../render_context.hpp"
 #include "../shader_ft.hpp"
 #include "../wrap.hpp"
@@ -60,7 +61,7 @@ namespace Glitter {
         }
     }
 
-    void RenderScene::Disp(Glitter::DispType disp_type) {
+    void RenderScene::Disp(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         bool (FASTCALL * RenderGroup_CannotDisp)(RenderGroup * rend_group)
             = (bool(FASTCALL*)(RenderGroup * rend_group))0x00000001403A7120;
 
@@ -72,11 +73,11 @@ namespace Glitter {
             if (RenderGroup_CannotDisp(rend_group) || rend_group->disp_type != disp_type)
                 continue;
 
-            Disp(rend_group);
+            Disp(rend_data_ctx, rend_group, cam);
         }
     }
 
-    void RenderScene::Disp(RenderGroup* rend_group) {
+    void RenderScene::Disp(render_data_context& rend_data_ctx, RenderGroup* rend_group, const cam_data& cam) {
         switch (rend_group->type) {
         case PARTICLE_QUAD:
         case PARTICLE_LINE:
@@ -89,15 +90,10 @@ namespace Glitter {
         if (!rend_group->vao || rend_group->disp < 1)
             return;
 
-        mat4 cam_view;
-        mat4 cam_projection;
-        mat4_transpose(&camera_data.view, &cam_view);
-        mat4_transpose(&camera_data.projection, &cam_projection);
-
         mat4 mat;
         mat4_transpose(&rend_group->mat_draw, &mat);
-        mat4_mul(&mat, &cam_view, &mat);
-        mat4_mul(&mat, &cam_projection, &mat);
+        mat4_mul(&mat, &cam.get_view_mat(), &mat);
+        mat4_mul(&mat, &cam.get_proj_mat(), &mat);
 
         float_t emission = 1.0f;
         if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
@@ -112,7 +108,7 @@ namespace Glitter {
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-        rctx->glitter_batch_ubo.WriteMemory(shader_data);
+        rctx->glitter_batch_ubo.WriteMemory(rend_data_ctx.state, shader_data);
 
         GLenum blend_src;
         GLenum blend_dst;
@@ -137,8 +133,8 @@ namespace Glitter {
             break;
         }
 
-        gl_rend_state.set_blend_func(blend_src, blend_dst);
-        gl_rend_state.set_blend_equation(GL_FUNC_ADD);
+        rend_data_ctx.state.set_blend_func(blend_src, blend_dst);
+        rend_data_ctx.state.set_blend_equation(GL_FUNC_ADD);
 
         GLuint texture = rctx->empty_texture_2d->glid;
         GLuint mask_texture = rctx->empty_texture_2d->glid;
@@ -147,117 +143,116 @@ namespace Glitter {
             if (rend_group->mask_texture) {
                 mask_texture = rend_group->mask_texture;
 
-                uniform->arr[U_TEXTURE_COUNT] = 2;
+                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 2;
                 switch (rend_group->mask_blend_mode) {
                 default:
-                    uniform->arr[U_TEXTURE_BLEND] = 0;
+                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
                     break;
                 case PARTICLE_BLEND_MULTIPLY:
-                    uniform->arr[U_TEXTURE_BLEND] = 1;
+                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 1;
                     break;
                 case PARTICLE_BLEND_ADD:
-                    uniform->arr[U_TEXTURE_BLEND] = 2;
+                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 2;
                     break;
                 }
             }
             else {
-                uniform->arr[U_TEXTURE_COUNT] = 1;
-                uniform->arr[U_TEXTURE_BLEND] = 0;
+                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 1;
+                rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
             }
         }
         else {
-            uniform->arr[U_TEXTURE_COUNT] = 0;
-            uniform->arr[U_TEXTURE_BLEND] = 0;
+            rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 0;
+            rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
         }
 
-        gl_rend_state.active_bind_texture_2d(0, texture);
-        gl_rend_state.active_bind_texture_2d(1, mask_texture);
+        rend_data_ctx.state.active_bind_texture_2d(0, texture);
+        rend_data_ctx.state.active_bind_texture_2d(1, mask_texture);
 
         switch (rend_group->type) {
         case PARTICLE_QUAD:
             switch (rend_group->fog_type) {
             default:
-                uniform->arr[U_FOG_STAGE] = 0;
+                rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 0;
                 break;
             case Glitter::FOG_DEPTH:
-                uniform->arr[U_FOG_STAGE] = 1;
+                rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 1;
                 break;
             case Glitter::FOG_HEIGHT:
-                uniform->arr[U_FOG_STAGE] = 2;
+                rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 2;
                 break;
             }
 
-            gl_rend_state.enable_depth_test();
+            rend_data_ctx.state.enable_depth_test();
 
             if (alpha_test) {
-                uniform->arr[U_ALPHA_TEST] = 1;
-                rctx->set_batch_alpha_threshold(0.5f);
-                uniform->arr[U_ALPHA_BLEND] = 1;
-                gl_rend_state.set_depth_mask(GL_TRUE);
-                gl_rend_state.disable_blend();
+                rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 1;
+                rend_data_ctx.set_batch_alpha_threshold(0.5f);
+                rend_data_ctx.shader_flags.arr[U_ALPHA_BLEND] = 1;
+                rend_data_ctx.state.set_depth_mask(GL_TRUE);
+                rend_data_ctx.state.disable_blend();
             }
             else if (rend_group->disp_type) {
-                uniform->arr[U_ALPHA_TEST] = 0;
-                uniform->arr[U_ALPHA_BLEND] = 2;
-                gl_rend_state.set_depth_mask(GL_FALSE);
-                gl_rend_state.enable_blend();
+                rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
+                rend_data_ctx.shader_flags.arr[U_ALPHA_BLEND] = 2;
+                rend_data_ctx.state.set_depth_mask(GL_FALSE);
+                rend_data_ctx.state.enable_blend();
             }
             else {
-                uniform->arr[U_ALPHA_TEST] = 0;
-                uniform->arr[U_ALPHA_BLEND] = 0;
-                gl_rend_state.set_depth_mask(GL_TRUE);
-                gl_rend_state.disable_blend();
+                rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
+                rend_data_ctx.shader_flags.arr[U_ALPHA_BLEND] = 0;
+                rend_data_ctx.state.set_depth_mask(GL_TRUE);
+                rend_data_ctx.state.disable_blend();
             }
 
             if (rend_group->draw_type == DIRECTION_BILLBOARD) {
-                gl_rend_state.enable_cull_face();
-                gl_rend_state.set_cull_face_mode(GL_BACK);
+                rend_data_ctx.state.enable_cull_face();
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             }
             else
-                gl_rend_state.disable_cull_face();
+                rend_data_ctx.state.disable_cull_face();
             break;
         case PARTICLE_LINE:
-            uniform->arr[U_ALPHA_TEST] = 0;
-            uniform->arr[U_ALPHA_BLEND] = 2;
-            uniform->arr[U_FOG_STAGE] = 0;
+            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
+            rend_data_ctx.shader_flags.arr[U_ALPHA_BLEND] = 2;
+            rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 0;
 
-            gl_rend_state.enable_depth_test();
-            gl_rend_state.set_depth_mask(GL_FALSE);
-            gl_rend_state.enable_blend();
-            gl_rend_state.enable_cull_face();
-            gl_rend_state.set_cull_face_mode(GL_BACK);
+            rend_data_ctx.state.enable_depth_test();
+            rend_data_ctx.state.set_depth_mask(GL_FALSE);
+            rend_data_ctx.state.enable_blend();
+            rend_data_ctx.state.enable_cull_face();
+            rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             break;
         case PARTICLE_LOCUS:
-            uniform->arr[U_ALPHA_TEST] = 0;
-            uniform->arr[U_ALPHA_BLEND] = 2;
-            uniform->arr[U_FOG_STAGE] = 0;
+            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
+            rend_data_ctx.shader_flags.arr[U_ALPHA_BLEND] = 2;
+            rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 0;
 
-            gl_rend_state.enable_depth_test();
-            gl_rend_state.set_depth_mask(GL_FALSE);
-            gl_rend_state.enable_blend();
-            gl_rend_state.disable_cull_face();
+            rend_data_ctx.state.enable_depth_test();
+            rend_data_ctx.state.set_depth_mask(GL_FALSE);
+            rend_data_ctx.state.enable_blend();
+            rend_data_ctx.state.disable_cull_face();
             break;
         }
 
-        shaders_ft.set(SHADER_FT_GLITTER_PT);
-        rctx->set_glitter_render_data();
-        rctx->glitter_batch_ubo.Bind(3);
+        shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_GLITTER_PT);
+        rend_data_ctx.set_glitter_render_data_state();
+        rend_data_ctx.state.bind_uniform_buffer_base(3, rctx->glitter_batch_ubo);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
-            gl_rend_state.bind_vertex_array(rend_group->vao);
-            shaders_ft.enable_primitive_restart();
-            shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
-            shaders_ft.disable_primitive_restart();
+            rend_data_ctx.state.bind_vertex_array(rend_group->vao);
+            rend_data_ctx.state.draw_elements(GL_TRIANGLE_STRIP,
+                (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
             break;
         case PARTICLE_LINE:
-            gl_rend_state.bind_vertex_array(rend_group->vao);
+            rend_data_ctx.state.bind_vertex_array(rend_group->vao);
             for (std::pair<GLint, GLsizei>& i : *rend_group->draw_list)
-                shaders_ft.draw_arrays(GL_LINE_STRIP, i.first, i.second);
+                rend_data_ctx.state.draw_arrays(GL_LINE_STRIP, i.first, i.second);
             break;
         case PARTICLE_LOCUS:
-            gl_rend_state.bind_vertex_array(rend_group->vao);
+            rend_data_ctx.state.bind_vertex_array(rend_group->vao);
             for (std::pair<GLint, GLsizei>& i : *rend_group->draw_list)
-                shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
+                rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
             break;
         }
     }
@@ -345,7 +340,7 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
     }
 
     void RenderScene::CalcDispLocus(RenderGroup* rend_group) {
@@ -505,7 +500,7 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
     }
 
     void RenderScene::CalcDispQuad(RenderGroup* rend_group) {
@@ -703,7 +698,7 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
     }
 
     void RenderScene::CalcDispQuadNormal(
@@ -930,7 +925,7 @@ namespace Glitter {
             }
         rend_group->disp = disp;
 
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
     }
 
     void RenderScene::CalcDispLocusSetPivot(Pivot pivot,
@@ -1169,7 +1164,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1326,7 +1321,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1518,7 +1513,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1732,7 +1727,7 @@ namespace Glitter {
         rend_group->disp = disp;
 
 #if !SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
@@ -1778,7 +1773,7 @@ namespace Glitter {
         }
     }
 
-    void RenderSceneX::Disp(DispType disp_type) {
+    void RenderSceneX::Disp(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         for (RenderGroupX* i : groups) {
             if (!i)
                 continue;
@@ -1787,11 +1782,11 @@ namespace Glitter {
             if ((rend_group)->disp_type != disp_type || rend_group->CannotDisp())
                 continue;
 
-            Disp(rend_group);
+            Disp(rend_data_ctx, rend_group, cam);
         }
     }
 
-    void RenderSceneX::Disp(RenderGroupX* rend_group) {
+    void RenderSceneX::Disp(render_data_context& rend_data_ctx, RenderGroupX* rend_group, const cam_data& cam) {
         switch (rend_group->type) {
         case PARTICLE_QUAD:
         case PARTICLE_LINE:
@@ -1805,16 +1800,9 @@ namespace Glitter {
         if (!rend_group->vao || rend_group->disp < 1)
             return;
 
-        mat4 cam_view;
-        mat4 cam_projection;
-        mat4_transpose(&camera_data.view, &cam_view);
-        if (reflect_draw)
-            mat4_mul(&reflect_mat, &cam_view, &cam_view);
-        mat4_transpose(&camera_data.projection, &cam_projection);
-
         mat4 mat;
-        mat4_mul(&rend_group->mat_draw, &cam_view, &mat);
-        mat4_mul(&mat, &cam_projection, &mat);
+        mat4_mul(&rend_group->mat_draw, &cam.get_view_mat(), &mat);
+        mat4_mul(&mat, &cam.get_proj_mat(), &mat);
 
         float_t emission = 1.0f;
         if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
@@ -1829,7 +1817,7 @@ namespace Glitter {
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-        rctx->glitter_batch_ubo.WriteMemory(shader_data);
+        rctx->glitter_batch_ubo.WriteMemory(rend_data_ctx.state, shader_data);
 
         GLenum blend_src;
         GLenum blend_dst;
@@ -1854,8 +1842,8 @@ namespace Glitter {
             break;
         }
 
-        gl_rend_state.set_blend_func(blend_src, blend_dst);
-        gl_rend_state.set_blend_equation(GL_FUNC_ADD);
+        rend_data_ctx.state.set_blend_func(blend_src, blend_dst);
+        rend_data_ctx.state.set_blend_equation(GL_FUNC_ADD);
 
         GLuint texture = rctx->empty_texture_2d->glid;
         GLuint mask_texture = rctx->empty_texture_2d->glid;
@@ -1864,95 +1852,94 @@ namespace Glitter {
             if (rend_group->mask_texture) {
                 mask_texture = rend_group->mask_texture;
 
-                uniform->arr[U_TEXTURE_COUNT] = 2;
+                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 2;
                 switch (rend_group->mask_blend_mode) {
                 default:
-                    uniform->arr[U_TEXTURE_BLEND] = 0;
+                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
                     break;
                 case PARTICLE_BLEND_MULTIPLY:
-                    uniform->arr[U_TEXTURE_BLEND] = 1;
+                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 1;
                     break;
                 case PARTICLE_BLEND_ADD:
-                    uniform->arr[U_TEXTURE_BLEND] = 2;
+                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 2;
                     break;
                 }
             }
             else {
-                uniform->arr[U_TEXTURE_COUNT] = 1;
-                uniform->arr[U_TEXTURE_BLEND] = 0;
+                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 1;
+                rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
             }
         }
         else {
-            uniform->arr[U_TEXTURE_COUNT] = 0;
-            uniform->arr[U_TEXTURE_BLEND] = 0;
+            rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 0;
+            rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
         }
 
-        gl_rend_state.active_bind_texture_2d(0, texture);
-        gl_rend_state.active_bind_texture_2d(1, mask_texture);
+        rend_data_ctx.state.active_bind_texture_2d(0, texture);
+        rend_data_ctx.state.active_bind_texture_2d(1, mask_texture);
 
         switch (rend_group->fog_type) {
         default:
-            uniform->arr[U_FOG_STAGE] = 0;
+            rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 0;
             break;
         case Glitter::FOG_DEPTH:
-            uniform->arr[U_FOG_STAGE] = 1;
+            rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 1;
             break;
         case Glitter::FOG_HEIGHT:
-            uniform->arr[U_FOG_STAGE] = 2;
+            rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 2;
             break;
         }
 
         if (!(rend_group->flags & PARTICLE_DEPTH_TEST))
-            gl_rend_state.enable_depth_test();
+            rend_data_ctx.state.enable_depth_test();
         else
-            gl_rend_state.disable_depth_test();
+            rend_data_ctx.state.disable_depth_test();
 
         if (alpha_test) {
-            uniform->arr[U_ALPHA_TEST] = 1;
-            rctx->set_batch_alpha_threshold(0.5f);
-            uniform->arr[U_ALPHA_BLEND] = rend_group->disp_type ? 3 : 1;
-            gl_rend_state.set_depth_mask(GL_TRUE);
-            gl_rend_state.disable_blend();
+            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 1;
+            rend_data_ctx.set_batch_alpha_threshold(0.5f);
+            rend_data_ctx.shader_flags.arr[U_ALPHA_BLEND] = rend_group->disp_type ? 3 : 1;
+            rend_data_ctx.state.set_depth_mask(GL_TRUE);
+            rend_data_ctx.state.disable_blend();
         }
         else if (rend_group->disp_type) {
-            uniform->arr[U_ALPHA_TEST] = 0;
-            uniform->arr[U_ALPHA_BLEND] = 2;
-            gl_rend_state.set_depth_mask(GL_FALSE);
-            gl_rend_state.enable_blend();
+            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
+            rend_data_ctx.shader_flags.arr[U_ALPHA_BLEND] = 2;
+            rend_data_ctx.state.set_depth_mask(GL_FALSE);
+            rend_data_ctx.state.enable_blend();
         }
         else {
-            uniform->arr[U_ALPHA_TEST] = 0;
-            uniform->arr[U_ALPHA_BLEND] = 0;
-            gl_rend_state.set_depth_mask(GL_TRUE);
-            gl_rend_state.disable_blend();
+            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
+            rend_data_ctx.shader_flags.arr[U_ALPHA_BLEND] = 0;
+            rend_data_ctx.state.set_depth_mask(GL_TRUE);
+            rend_data_ctx.state.disable_blend();
         }
 
         if (rend_group->draw_type == DIRECTION_BILLBOARD && !rend_group->use_culling) {
-            gl_rend_state.enable_cull_face();
-            gl_rend_state.set_cull_face_mode(GL_BACK);
+            rend_data_ctx.state.enable_cull_face();
+            rend_data_ctx.state.set_cull_face_mode(GL_BACK);
         }
         else
-            gl_rend_state.disable_cull_face();
+            rend_data_ctx.state.disable_cull_face();
 
-        shaders_ft.set(SHADER_FT_GLITTER_PT);
-        rctx->set_glitter_render_data();
-        rctx->glitter_batch_ubo.Bind(3);
+        shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_GLITTER_PT);
+        rend_data_ctx.set_glitter_render_data_state();
+        rend_data_ctx.state.bind_uniform_buffer_base(3, rctx->glitter_batch_ubo);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
-            gl_rend_state.bind_vertex_array(rend_group->vao);
-            shaders_ft.enable_primitive_restart();
-            shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
-            shaders_ft.disable_primitive_restart();
+            rend_data_ctx.state.bind_vertex_array(rend_group->vao);
+            rend_data_ctx.state.draw_elements(GL_TRIANGLE_STRIP,
+                (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
             break;
         case PARTICLE_LINE:
-            gl_rend_state.bind_vertex_array(rend_group->vao);
+            rend_data_ctx.state.bind_vertex_array(rend_group->vao);
             for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                shaders_ft.draw_arrays(GL_LINE_STRIP, i.first, i.second);
+                rend_data_ctx.state.draw_arrays(GL_LINE_STRIP, i.first, i.second);
             break;
         case PARTICLE_LOCUS:
-            gl_rend_state.bind_vertex_array(rend_group->vao);
+            rend_data_ctx.state.bind_vertex_array(rend_group->vao);
             for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
+                rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
             break;
         }
     }

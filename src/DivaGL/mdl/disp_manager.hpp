@@ -19,6 +19,9 @@
 #define TEXTURE_PATTERN_COUNT 24
 #define TEXTURE_TRANSFORM_COUNT 24
 
+struct cam_data;
+struct render_data_context;
+
 namespace mdl {
     enum EtcObjType {
         ETC_OBJ_TEAPOT = 0,
@@ -100,6 +103,9 @@ struct material_list_struct {
     material_list_struct(uint64_t hash, vec4& blend_color,
         vec4u8& has_blend_color, vec4& emission, vec4u8& has_emission);
 };
+
+struct cam_data;
+struct render_data_context;
 
 namespace mdl {
     struct ObjSubMeshArgs;
@@ -202,7 +208,7 @@ namespace mdl {
 
         EtcObjCross();
     };
-    
+
     struct EtcObjCapsule { // Added
         float_t radius;
         int32_t slices;
@@ -251,7 +257,7 @@ namespace mdl {
         ~EtcObj();
     };
 
-    typedef void(*UserArgsFunc)(void* data, mat4* mat);
+    typedef void(*UserArgsFunc)(render_data_context& rend_data_ctx, void* data, const cam_data& cam, mat4* mat);
 
     struct UserArgs {
         UserArgsFunc func;
@@ -283,7 +289,7 @@ namespace mdl {
         float_t view_z;
         float_t radius;
         Args args;
-        
+
         ObjData();
         ~ObjData();
 
@@ -342,6 +348,7 @@ namespace mdl {
             GLuint vertex_array;
             EtcObj::Data data;
             EtcObjType type;
+            bool indexed;
             GLsizei count;
             size_t offset;
             GLsizei wire_count;
@@ -384,16 +391,18 @@ namespace mdl {
         ObjData* alloc_obj_data(ObjKind kind);
         mat4* alloc_mat4_array(int32_t count);
         void buffer_reset();
-        void calc_obj_radius(mat4* view, ObjType type);
-        void calc_obj_radius(mat4* view, ObjTypeLocal type);
-        void calc_obj_radius(mat4* view, ObjTypeReflect type);
+        void calc_obj_radius(const cam_data& cam, ObjType type);
+        void calc_obj_radius(const cam_data& cam, ObjTypeLocal type);
+        void calc_obj_radius(const cam_data& cam, ObjTypeReflect type);
         void check_index_buffer(GLuint buffer);
         void check_vertex_arrays();
         void check_vertex_buffer(GLuint buffer);
-        void draw(ObjType type, int32_t depth_mask = 0, bool reflect_texture_mask = true, int32_t alpha = -1);
-        void draw(ObjTypeLocal type, int32_t depth_mask = 0);
-        void draw(ObjTypeReflect type, int32_t depth_mask = 0);
-        /*void draw_show_vector(mdl::ObjType type, int32_t show_vector);*/
+        void draw(render_data_context& rend_data_ctx, ObjType type, const cam_data& cam,
+            int32_t depth_mask = 0, bool reflect_texture_mask = true, int32_t alpha = -1);
+        void draw(render_data_context& rend_data_ctx, ObjTypeLocal type, const cam_data& cam,
+            int32_t depth_mask = 0, bool reflect_texture_mask = true);
+        void draw(render_data_context& rend_data_ctx, ObjTypeReflect type, const cam_data& cam,
+            int32_t depth_mask = 0, bool reflect_texture_mask = true);
         void entry_list(ObjType type, ObjData* data);
         void entry_list(ObjTypeLocal type, ObjData* data);
         void entry_list(ObjTypeReflect type, ObjData* data);
@@ -446,9 +455,12 @@ namespace mdl {
         void get_texture_specular_offset(vec4& value);
         void get_texture_transform(int32_t& count, texture_transform_struct*& value);
         float_t get_wet_param();
-        void obj_sort(mat4* view, ObjType type, int32_t compare_func, bool a3 = false);
-        void obj_sort(mat4* view, ObjTypeLocal type, int32_t compare_func, bool a3 = false);
-        void obj_sort(mat4* view, ObjTypeReflect type, int32_t compare_func, bool a3 = false);
+        void obj_sort(render_data_context& rend_data_ctx,
+            ObjType type, int32_t compare_func, const cam_data& cam, bool a3 = false);
+        void obj_sort(render_data_context& rend_data_ctx,
+            ObjTypeLocal type, int32_t compare_func, const cam_data& cam);
+        void obj_sort(render_data_context& rend_data_ctx,
+            ObjTypeReflect type, int32_t compare_func, const cam_data& cam);
         void refresh();
         void set_chara_color(bool value = false);
         void set_culling_func(bool(FASTCALL* func)(const obj_bounding_sphere*) = 0);

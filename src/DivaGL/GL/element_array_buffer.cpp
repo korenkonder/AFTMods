@@ -5,13 +5,10 @@
 
 #include "element_array_buffer.hpp"
 #include "../gl_rend_state.hpp"
+#include "../gl_state.hpp"
 
 namespace GL {
-    void ElementArrayBuffer::Bind(bool force) {
-        gl_rend_state.bind_element_array_buffer(buffer, force);
-    }
-
-    void ElementArrayBuffer::Create(size_t size) {
+    void ElementArrayBuffer::Create(gl_state_struct& gl_st, size_t size) {
         if (buffer)
             return;
 
@@ -21,7 +18,7 @@ namespace GL {
         }
         else {
             glGenBuffers(1, &buffer);
-            gl_rend_state.bind_element_array_buffer(buffer, true);
+            gl_st.bind_element_array_buffer(buffer, true);
             if (DIVA_GL_VERSION_4_4)
                 glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size,
                     0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
@@ -30,7 +27,7 @@ namespace GL {
         }
     }
 
-    void ElementArrayBuffer::Create(size_t size, const void* data, bool dynamic) {
+    void ElementArrayBuffer::Create(gl_state_struct& gl_st, size_t size, const void* data, bool dynamic) {
         if (buffer)
             return;
 
@@ -41,7 +38,7 @@ namespace GL {
         }
         else {
             glGenBuffers(1, &buffer);
-            gl_rend_state.bind_element_array_buffer(buffer, true);
+            gl_st.bind_element_array_buffer(buffer, true);
             if (DIVA_GL_VERSION_4_4)
                 glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data,
                     dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
@@ -58,7 +55,7 @@ namespace GL {
         }
     }
 
-    void* ElementArrayBuffer::MapMemory() {
+    void* ElementArrayBuffer::MapMemory(gl_state_struct& gl_st) {
         if (!buffer)
             return 0;
 
@@ -66,7 +63,7 @@ namespace GL {
         if (DIVA_GL_VERSION_4_5)
             data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
         else {
-            gl_rend_state.bind_element_array_buffer(buffer);
+            gl_st.bind_element_array_buffer(buffer);
             data = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
         }
 
@@ -77,12 +74,36 @@ namespace GL {
             glUnmapNamedBuffer(buffer);
         else {
             glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-            gl_rend_state.bind_element_array_buffer(0);
+            gl_st.bind_element_array_buffer(0);
         }
         return 0;
     }
 
-    void ElementArrayBuffer::UnmapMemory() {
+    void* ElementArrayBuffer::MapMemory(p_gl_rend_state& p_gl_rend_st) {
+        if (!buffer)
+            return 0;
+
+        void* data;
+        if (DIVA_GL_VERSION_4_5)
+            data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
+        else {
+            p_gl_rend_st.bind_element_array_buffer(buffer);
+            data = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+        }
+
+        if (data)
+            return data;
+
+        if (DIVA_GL_VERSION_4_5)
+            glUnmapNamedBuffer(buffer);
+        else {
+            glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+            p_gl_rend_st.bind_element_array_buffer(0);
+        }
+        return 0;
+    }
+
+    void ElementArrayBuffer::UnmapMemory(gl_state_struct& gl_st) {
         if (!buffer)
             return;
 
@@ -90,18 +111,42 @@ namespace GL {
             glUnmapNamedBuffer(buffer);
         else {
             glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-            gl_rend_state.bind_element_array_buffer(0);
+            gl_st.bind_element_array_buffer(0);
         }
     }
 
-    void ElementArrayBuffer::WriteMemory(size_t offset, size_t size, const void* data) {
+    void ElementArrayBuffer::UnmapMemory(p_gl_rend_state& p_gl_rend_st) {
+        if (!buffer)
+            return;
+
+        if (DIVA_GL_VERSION_4_5)
+            glUnmapNamedBuffer(buffer);
+        else {
+            glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+            p_gl_rend_st.bind_element_array_buffer(0);
+        }
+    }
+
+    void ElementArrayBuffer::WriteMemory(gl_state_struct& gl_st, size_t offset, size_t size, const void* data) {
         if (!buffer || !size)
             return;
 
         if (DIVA_GL_VERSION_4_5)
             glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
         else {
-            gl_rend_state.bind_element_array_buffer(buffer);
+            gl_st.bind_element_array_buffer(buffer);
+            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        }
+    }
+
+    void ElementArrayBuffer::WriteMemory(p_gl_rend_state& p_gl_rend_st, size_t offset, size_t size, const void* data) {
+        if (!buffer || !size)
+            return;
+
+        if (DIVA_GL_VERSION_4_5)
+            glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        else {
+            p_gl_rend_st.bind_element_array_buffer(buffer);
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
         }
     }

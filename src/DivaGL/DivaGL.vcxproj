@@ -148,6 +148,7 @@
     <ClCompile Include="Glitter\render_scene.cpp" />
     <ClCompile Include="Glitter\scene.cpp" />
     <ClCompile Include="data_test\rob_osage_test.cpp" />
+    <ClCompile Include="gl_state.cpp" />
     <ClCompile Include="graphics\color_change_dw.cpp" />
     <ClCompile Include="mdl\disp_manager.cpp" />
     <ClCompile Include="mdl\draw_object.cpp" />
@@ -196,6 +197,7 @@
     <ClInclude Include="GL\uniform_buffer.hpp" />
     <ClInclude Include="Glitter\glitter.hpp" />
     <ClInclude Include="data_test\rob_osage_test.hpp" />
+    <ClInclude Include="gl_state.hpp" />
     <ClInclude Include="graphics\color_change_dw.hpp" />
     <ClInclude Include="mdl\disp_manager.hpp" />
     <ClInclude Include="mdl\draw_object.hpp" />

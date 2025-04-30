@@ -5,14 +5,11 @@
 
 #include "shader_storage_buffer.hpp"
 #include "../gl_rend_state.hpp"
+#include "../gl_state.hpp"
 
 namespace GL {
-    void ShaderStorageBuffer::Bind(int32_t index, bool force) {
-        gl_rend_state.bind_shader_storage_buffer_base(index, buffer, force);
-    }
-
-    void ShaderStorageBuffer::Create(size_t size) {
-        if (!DIVA_GL_VERSION_4_3 || buffer)
+    void ShaderStorageBuffer::Create(gl_state_struct& gl_st, size_t size) {
+        if (buffer)
             return;
 
         if (DIVA_GL_VERSION_4_5) {
@@ -21,7 +18,7 @@ namespace GL {
         }
         else {
             glGenBuffers(1, &buffer);
-            gl_rend_state.bind_shader_storage_buffer(buffer, true);
+            gl_st.bind_shader_storage_buffer(buffer, true);
             if (DIVA_GL_VERSION_4_4)
                 glBufferStorage(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)size,
                     0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
@@ -30,8 +27,8 @@ namespace GL {
         }
     }
 
-    void ShaderStorageBuffer::Create(size_t size, const void* data, bool dynamic) {
-        if (!DIVA_GL_VERSION_4_3 || buffer)
+    void ShaderStorageBuffer::Create(gl_state_struct& gl_st, size_t size, const void* data, bool dynamic) {
+        if (buffer)
             return;
 
         if (DIVA_GL_VERSION_4_5) {
@@ -41,7 +38,7 @@ namespace GL {
         }
         else {
             glGenBuffers(1, &buffer);
-            gl_rend_state.bind_shader_storage_buffer(buffer, true);
+            gl_st.bind_shader_storage_buffer(buffer, true);
             if (DIVA_GL_VERSION_4_4)
                 glBufferStorage(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)size, data,
                     dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
@@ -58,15 +55,15 @@ namespace GL {
         }
     }
 
-    void* ShaderStorageBuffer::MapMemory() {
-        if (!DIVA_GL_VERSION_4_3 || !buffer)
+    void* ShaderStorageBuffer::MapMemory(gl_state_struct& gl_st) {
+        if (!buffer)
             return 0;
 
         void* data;
         if (DIVA_GL_VERSION_4_5)
             data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
         else {
-            gl_rend_state.bind_shader_storage_buffer(buffer);
+            gl_st.bind_shader_storage_buffer(buffer);
             data = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
         }
 
@@ -77,31 +74,79 @@ namespace GL {
             glUnmapNamedBuffer(buffer);
         else {
             glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            gl_rend_state.bind_shader_storage_buffer(0);
+            gl_st.bind_shader_storage_buffer(0);
         }
         return 0;
     }
 
-    void ShaderStorageBuffer::UnmapMemory() {
-        if (!DIVA_GL_VERSION_4_3 || !buffer)
+    void* ShaderStorageBuffer::MapMemory(p_gl_rend_state& p_gl_rend_st) {
+        if (!buffer)
+            return 0;
+
+        void* data;
+        if (DIVA_GL_VERSION_4_5)
+            data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
+        else {
+            p_gl_rend_st.bind_shader_storage_buffer(buffer);
+            data = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+        }
+
+        if (data)
+            return data;
+
+        if (DIVA_GL_VERSION_4_5)
+            glUnmapNamedBuffer(buffer);
+        else {
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            p_gl_rend_st.bind_shader_storage_buffer(0);
+        }
+        return 0;
+    }
+
+    void ShaderStorageBuffer::UnmapMemory(gl_state_struct& gl_st) {
+        if (!buffer)
             return;
 
         if (DIVA_GL_VERSION_4_5)
             glUnmapNamedBuffer(buffer);
         else {
             glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            gl_rend_state.bind_shader_storage_buffer(0);
+            gl_st.bind_shader_storage_buffer(0);
         }
     }
 
-    void ShaderStorageBuffer::WriteMemory(size_t offset, size_t size, const void* data) {
-        if (!DIVA_GL_VERSION_4_3 || !buffer || !size)
+    void ShaderStorageBuffer::UnmapMemory(p_gl_rend_state& p_gl_rend_st) {
+        if (!buffer)
+            return;
+
+        if (DIVA_GL_VERSION_4_5)
+            glUnmapNamedBuffer(buffer);
+        else {
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            p_gl_rend_st.bind_shader_storage_buffer(0);
+        }
+    }
+
+    void ShaderStorageBuffer::WriteMemory(gl_state_struct& gl_st, size_t offset, size_t size, const void* data) {
+        if (!buffer || !size)
             return;
 
         if (DIVA_GL_VERSION_4_5)
             glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
         else {
-            gl_rend_state.bind_shader_storage_buffer(buffer);
+            gl_st.bind_shader_storage_buffer(buffer);
+            glBufferSubData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        }
+    }
+
+    void ShaderStorageBuffer::WriteMemory(p_gl_rend_state& p_gl_rend_st, size_t offset, size_t size, const void* data) {
+        if (!buffer || !size)
+            return;
+
+        if (DIVA_GL_VERSION_4_5)
+            glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+        else {
+            p_gl_rend_st.bind_shader_storage_buffer(buffer);
             glBufferSubData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
         }
     }

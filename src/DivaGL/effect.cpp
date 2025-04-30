@@ -15,6 +15,7 @@
 #include "rob/rob.hpp"
 #include "auth_3d.hpp"
 #include "gl_rend_state.hpp"
+#include "gl_state.hpp"
 #include "render_context.hpp"
 #include "render_manager.hpp"
 #include "render_texture.hpp"
@@ -87,7 +88,7 @@ struct EffectFogRing {
     prj::vector<int32_t> stage_indices;
     FrameRateControl* frame_rate_control;
 
-    void draw();
+    void draw(render_data_context& rend_data_ctx, const cam_data& cam);
 };
 
 static_assert(sizeof(EffectFogRing) == 0x2E0, "\"EffectFogRing\" struct should have a size of 0x2E0");
@@ -165,9 +166,9 @@ struct EffectRipple {
     int32_t current_stage_index;
     prj::vector<int32_t> stage_indices;
 
-    void draw();
+    void draw(render_data_context& rend_data_ctx, const cam_data& cam);
 
-    void sub_1403584A0(RenderTexture* rt);
+    void sub_1403584A0(render_data_context& rend_data_ctx, RenderTexture* rt);
 };
 
 static_assert(sizeof(EffectRipple) == 0xC20, "\"EffectRipple\" struct should have a size of 0xC20");
@@ -252,7 +253,8 @@ struct star_catalog_milky_way {
         float_t longitude_offset_degs_10, float_t latitude_offset_degs_10);
     void create_default_sphere();
     void delete_buffers();
-    void draw(const mat4& vp, const mat4& model, texture* tex, GL::UniformBuffer& scene_ubo);
+    void draw(render_data_context& rend_data_ctx,
+        const mat4& vp, const mat4& model, texture* tex, GL::UniformBuffer& scene_ubo);
 };
 
 static_assert(sizeof(star_catalog_milky_way) == 0x34, "\"star_catalog_milky_way\" struct should have a size of 0x34");
@@ -271,7 +273,7 @@ struct star_catalog {
     uint32_t star_b_tex;
     uint32_t milky_way_tex_id;
 
-    void draw();
+    void draw(render_data_context& rend_data_ctx, const cam_data& cam);
     void free();
     bool init();
 };
@@ -314,7 +316,7 @@ struct water_particle {
     ripple_struct ripple;
     float_t ripple_emission;
 
-    void draw(mat4* mat);
+    void draw(render_data_context& rend_data_ctx, const cam_data& cam, mat4* mat);
 };
 
 static_assert(sizeof(water_particle) == 0xA8, "\"water_particle\" struct should have a size of 0xA8");
@@ -431,29 +433,29 @@ struct EffectStorage {
     GL::ShaderStorageBuffer ssbo;
 
     EffectStorage() : vao() {
-        
+
     }
 
-    void Bind(int32_t index, bool force = false) {
+    void Bind(p_gl_rend_state& p_gl_rend_st, int32_t index) {
         if (DIVA_GL_VERSION_4_3)
-            ssbo.Bind(index, force);
+            p_gl_rend_st.bind_shader_storage_buffer_base(index, ssbo);
         else
-            gl_rend_state.bind_vertex_array(vao);
+            p_gl_rend_st.bind_vertex_array(vao);
     }
 
-    void Create(size_t size, size_t count, const EffectStorageAttrib* attribs) {
+    void Create(gl_state_struct& gl_st, size_t size, size_t count, const EffectStorageAttrib* attribs) {
         if (DIVA_GL_VERSION_4_3) {
-            ssbo.Create(size * count);
+            ssbo.Create(gl_st, size * count);
             return;
         }
         else if (vao || !attribs)
             return;
 
         glGenVertexArrays(1, &vao);
-        gl_rend_state.bind_vertex_array(vao, true);
+        gl_st.bind_vertex_array(vao, true);
 
-        vbo.Create(size * count);
-        vbo.Bind(true);
+        vbo.Create(gl_st, size * count);
+        gl_st.bind_array_buffer(true);
 
         const EffectStorageAttrib* attrib = attribs;
         while (attrib->index != -1) {
@@ -464,24 +466,24 @@ struct EffectStorage {
             attrib++;
         }
 
-        gl_rend_state.bind_array_buffer(0);
-        gl_rend_state.bind_vertex_array(0);
+        gl_st.bind_array_buffer(0);
+        gl_st.bind_vertex_array(0);
     }
 
-    void Create(size_t size, size_t count, const EffectStorageAttrib* attribs,
+    void Create(gl_state_struct& gl_st, size_t size, size_t count, const EffectStorageAttrib* attribs,
         const void* data, bool dynamic = false) {
         if (DIVA_GL_VERSION_4_3) {
-            ssbo.Create(size * count, data, dynamic);
+            ssbo.Create(gl_st, size * count, data, dynamic);
             return;
         }
         else if (vao || !attribs)
             return;
 
         glGenVertexArrays(1, &vao);
-        gl_rend_state.bind_vertex_array(vao, true);
+        gl_st.bind_vertex_array(vao, true);
 
-        vbo.Create(size * count, data, true);
-        vbo.Bind(true);
+        vbo.Create(gl_st, size * count, data, true);
+        gl_st.bind_array_buffer(vbo, true);
 
         const EffectStorageAttrib* attrib = attribs;
         while (attrib->index != -1) {
@@ -492,8 +494,8 @@ struct EffectStorage {
             attrib++;
         }
 
-        gl_rend_state.bind_array_buffer(0);
-        gl_rend_state.bind_vertex_array(0);
+        gl_st.bind_array_buffer(0);
+        gl_st.bind_vertex_array(0);
     }
 
     void Destroy() {
@@ -517,25 +519,46 @@ struct EffectStorage {
             glDrawArraysInstanced(mode, first, 6, count / 6);
     }
 
-    void* MapMemory() {
+    void* MapMemory(gl_state_struct& gl_st) {
         if (DIVA_GL_VERSION_4_3)
-            return ssbo.MapMemory();
+            return ssbo.MapMemory(gl_st);
         else
-            return vbo.MapMemory();
+            return vbo.MapMemory(gl_st);
     }
 
-    void UnmapMemory() {
+    void* MapMemory(p_gl_rend_state& p_gl_rend_st) {
         if (DIVA_GL_VERSION_4_3)
-            ssbo.UnmapMemory();
+            return ssbo.MapMemory(p_gl_rend_st);
         else
-            vbo.UnmapMemory();
+            return vbo.MapMemory(p_gl_rend_st);
     }
 
-    void WriteMemory(size_t offset, size_t size, const void* data) {
+    void UnmapMemory(gl_state_struct& gl_st) {
         if (DIVA_GL_VERSION_4_3)
-            ssbo.WriteMemory(offset, size, data);
+            ssbo.UnmapMemory(gl_st);
         else
-            vbo.WriteMemory(offset, size, data);
+            vbo.UnmapMemory(gl_st);
+    }
+
+    void UnmapMemory(p_gl_rend_state& p_gl_rend_st) {
+        if (DIVA_GL_VERSION_4_3)
+            ssbo.UnmapMemory(p_gl_rend_st);
+        else
+            vbo.UnmapMemory(p_gl_rend_st);
+    }
+
+    void WriteMemory(gl_state_struct& gl_st, size_t offset, size_t size, const void* data) {
+        if (DIVA_GL_VERSION_4_3)
+            ssbo.WriteMemory(gl_st, offset, size, data);
+        else
+            vbo.WriteMemory(gl_st, offset, size, data);
+    }
+
+    void WriteMemory(p_gl_rend_state& p_gl_rend_st, size_t offset, size_t size, const void* data) {
+        if (DIVA_GL_VERSION_4_3)
+            ssbo.WriteMemory(p_gl_rend_st, offset, size, data);
+        else
+            vbo.WriteMemory(p_gl_rend_st, offset, size, data);
     }
 };
 
@@ -632,13 +655,16 @@ extern render_context* rctx;
 
 static void TaskEffectAuth3D__SetVisibility(size_t This, bool value);
 
-static void draw_fog_particle(EffectFogRing* data, mat4* mat);
+static void draw_fog_particle(render_data_context& rend_data_ctx,
+    EffectFogRing* data, const cam_data& cam, mat4* mat);
 
-static void draw_ripple_particles(ripple_struct* data, mat4* mat);
+static void draw_ripple_particles(render_data_context& rend_data_ctx,
+    ripple_struct* data, const cam_data& cam, mat4* mat);
 
-static void draw_water_particle(water_particle* data, mat4* mat);
+static void draw_water_particle(render_data_context& rend_data_ctx,
+    water_particle* data, const cam_data& cam, mat4* mat);
 
-static int32_t leaf_particle_disp();
+static int32_t leaf_particle_disp(render_data_context& rend_data_ctx);
 
 static int32_t particle_disp(particle_vertex_data* vtx_data, particle_rot_data* data, int32_t count);
 
@@ -654,7 +680,7 @@ static particle_data* snow_particle_emit_fallen();
 static vec3 snow_particle_get_random_velocity();
 static void snow_particle_free();
 
-void leaf_particle_draw() {
+void leaf_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam) {
     if (!stage_param_data_leaf_current || !leaf_ptcl_data
         || !leaf_particle_enable || !stage_param_data_leaf_set)
         return;
@@ -663,7 +689,7 @@ void leaf_particle_draw() {
     if (!tex)
         return;
 
-    int32_t count = leaf_particle_disp();
+    int32_t count = leaf_particle_disp(rend_data_ctx);
     if (!count)
         return;
 
@@ -671,27 +697,28 @@ void leaf_particle_draw() {
 
     leaf_particle_scene_shader_data shader_data = {};
     mat4 temp;
-    mat4_transpose(&rctx->vp_mat, &temp);
+    mat4_transpose(&cam.view_proj_mat, &temp);
     shader_data.g_transform[0] = temp.row0;
     shader_data.g_transform[1] = temp.row1;
     shader_data.g_transform[2] = temp.row2;
     shader_data.g_transform[3] = temp.row3;
-    camera_data.get_view_point(shader_data.g_view_pos);
+    *(vec3*)&shader_data.g_view_pos = cam.get_view_point();
+    shader_data.g_view_pos = 0.0f;
     shader_data.g_color = stage_param_data_leaf_current->color;
-    rctx->get_scene_light(&shader_data.g_light_env_stage_diffuse,
+    rend_data_ctx.get_scene_light(&shader_data.g_light_env_stage_diffuse,
         &shader_data.g_light_env_stage_specular,
         &shader_data.g_lit_dir, &shader_data.g_lit_luce, 0, 0);
-    leaf_particle_scene_ubo.WriteMemory(shader_data);
+    leaf_particle_scene_ubo.WriteMemory(rend_data_ctx.state, shader_data);
 
-    gl_rend_state.active_bind_texture_2d(0, tex->glid);
-    shaders_ft.set(SHADER_FT_LEAF_PT);
-    leaf_particle_scene_ubo.Bind(0);
-    gl_rend_state.bind_vertex_array(leaf_ptcl_vao);
-    shaders_ft.draw_elements(GL_TRIANGLES, count / 4 * 6, GL_UNSIGNED_INT, 0);
-    gl_rend_state.bind_vertex_array(0);
+    rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_LEAF_PT);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, leaf_particle_scene_ubo);
+    rend_data_ctx.state.bind_vertex_array(leaf_ptcl_vao);
+    rend_data_ctx.state.draw_elements(GL_TRIANGLES, count / 4 * 6, GL_UNSIGNED_INT, 0);
+    rend_data_ctx.state.bind_vertex_array(0);
 }
 
-void rain_particle_draw() {
+void rain_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam) {
     if (!stage_param_data_rain_current || !rain_particle_enable || !stage_param_data_rain_set)
         return;
 
@@ -708,26 +735,26 @@ void rain_particle_draw() {
 
     rain_particle_scene_shader_data scene_shader_data = {};
     mat4 temp;
-    mat4_transpose(&rctx->view_mat, &temp);
+    mat4_transpose(&cam.view_mat, &temp);
     scene_shader_data.g_view[0] = temp.row0;
     scene_shader_data.g_view[1] = temp.row1;
     scene_shader_data.g_view[2] = temp.row2;
     scene_shader_data.g_view[3] = temp.row3;
-    mat4_transpose(&rctx->proj_mat, &temp);
+    mat4_transpose(&cam.proj_mat, &temp);
     scene_shader_data.g_proj[0] = temp.row0;
     scene_shader_data.g_proj[1] = temp.row1;
     scene_shader_data.g_proj[2] = temp.row2;
     scene_shader_data.g_proj[3] = temp.row3;
     scene_shader_data.g_range_scale = { range_scale.x, range_scale.y, range_scale.z, 0.0f };
     scene_shader_data.g_range_offset = { range_offset.x, range_offset.y, range_offset.z, 0.0f };
-    rain_particle_scene_ubo.WriteMemory(scene_shader_data);
+    rain_particle_scene_ubo.WriteMemory(rend_data_ctx.state, scene_shader_data);
 
-    gl_rend_state.enable_blend();
-    gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    gl_rend_state.enable_depth_test();
-    gl_rend_state.set_depth_mask(GL_FALSE);
-    gl_rend_state.active_bind_texture_2d(0, tex->glid);
-    shaders_ft.set(SHADER_FT_RAIN);
+    rend_data_ctx.state.enable_blend();
+    rend_data_ctx.state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    rend_data_ctx.state.enable_depth_test();
+    rend_data_ctx.state.set_depth_mask(GL_FALSE);
+    rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_RAIN);
 
     float_t tangent_sign = -rain->psize.x;
     float_t tangent_size = -rain->psize.y * (float_t)(1.0 / 30.0);
@@ -737,10 +764,10 @@ void rain_particle_draw() {
 
     vec4 color = rain->color;
     float_t color_a = color.w;
-    gl_rend_state.bind_vertex_array(rctx->common_vao);
-    rain_particle_scene_ubo.Bind(0);
-    rain_particle_batch_ubo.Bind(1);
-    rain_storage.Bind(0);
+    rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, rain_particle_scene_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(1, rain_particle_batch_ubo);
+    rain_storage.Bind(rend_data_ctx.state, 0);
     for (int32_t i = 0; i < 8; i++, first += count) {
         particle_data& data = rain_ptcl_data[i];
         vec3 pos_offset = *(vec3*)&data.position / range;
@@ -751,26 +778,26 @@ void rain_particle_draw() {
         batch_shader_data.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.075f };
         batch_shader_data.g_tangent = { tangent.x, tangent.y, tangent.z, tangent_sign };
         batch_shader_data.g_color = color;
-        rain_particle_batch_ubo.WriteMemory(batch_shader_data);
+        rain_particle_batch_ubo.WriteMemory(rend_data_ctx.state, batch_shader_data);
         rain_storage.Draw(GL_TRIANGLES, first, count);
     }
-    gl_rend_state.bind_vertex_array(0);
-    gl_rend_state.active_bind_texture_2d(0, 0);
-    gl_rend_state.set_depth_mask(GL_TRUE);
-    gl_rend_state.disable_blend();
+    rend_data_ctx.state.bind_vertex_array(0);
+    rend_data_ctx.state.active_bind_texture_2d(0, 0);
+    rend_data_ctx.state.set_depth_mask(GL_TRUE);
+    rend_data_ctx.state.disable_blend();
 }
 
-void particle_draw() {
+void particle_draw(render_data_context& rend_data_ctx, const cam_data& cam) {
     if (!ptcl_data)
         return;
 
-    particle_vertex_data* vtx_data = (particle_vertex_data*)ptcl_vbo.MapMemory();
+    particle_vertex_data* vtx_data = (particle_vertex_data*)ptcl_vbo.MapMemory(rend_data_ctx.state);
     if (!vtx_data)
         return;
 
     int32_t count = particle_disp(vtx_data, ptcl_data, ptcl_count);
 
-    ptcl_vbo.UnmapMemory();
+    ptcl_vbo.UnmapMemory(rend_data_ctx.state);
 
     if (!count)
         return;
@@ -779,24 +806,25 @@ void particle_draw() {
 
     particle_scene_shader_data shader_data = {};
     mat4 temp;
-    mat4_transpose(&rctx->vp_mat, &temp);
+    mat4_transpose(&cam.view_proj_mat, &temp);
     shader_data.g_transform[0] = temp.row0;
     shader_data.g_transform[1] = temp.row1;
     shader_data.g_transform[2] = temp.row2;
     shader_data.g_transform[3] = temp.row3;
-    camera_data.get_view_point(shader_data.g_view_pos);
+    *(vec3*)&shader_data.g_view_pos = cam.get_view_point();
+    shader_data.g_view_pos = 0.0f;
     light_chara.get_diffuse(shader_data.g_light_env_chara_diffuse);
     light_chara.get_specular(shader_data.g_light_env_chara_specular);
-    particle_scene_ubo.WriteMemory(shader_data);
+    particle_scene_ubo.WriteMemory(rend_data_ctx.state, shader_data);
 
-    shaders_ft.set(SHADER_FT_PARTICL);
-    particle_scene_ubo.Bind(0);
-    gl_rend_state.bind_vertex_array(ptcl_vao);
-    shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
-    gl_rend_state.bind_vertex_array(0);
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_PARTICL);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, particle_scene_ubo);
+    rend_data_ctx.state.bind_vertex_array(ptcl_vao);
+    rend_data_ctx.state.draw_arrays(GL_TRIANGLES, 0, count);
+    rend_data_ctx.state.bind_vertex_array(0);
 }
 
-void snow_particle_draw() {
+void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam) {
     if (!stage_param_data_snow_current || !snow_particle_enable || !stage_param_data_snow_set)
         return;
 
@@ -805,25 +833,24 @@ void snow_particle_draw() {
         return;
 
     stage_param_data_snow* snow = stage_param_data_snow_current;
-    draw_pass_set_camera();
+    rend_data_ctx.set_batch_scene_camera(cam);
 
-    gl_rend_state.enable_blend();
-    gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    gl_rend_state.enable_depth_test();
-    gl_rend_state.set_depth_mask(GL_FALSE);
+    rend_data_ctx.state.enable_blend();
+    rend_data_ctx.state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    rend_data_ctx.state.enable_depth_test();
+    rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
-    float_t point_attenuation = powf(tanf((float_t)camera_data.fov
-        * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.1f;
+    float_t point_attenuation = powf(tanf(cam.get_fov() * 0.5f) * 3.4f, 2.0f) * 0.1f;
 
     snow_particle_scene_shader_data snow_scene = {};
     mat4 temp;
-    mat4_transpose(&rctx->vp_mat, &temp);
+    mat4_transpose(&cam.view_proj_mat, &temp);
     snow_scene.g_transform[0] = temp.row0;
     snow_scene.g_transform[1] = temp.row1;
     snow_scene.g_transform[2] = temp.row2;
     snow_scene.g_transform[3] = temp.row3;
 
-    mat4_transpose(&rctx->view_mat, &temp);
+    mat4_transpose(&cam.view_mat, &temp);
     snow_scene.g_view_world_row2 = temp.row2;
     snow_scene.g_size_in_projection.x = 1.0f / (float_t)render_get()->render_width[0];
     snow_scene.g_size_in_projection.y = 1.0f / (float_t)render_get()->render_height[0];
@@ -836,40 +863,39 @@ void snow_particle_draw() {
     snow_scene.g_range_offset.x = snow->offset_gpu.x - snow->range_gpu.x * 0.5f;
     snow_scene.g_range_offset.y = snow->offset_gpu.y;
     snow_scene.g_range_offset.z = snow->offset_gpu.z - snow->range_gpu.z * 0.5f;
-    snow_particle_scene_ubo.WriteMemory(snow_scene);
+    snow_particle_scene_ubo.WriteMemory(rend_data_ctx.state, snow_scene);
 
     snow_particle_batch_shader_data snow_batch = {};
     snow_batch.g_color = snow->color;
     snow_batch.start_vertex_location.x = 0;
-    snow_particle_batch_ubo.WriteMemory(snow_batch);
+    snow_particle_batch_ubo.WriteMemory(rend_data_ctx.state, snow_batch);
 
-    gl_rend_state.active_bind_texture_2d(0, tex->glid);
-    gl_rend_state.active_bind_texture_2d(1, render_get()->rend_texture[0].GetDepthTex());
-    gl_rend_state.bind_vertex_array(rctx->common_vao);
+    rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
+    rend_data_ctx.state.active_bind_texture_2d(1, render_get()->rend_texture[0].GetDepthTex());
+    rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
 
-    uniform->arr[U_SNOW_PARTICLE] = 0;
-    shaders_ft.set(SHADER_FT_SNOW_PT);
-    snow_particle_scene_ubo.Bind(0);
-    snow_particle_batch_ubo.Bind(1);
+    rend_data_ctx.shader_flags.arr[U_SNOW_PARTICLE] = 0;
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SNOW_PT);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, snow_particle_scene_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(1, snow_particle_batch_ubo);
 
-    snow_storage.Bind(0);
+    snow_storage.Bind(rend_data_ctx.state, 0);
     snow_storage.Draw(GL_TRIANGLES, 0, snow->num_snow * 6);
 
-    snow_fallen_storage.Bind(0);
+    snow_fallen_storage.Bind(rend_data_ctx.state, 0);
     snow_fallen_storage.Draw(GL_TRIANGLES, 0, (GLsizei)(snow_ptcl_fallen_count * 6));
 
-    uniform->arr[U_SNOW_PARTICLE] = 1;
-    shaders_ft.set(SHADER_FT_SNOW_PT);
-    snow_particle_scene_ubo.Bind(0);
-    snow_particle_batch_ubo.Bind(1);
+    rend_data_ctx.shader_flags.arr[U_SNOW_PARTICLE] = 1;
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SNOW_PT);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, snow_particle_scene_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(1, snow_particle_batch_ubo);
 
-    point_attenuation = powf(tanf((float_t)camera_data.fov
-        * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.06f;
+    point_attenuation = powf(tanf(cam.get_fov() * 0.5f) * 3.4f, 2.0f) * 0.06f;
 
     snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
-    snow_particle_scene_ubo.WriteMemory(snow_scene);
+    snow_particle_scene_ubo.WriteMemory(rend_data_ctx.state, snow_scene);
 
-    snow_gpu_storage.Bind(0);
+    snow_gpu_storage.Bind(rend_data_ctx.state, 0);
 
     int32_t count = snow->num_snow_gpu / 4;
     count = min_def(count, (int32_t)snow_ptcl_count / 4) * 6;
@@ -885,22 +911,22 @@ void snow_particle_draw() {
         snow_batch.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.0f };
         snow_batch.g_color = color;
         snow_batch.start_vertex_location.x = first;
-        snow_particle_batch_ubo.WriteMemory(snow_batch);
+        snow_particle_batch_ubo.WriteMemory(rend_data_ctx.state, snow_batch);
 
         snow_gpu_storage.Draw(GL_TRIANGLES, first, count);
         first += count;
     }
 
-    gl_rend_state.active_bind_texture_2d(1, 0);
-    gl_rend_state.active_bind_texture_2d(0, 0);
+    rend_data_ctx.state.active_bind_texture_2d(1, 0);
+    rend_data_ctx.state.active_bind_texture_2d(0, 0);
 
-    gl_rend_state.disable_depth_test();
-    gl_rend_state.set_depth_mask(GL_TRUE);
-    gl_rend_state.disable_blend();
+    rend_data_ctx.state.disable_depth_test();
+    rend_data_ctx.state.set_depth_mask(GL_TRUE);
+    rend_data_ctx.state.disable_blend();
 }
 
-void star_catalog_draw() {
-    star_catalog_data.draw();
+void star_catalog_draw(render_data_context& rend_data_ctx, const cam_data& cam) {
+    star_catalog_data.draw(rend_data_ctx, cam);
 }
 
 HOOK(void, FASTCALL, TaskEffectAuth3D__SetCurrentStageIndex, 0x00000001403459F0, size_t This, int32_t stage_index) {
@@ -952,7 +978,7 @@ HOOK(void, FASTCALL, EffectFogRing__set_stage_indices, 0x0000000140348790,
         { 2, sizeof(fog_ring_vertex_data::size    ), offsetof(fog_ring_vertex_data, size    ), },
         { (uint32_t)-1 },
     };
-    elem->second.Create(sizeof(fog_ring_vertex_data), fog_ring->max_ptcls, attribs);
+    elem->second.Create(gl_state, sizeof(fog_ring_vertex_data), fog_ring->max_ptcls, attribs);
 }
 
 HOOK(void, FASTCALL, EffectFogRing__calc_vert, 0x000000001403495B0, EffectFogRing* fog_ring) {
@@ -965,7 +991,7 @@ HOOK(void, FASTCALL, EffectFogRing__calc_vert, 0x000000001403495B0, EffectFogRin
     float_t density = fog_ring->density;
     fog_ring_data* ptcl_data = fog_ring->ptcl_data;
 
-    fog_ring_vertex_data* ptcl_vtx_data = (fog_ring_vertex_data*)storage.MapMemory();
+    fog_ring_vertex_data* ptcl_vtx_data = (fog_ring_vertex_data*)storage.MapMemory(gl_state);
     if (!ptcl_vtx_data) {
         fog_ring->num_vtx = 0;
         return;
@@ -984,13 +1010,14 @@ HOOK(void, FASTCALL, EffectFogRing__calc_vert, 0x000000001403495B0, EffectFogRin
         ptcl_vtx_data->size = size;
     }
 
-    storage.UnmapMemory();
+    storage.UnmapMemory(gl_state);
 
     fog_ring->num_vtx = (int32_t)(fog_ring->num_ptcls * 6LL);
 }
 
-HOOK(void, FASTCALL, EffectFogRing__draw_static, 0x0000000140349940, void* data) {
-    ((EffectFogRing*)data)->draw();
+HOOK(void, FASTCALL, EffectFogRing__draw_static, 0x0000000140349940,
+    render_data_context& rend_data_ctx, void* data, const cam_data& cam) {
+    ((EffectFogRing*)data)->draw(rend_data_ctx, cam);
 }
 
 HOOK(void, FASTCALL, leaf_particle_free, 0x000000014034BB30) {
@@ -1051,10 +1078,10 @@ HOOK(void, FASTCALL, leaf_particle_init, 0x000000014034C530, bool change_stage) 
     if (!leaf_ptcl_vao)
         glGenVertexArrays(1, &leaf_ptcl_vao);
 
-    leaf_ptcl_vbo.Create(buffer_size * leaf_ptcl_vtx_count);
-    leaf_ptcl_vbo.Bind();
+    leaf_ptcl_vbo.Create(gl_state, buffer_size * leaf_ptcl_vtx_count);
+    gl_state.bind_array_buffer(leaf_ptcl_vbo, true);
 
-    gl_rend_state.bind_vertex_array(leaf_ptcl_vao);
+    gl_state.bind_vertex_array(leaf_ptcl_vao);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(leaf_particle_vertex_data, position));
@@ -1065,15 +1092,15 @@ HOOK(void, FASTCALL, leaf_particle_init, 0x000000014034C530, bool change_stage) 
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(leaf_particle_vertex_data, normal));
 
-    leaf_ptcl_ebo.Create(sizeof(uint32_t) * ebo_count, ebo_data);
-    leaf_ptcl_ebo.Bind();
+    leaf_ptcl_ebo.Create(gl_state, sizeof(uint32_t) * ebo_count, ebo_data);
+    gl_state.bind_element_array_buffer(leaf_ptcl_ebo, true);
 
-    gl_rend_state.bind_vertex_array(0);
-    gl_rend_state.bind_array_buffer(0);
-    gl_rend_state.bind_element_array_buffer(0);
+    gl_state.bind_vertex_array(0);
+    gl_state.bind_array_buffer(0);
+    gl_state.bind_element_array_buffer(0);
     free_def(ebo_data);
 
-    leaf_particle_scene_ubo.Create(sizeof(leaf_particle_scene_shader_data));
+    leaf_particle_scene_ubo.Create(gl_state, sizeof(leaf_particle_scene_shader_data));
 }
 
 HOOK(void, FASTCALL, particle_free, 0x0000000140351600) {
@@ -1118,10 +1145,10 @@ HOOK(void, FASTCALL, particle_init, 0x0000000140351C50, vec3* offset) {
     if (!ptcl_vao)
         glGenVertexArrays(1, &ptcl_vao);
 
-    ptcl_vbo.Create(buffer_size * ptcl_vtx_count);
-    ptcl_vbo.Bind();
+    ptcl_vbo.Create(gl_state, buffer_size * ptcl_vtx_count);
+    gl_state.bind_array_buffer(ptcl_vbo, true);
 
-    gl_rend_state.bind_vertex_array(ptcl_vao);
+    gl_state.bind_vertex_array(ptcl_vao);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(particle_vertex_data, position));
@@ -1135,10 +1162,10 @@ HOOK(void, FASTCALL, particle_init, 0x0000000140351C50, vec3* offset) {
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(particle_vertex_data, normal));
 
-    gl_rend_state.bind_vertex_array(0);
-    gl_rend_state.bind_array_buffer(0);
+    gl_state.bind_vertex_array(0);
+    gl_state.bind_array_buffer(0);
 
-    particle_scene_ubo.Create(sizeof(particle_scene_shader_data));
+    particle_scene_ubo.Create(gl_state, sizeof(particle_scene_shader_data));
 }
 
 HOOK(bool, FASTCALL, TaskEffectRain__dest, 0x0000000140353DA0, size_t task_eff_rain) {
@@ -1194,12 +1221,12 @@ HOOK(void, FASTCALL, rain_particle_init, 0x00000001403546A0, bool change_stage) 
         { 0, sizeof(vec3), 0, },
         { (uint32_t)-1 },
     };
-    rain_storage.Create(sizeof(vec3), rain_ptcl_count, attribs, vtx_data);
+    rain_storage.Create(gl_state, sizeof(vec3), rain_ptcl_count, attribs, vtx_data);
 
     free_def(vtx_data);
 
-    rain_particle_scene_ubo.Create(sizeof(rain_particle_scene_shader_data));
-    rain_particle_batch_ubo.Create(sizeof(rain_particle_batch_shader_data));
+    rain_particle_scene_ubo.Create(gl_state, sizeof(rain_particle_scene_shader_data));
+    rain_particle_batch_ubo.Create(gl_state, sizeof(rain_particle_batch_shader_data));
 }
 
 HOOK(bool, FASTCALL, TaskEffectRipple__dest, 0x0000000140358600, size_t task_effect_ripple) {
@@ -1213,8 +1240,9 @@ HOOK(bool, FASTCALL, TaskEffectRipple__init, 0x00000001403596B0, size_t task_eff
     return originalTaskEffectRipple__init(task_effect_ripple);
 }
 
-HOOK(void, FASTCALL, EffectRipple__draw_static, 0x000000014035AA50, void* data) {
-    ((EffectRipple*)data)->draw();
+HOOK(void, FASTCALL, EffectRipple__draw_static, 0x000000014035AA50,
+    render_data_context& rend_data_ctx, void* data, const cam_data& cam) {
+    ((EffectRipple*)data)->draw(rend_data_ctx, cam);
 }
 
 HOOK(void, FASTCALL, EffectRipple__disp_particles, 0x000000014035AD80,
@@ -1324,7 +1352,7 @@ HOOK(void, FASTCALL, snow_particle_ctrl, 0x000000014035CA20) {
                 snow_particle_data_kill_fallen(snow_ptcl_fallen, true);
         }
 
-    snow_particle_vertex_data* vtx_data = (snow_particle_vertex_data*)snow_storage.MapMemory();
+    snow_particle_vertex_data* vtx_data = (snow_particle_vertex_data*)snow_storage.MapMemory(gl_state);
     if (vtx_data) {
         particle_data* snow_ptcl = snow_ptcl_data;
         for (int32_t i = snow->num_snow; i; i--, snow_ptcl++, vtx_data++) {
@@ -1333,9 +1361,10 @@ HOOK(void, FASTCALL, snow_particle_ctrl, 0x000000014035CA20) {
             vtx_data->alpha = snow_ptcl->alpha;
         }
     }
-    snow_storage.UnmapMemory();
+    snow_storage.UnmapMemory(gl_state);
 
-    snow_particle_vertex_data* fallen_vtx_data = (snow_particle_vertex_data*)snow_fallen_storage.MapMemory();
+    snow_particle_vertex_data* fallen_vtx_data
+        = (snow_particle_vertex_data*)snow_fallen_storage.MapMemory(gl_state);
     if (fallen_vtx_data) {
         particle_data* snow_ptcl_fallen = snow_ptcl_fallen_data;
         for (size_t i = snow_ptcl_fallen_count; i; i--, snow_ptcl_fallen++, fallen_vtx_data++) {
@@ -1344,7 +1373,7 @@ HOOK(void, FASTCALL, snow_particle_ctrl, 0x000000014035CA20) {
             fallen_vtx_data->alpha = snow_ptcl_fallen->alpha;
         }
     }
-    snow_fallen_storage.UnmapMemory();
+    snow_fallen_storage.UnmapMemory(gl_state);
 }
 
 HOOK(void, FASTCALL, snow_particle_init, 0x000000014035DD30, bool change_stage) {
@@ -1438,13 +1467,13 @@ HOOK(void, FASTCALL, snow_particle_init, 0x000000014035DD30, bool change_stage) 
 
     if (change_stage) {
         snow_storage.Destroy();
-        snow_storage.Create(sizeof(snow_particle_vertex_data), snow->num_snow, attribs);
+        snow_storage.Create(gl_state, sizeof(snow_particle_vertex_data), snow->num_snow, attribs);
         return;
     }
 
     snow_particle_free();
 
-    snow_storage.Create(sizeof(snow_particle_vertex_data), snow->num_snow, attribs);
+    snow_storage.Create(gl_state, sizeof(snow_particle_vertex_data), snow->num_snow, attribs);
 
     snow_particle_gpu_vertex_data* vtx_data = force_malloc<snow_particle_gpu_vertex_data>(snow_ptcl_count);
 
@@ -1457,14 +1486,14 @@ HOOK(void, FASTCALL, snow_particle_init, 0x000000014035DD30, bool change_stage) 
 
     vtx_data -= snow_ptcl_count;
 
-    snow_gpu_storage.Create(sizeof(snow_particle_gpu_vertex_data), snow_ptcl_count, gpu_attribs, vtx_data);
+    snow_gpu_storage.Create(gl_state, sizeof(snow_particle_gpu_vertex_data), snow_ptcl_count, gpu_attribs, vtx_data);
 
     free_def(vtx_data);
 
-    snow_fallen_storage.Create(sizeof(snow_particle_vertex_data), snow_ptcl_fallen_count, attribs);
+    snow_fallen_storage.Create(gl_state, sizeof(snow_particle_vertex_data), snow_ptcl_fallen_count, attribs);
 
-    snow_particle_scene_ubo.Create(sizeof(snow_particle_scene_shader_data));
-    snow_particle_batch_ubo.Create(sizeof(snow_particle_batch_shader_data));
+    snow_particle_scene_ubo.Create(gl_state, sizeof(snow_particle_scene_shader_data));
+    snow_particle_batch_ubo.Create(gl_state, sizeof(snow_particle_batch_shader_data));
 }
 
 HOOK(void, FASTCALL, water_particle__free, 0x0000000140363F00, water_particle* water_ptcl) {
@@ -1502,7 +1531,7 @@ HOOK(void, FASTCALL, water_particle__disp, 0x0000000140364090, water_particle* w
 HOOK(void, FASTCALL, water_particle__set, 0x0000000140364F20,
     water_particle* water_ptcl, splash_particle* splash, int32_t splash_tex_id) {
     originalwater_particle__set(water_ptcl, splash, splash_tex_id);
-    
+
     auto elem = water_particle_storage.find(water_ptcl);
     if (elem == water_particle_storage.end()) {
         water_particle_storage.push_back({ water_ptcl, {} });
@@ -1518,11 +1547,11 @@ HOOK(void, FASTCALL, water_particle__set, 0x0000000140364F20,
         { 2, sizeof(water_particle_vertex_data::color   ), offsetof(water_particle_vertex_data, color   ), },
         { (uint32_t)-1 },
     };
-    elem->second.Create(sizeof(water_particle_vertex_data), water_ptcl->splash_count, attribs);
+    elem->second.Create(gl_state, sizeof(water_particle_vertex_data), water_ptcl->splash_count, attribs);
 }
 
 HOOK(bool, FASTCALL, TaskEffectSplash__init, 0x00000001403655A0, size_t task_effect_splash) {
-    water_particle_scene_ubo.Create(sizeof(water_particle_scene_shader_data));
+    water_particle_scene_ubo.Create(gl_state, sizeof(water_particle_scene_shader_data));
     return originalTaskEffectSplash__init(task_effect_splash);
 }
 
@@ -1568,35 +1597,36 @@ void effect_patch() {
     INSTALL_HOOK(star_catalog__init);
 }
 
-void EffectFogRing::draw() {
+void EffectFogRing::draw(render_data_context& rend_data_ctx, const cam_data& cam) {
     draw_state.set_fog_height(false);
     if (!enable || !display)
         return;
 
     draw_state.set_fog_height(true);
     RenderTexture& rt = render_manager.get_render_texture(8);
-    rt.Bind();
-    gl_rend_state.set_viewport(0, 0,
+    rt.Bind(rend_data_ctx.state);
+    rend_data_ctx.state.set_viewport(0, 0,
         rt.color_texture->get_width_align_mip_level(),
         rt.color_texture->get_height_align_mip_level());
-    glClearColorDLL(density_offset, density_offset, density_offset, 1.0f);
-    glClearDLL(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    rend_data_ctx.state.clear_color(density_offset, density_offset, density_offset, 1.0f);
+    rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (disp_manager->get_obj_count(mdl::OBJ_TYPE_USER))
-        disp_manager->draw(mdl::OBJ_TYPE_USER);
-    gl_rend_state.bind_framebuffer(0);
+        disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_USER, cam);
+    rend_data_ctx.state.bind_framebuffer(0);
     render_manager.set_effect_texture(rt.color_texture);
     gl_get_error_print();
 }
 
-static void sub_1403B6F60(texture* a1, texture* a2, texture* a3, EffectRipple::Params& params) {
+static void sub_1403B6F60(render_data_context& rend_data_ctx,
+    texture* a1, texture* a2, texture* a3, EffectRipple::Params& params) {
     if (!a1 || !a1->glid || !a2 || !a2->glid || !a3 || !a3->glid)
         return;
 
     int32_t width = a2->width;
     int32_t height = a2->height;
 
-    gl_rend_state_rect viewport_rect = gl_rend_state.get_viewport();
-    gl_rend_state.set_viewport(1, 1, width - 2, height - 2);
+    gl_rend_state_rect viewport_rect = rend_data_ctx.state.get_viewport();
+    rend_data_ctx.state.set_viewport(1, 1, width - 2, height - 2);
 
     ripple_scene_shader_data ripple_scene = {};
     ripple_scene.g_transform = {
@@ -1604,42 +1634,43 @@ static void sub_1403B6F60(texture* a1, texture* a2, texture* a3, EffectRipple::P
         (float_t)width / (float_t)(width - 2), (float_t)height / (float_t)(height - 2)
     };
     ripple_scene.g_texcoord = { 1.0f, 0.0f, 0.0f, 0.0f };
-    ripple_scene_ubo.WriteMemory(ripple_scene);
+    ripple_scene_ubo.WriteMemory(rend_data_ctx.state, ripple_scene);
 
     ripple_batch_shader_data ripple_batch = {};
     ripple_batch.g_params = { params.wake_attn, params.speed, params.field_8, params.field_C };
-    ripple_batch_ubo.WriteMemory(ripple_batch);
+    ripple_batch_ubo.WriteMemory(rend_data_ctx.state, ripple_batch);
 
-    gl_rend_state.bind_vertex_array(rctx->common_vao);
-    shaders_ft.set(SHADER_FT_RIPPLE);
-    ripple_scene_ubo.Bind(0);
-    ripple_batch_ubo.Bind(1);
-    gl_rend_state.active_bind_texture_2d(0, a2->glid);
-    gl_rend_state.active_bind_texture_2d(1, a3->glid);
-    shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-    gl_rend_state.active_bind_texture_2d(1, 0);
-    gl_rend_state.active_bind_texture_2d(0, 0);
-    gl_rend_state.bind_vertex_array(0);
+    rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_RIPPLE);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, ripple_scene_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(1, ripple_batch_ubo);
+    rend_data_ctx.state.active_bind_texture_2d(0, a2->glid);
+    rend_data_ctx.state.active_bind_texture_2d(1, a3->glid);
+    rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+    rend_data_ctx.state.active_bind_texture_2d(1, 0);
+    rend_data_ctx.state.active_bind_texture_2d(0, 0);
+    rend_data_ctx.state.bind_vertex_array(0);
 
-    gl_rend_state.set_viewport(viewport_rect);
+    rend_data_ctx.state.set_viewport(viewport_rect);
 }
 
-static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a3, EffectRipple::Params& params) {
-    a1->Bind();
+static void sub_1403B6ED0(render_data_context& rend_data_ctx, RenderTexture* a1,
+    RenderTexture* a2, RenderTexture* a3, EffectRipple::Params& params) {
+    a1->Bind(rend_data_ctx.state);
     if (a1->color_texture->internal_format == GL_RGBA32F
         || a1->color_texture->internal_format == GL_RGBA16F)
-        uniform->arr[U_RIPPLE] = 1;
+        rend_data_ctx.shader_flags.arr[U_RIPPLE] = 1;
     else
-        uniform->arr[U_RIPPLE] = 0;
-    sub_1403B6F60(a1->color_texture, a2->color_texture, a3->color_texture, params);
-    gl_rend_state.bind_framebuffer(0);
+        rend_data_ctx.shader_flags.arr[U_RIPPLE] = 0;
+    sub_1403B6F60(rend_data_ctx, a1->color_texture, a2->color_texture, a3->color_texture, params);
+    rend_data_ctx.state.bind_framebuffer(0);
 }
 
-void EffectRipple::draw() {
+void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam) {
     if (!stage_set)
         return;
 
-    gl_rend_state.disable_cull_face();
+    rend_data_ctx.state.disable_cull_face();
 
     RenderTexture* rt[3];
     for (int32_t i = 0, j = 2; i < 3; i++, j++)
@@ -1651,24 +1682,24 @@ void EffectRipple::draw() {
         if (counter >= 3)
             counter = 0;
 
-        rt[(counter + 1) % 3]->Bind();
+        rt[(counter + 1) % 3]->Bind(rend_data_ctx.state);
 
-        gl_rend_state_rect viewport_rect = gl_rend_state.get_viewport();
+        gl_rend_state_rect viewport_rect = rend_data_ctx.state.get_viewport();
 
         int32_t width = rt[0]->GetWidth();
         int32_t height = rt[0]->GetHeight();
 
-        gl_rend_state.set_viewport(1, 1, width - 2, height - 2);
+        rend_data_ctx.state.set_viewport(1, 1, width - 2, height - 2);
 
-        draw_pass_set_camera();
-        glClearDLL(GL_DEPTH_BUFFER_BIT);
+        rend_data_ctx.set_batch_scene_camera(cam);
+        rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
         if (disp_manager->get_obj_count(mdl::OBJ_TYPE_USER)) {
-            gl_rend_state.active_bind_texture_2d(7, rt[counter % 3]->GetColorTex());
-            disp_manager->draw(mdl::OBJ_TYPE_USER);
-            gl_rend_state.active_bind_texture_2d(7, 0);
+            rend_data_ctx.state.active_bind_texture_2d(7, rt[counter % 3]->GetColorTex());
+            disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_USER, cam);
+            rend_data_ctx.state.active_bind_texture_2d(7, 0);
         }
 
-        gl_rend_state.bind_framebuffer(0);
+        rend_data_ctx.state.bind_framebuffer(0);
 
         params.field_8 = 0.0005f;
         params.field_C = 0.97f;
@@ -1677,11 +1708,11 @@ void EffectRipple::draw() {
             params.field_C = 0.999f;
         }
 
-        sub_1403B6ED0(rt[(counter + 2) % 3], rt[(counter + 1) % 3], rt[counter % 3], params);
+        sub_1403B6ED0(rend_data_ctx, rt[(counter + 2) % 3], rt[(counter + 1) % 3], rt[counter % 3], params);
 
-        gl_rend_state.set_viewport(viewport_rect);
+        rend_data_ctx.state.set_viewport(viewport_rect);
 
-        sub_1403584A0(rt[(counter + 2) % 3]);
+        sub_1403584A0(rend_data_ctx, rt[(counter + 2) % 3]);
 
         this->counter = counter;
     }
@@ -1695,10 +1726,10 @@ void EffectRipple::draw() {
 
     update = false;
 
-    gl_rend_state.enable_cull_face();
+    rend_data_ctx.state.enable_cull_face();
 }
 
-void EffectRipple::sub_1403584A0(RenderTexture* rt) {
+void EffectRipple::sub_1403584A0(render_data_context& rend_data_ctx, RenderTexture* rt) {
     if (ripple_tex_id == -1)
         return;
 
@@ -1707,10 +1738,10 @@ void EffectRipple::sub_1403584A0(RenderTexture* rt) {
         return;
 
     field_BB8.SetColorDepthTextures(ripple_tex->glid);
-    field_BB8.Bind();
+    field_BB8.Bind(rend_data_ctx.state);
 
-    image_filter_scale(&field_BB8, rt->color_texture);
-    gl_rend_state.bind_framebuffer(0);
+    image_filter_scale(rend_data_ctx, &field_BB8, rt->color_texture);
+    rend_data_ctx.state.bind_framebuffer(0);
 }
 
 void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scale_u, float_t uv_rec_scale_v,
@@ -1722,9 +1753,9 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
     const int32_t vtx_count = (subdivs - 1) * sectors_count + 2;
     restart_index = (uint16_t)0xFFFFFFFF;
 
-    gl_rend_state.bind_vertex_array(0);
-    gl_rend_state.bind_array_buffer(0);
-    gl_rend_state.bind_element_array_buffer(0);
+    gl_state.bind_vertex_array(0);
+    gl_state.bind_array_buffer(0);
+    gl_state.bind_element_array_buffer(0);
 
     const float_t rec_longitude_degs_10 = 1.0f / (float_t)longitude_degs_10;
     const float_t rec_latitude_degs_10 = 1.0f / (float_t)latitude_degs_10;
@@ -1799,10 +1830,10 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
     if (!vao)
         glGenVertexArrays(1, &vao);
 
-    vbo.Create((size_t)buffer_size * vtx_count, vtx_data);
-    vbo.Bind();
+    vbo.Create(gl_state, (size_t)buffer_size * vtx_count, vtx_data);
+    gl_state.bind_array_buffer(vbo, true);
 
-    gl_rend_state.bind_vertex_array(vao);
+    gl_state.bind_vertex_array(vao);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(star_catalog_vertex, position));
@@ -1810,12 +1841,12 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(star_catalog_vertex, texcoord));
 
-    ebo.Create(sizeof(uint16_t) * ebo_count, ebo_data);
-    ebo.Bind();
+    ebo.Create(gl_state, sizeof(uint16_t) * ebo_count, ebo_data);
+    gl_state.bind_element_array_buffer(ebo, true);
 
-    gl_rend_state.bind_vertex_array(0);
-    gl_rend_state.bind_array_buffer(0);
-    gl_rend_state.bind_element_array_buffer(0);
+    gl_state.bind_vertex_array(0);
+    gl_state.bind_array_buffer(0);
+    gl_state.bind_element_array_buffer(0);
     free_def(vtx_data);
     free_def(ebo_data);
 
@@ -1847,7 +1878,8 @@ void star_catalog_milky_way::delete_buffers() {
     }
 }
 
-void star_catalog_milky_way::draw(const mat4& vp, const mat4& mat, texture* tex, GL::UniformBuffer& scene_ubo) {
+void star_catalog_milky_way::draw(render_data_context& rend_data_ctx,
+    const mat4& vp, const mat4& mat, texture* tex, GL::UniformBuffer& scene_ubo) {
     if (!vao)
         return;
 
@@ -1889,34 +1921,32 @@ void star_catalog_milky_way::draw(const mat4& vp, const mat4& mat, texture* tex,
     scene_shader_data.g_transform[1] = temp.row1;
     scene_shader_data.g_transform[2] = temp.row2;
     scene_shader_data.g_transform[3] = temp.row3;
-    scene_ubo.WriteMemory(scene_shader_data);
+    scene_ubo.WriteMemory(rend_data_ctx.state, scene_shader_data);
 
-    gl_rend_state.enable_cull_face();
-    gl_rend_state.disable_blend();
-    gl_rend_state.set_depth_mask(GL_FALSE);
-    gl_rend_state.active_bind_texture_2d(0, tex->glid);
-    gl_rend_state.bind_sampler(0, star_sampler);
-    gl_rend_state.enable_primitive_restart();
-    gl_rend_state.set_primitive_restart_index(restart_index);
-    uniform->arr[U_STAR] = 1;
-    shaders_ft.set(SHADER_FT_STAR);
+    rend_data_ctx.state.enable_cull_face();
+    rend_data_ctx.state.disable_blend();
+    rend_data_ctx.state.set_depth_mask(GL_FALSE);
+    rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
+    rend_data_ctx.state.bind_sampler(0, star_sampler);
+    rend_data_ctx.state.enable_primitive_restart();
+    rend_data_ctx.state.set_primitive_restart_index(restart_index);
+    rend_data_ctx.shader_flags.arr[U_STAR] = 1;
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_STAR);
 
-    gl_rend_state.bind_vertex_array(vao);
-    scene_ubo.Bind(0);
-    shaders_ft.draw_elements(GL_TRIANGLE_STRIP, idx_count, GL_UNSIGNED_SHORT, 0);
-    gl_rend_state.bind_vertex_array(0);
+    rend_data_ctx.state.bind_vertex_array(vao);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, scene_ubo);
+    rend_data_ctx.state.draw_elements(GL_TRIANGLE_STRIP, idx_count, GL_UNSIGNED_SHORT, 0);
+    rend_data_ctx.state.bind_vertex_array(0);
 
-    gl_rend_state.bind_sampler(0, 0);
-    gl_rend_state.active_bind_texture_2d(0, 0);
-    gl_rend_state.disable_primitive_restart();
-    gl_rend_state.set_depth_mask(GL_TRUE);
-    gl_rend_state.enable_blend();
-    gl_rend_state.disable_cull_face();
-
-
+    rend_data_ctx.state.bind_sampler(0, 0);
+    rend_data_ctx.state.active_bind_texture_2d(0, 0);
+    rend_data_ctx.state.disable_primitive_restart();
+    rend_data_ctx.state.set_depth_mask(GL_TRUE);
+    rend_data_ctx.state.enable_blend();
+    rend_data_ctx.state.disable_cull_face();
 }
 
-void star_catalog::draw() {
+void star_catalog::draw(render_data_context& rend_data_ctx, const cam_data& cam) {
     if (!stage_param_data_ptr || !enable)
         return;
 
@@ -1932,23 +1962,23 @@ void star_catalog::draw() {
         stage_param_data.utc,
         stage_param_data.rotation_y_deg * DEG_TO_RAD_FLOAT);
 
-    const mat4& view = rctx->view_mat;
+    const mat4& view = cam.view_mat;
     model.row3.x = vec3::dot(-*(vec3*)&view.row0, *(vec3*)&view.row3) + model.row3.x;
     model.row3.y = vec3::dot(-*(vec3*)&view.row1, *(vec3*)&view.row3) + model.row3.y;
     model.row3.z = vec3::dot(-*(vec3*)&view.row2, *(vec3*)&view.row3) + model.row3.z;
 
-    mat4 proj = rctx->proj_mat;
+    mat4 proj = cam.proj_mat;
     proj.row0.z = proj.row0.w;
     proj.row1.z = proj.row1.w;
     proj.row2.z = proj.row2.w;
     proj.row3.z = proj.row3.w;
 
     mat4 vp;
-    mat4_mul(&rctx->view_mat, &proj, &vp);
+    mat4_mul(&cam.view_mat, &proj, &vp);
 
     texture* milky_way_tex = texture_manager_get_texture(milky_way_tex_id);
     if (milky_way_tex)
-        milky_way.draw(vp, model, milky_way_tex, stars_scene_ubo);
+        milky_way.draw(rend_data_ctx, vp, model, milky_way_tex, stars_scene_ubo);
 
     star_catalog_scene_shader_data scene_shader_data = {};
     mat4 temp;
@@ -1958,15 +1988,15 @@ void star_catalog::draw() {
     scene_shader_data.g_transform[1] = temp.row1;
     scene_shader_data.g_transform[2] = temp.row2;
     scene_shader_data.g_transform[3] = temp.row3;
-    stars_scene_ubo.WriteMemory(scene_shader_data);
+    stars_scene_ubo.WriteMemory(rend_data_ctx.state, scene_shader_data);
 
-    uniform->arr[U_STAR] = 0;
-    shaders_ft.set(SHADER_FT_STAR);
-    gl_rend_state.enable_blend();
-    gl_rend_state.set_blend_func(GL_ONE, GL_ONE);
-    gl_rend_state.enable_depth_test();
-    gl_rend_state.set_depth_mask(false);
-    gl_rend_state.bind_vertex_array(rctx->common_vao);
+    rend_data_ctx.shader_flags.arr[U_STAR] = 0;
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_STAR);
+    rend_data_ctx.state.enable_blend();
+    rend_data_ctx.state.set_blend_func(GL_ONE, GL_ONE);
+    rend_data_ctx.state.enable_depth_test();
+    rend_data_ctx.state.set_depth_mask(false);
+    rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
     for (int32_t i = 0; i < 2; i++) {
         stage_param_data_star_modifiers& modifiers = stage_param_data.modifiers[i];
 
@@ -1979,22 +2009,22 @@ void star_catalog::draw() {
             modifiers.pos_scale, modifiers.pos_scale * modifiers.offset_scale
         };
         batch_shader_data.g_thresholds = { modifiers.threshold * modifiers.pos_scale, 0.0f, 0.0f, 0.0f };
-        stars_batch_ubo.WriteMemory(batch_shader_data);
+        stars_batch_ubo.WriteMemory(rend_data_ctx.state, batch_shader_data);
 
-        stars_scene_ubo.Bind(0);
-        stars_batch_ubo.Bind(1);
-        stars_storage.Bind(0);
+        rend_data_ctx.state.bind_uniform_buffer_base(0, stars_scene_ubo);
+        rend_data_ctx.state.bind_uniform_buffer_base(1, stars_batch_ubo);
+        stars_storage.Bind(rend_data_ctx.state, 0);
         if (i) {
-            gl_rend_state.active_bind_texture_2d(0, star_b_tex->glid);
+            rend_data_ctx.state.active_bind_texture_2d(0, star_b_tex->glid);
             stars_storage.Draw(GL_TRIANGLES, 0, star_b_count * 6);
         }
         else {
-            gl_rend_state.active_bind_texture_2d(0, star_tex->glid);
+            rend_data_ctx.state.active_bind_texture_2d(0, star_tex->glid);
             stars_storage.Draw(GL_TRIANGLES, 0, star_count * 6);
         }
     }
-    gl_rend_state.active_bind_texture_2d(0, 0);
-    gl_rend_state.bind_vertex_array(0);
+    rend_data_ctx.state.active_bind_texture_2d(0, 0);
+    rend_data_ctx.state.bind_vertex_array(0);
 
 }
 
@@ -2081,17 +2111,17 @@ bool star_catalog::init() {
             { 2, sizeof(stars_buffer_data::color   ), offsetof(stars_buffer_data, color   ), },
             { (uint32_t)-1 },
         };
-        stars_storage.Create(sizeof(stars_buffer_data), vec.size(), attribs, vec.data());
+        stars_storage.Create(gl_state, sizeof(stars_buffer_data), vec.size(), attribs, vec.data());
     }
 
     milky_way.create_default_sphere();
 
-    stars_scene_ubo.Create(sizeof(star_catalog_scene_shader_data));
-    stars_batch_ubo.Create(sizeof(star_catalog_batch_shader_data));
+    stars_scene_ubo.Create(gl_state, sizeof(star_catalog_scene_shader_data));
+    stars_batch_ubo.Create(gl_state, sizeof(star_catalog_batch_shader_data));
     return true;
 }
 
-void water_particle::draw(mat4* mat) {
+void water_particle::draw(render_data_context& rend_data_ctx, const cam_data& cam, mat4* mat) {
     if (count <= 0)
         return;
 
@@ -2101,7 +2131,7 @@ void water_particle::draw(mat4* mat) {
 
     EffectStorage& storage = elem->second;
 
-    water_particle_vertex_data* vtx_data = (water_particle_vertex_data*)storage.MapMemory();
+    water_particle_vertex_data* vtx_data = (water_particle_vertex_data*)storage.MapMemory(rend_data_ctx.state);
     if (!vtx_data)
         return;
 
@@ -2111,18 +2141,18 @@ void water_particle::draw(mat4* mat) {
         vtx_data->color = ptcl_data->color;
         vtx_data->size = ptcl_data->size;
     }
-    storage.UnmapMemory();
+    storage.UnmapMemory(rend_data_ctx.state);
 
     water_particle_scene_shader_data scene_shader_data = {};
     mat4 temp;
-    mat4_mul(mat, &rctx->vp_mat, &temp);
+    mat4_mul(mat, &cam.view_proj_mat, &temp);
     mat4_transpose(&temp, &temp);
     scene_shader_data.g_transform[0] = temp.row0;
     scene_shader_data.g_transform[1] = temp.row1;
     scene_shader_data.g_transform[2] = temp.row2;
     scene_shader_data.g_transform[3] = temp.row3;
 
-    mat4_mul(mat, &rctx->view_mat, &temp);
+    mat4_mul(mat, &cam.view_mat, &temp);
     mat4_transpose(&temp, &temp);
 
     scene_shader_data.g_view_world_row2 = temp.row2;
@@ -2131,22 +2161,22 @@ void water_particle::draw(mat4* mat) {
     scene_shader_data.g_size_in_projection.y = (float_t)(1.0 / 720.0);
     scene_shader_data.g_size_in_projection.z = 1.0;
     scene_shader_data.g_size_in_projection.w = 60.0;
-    water_particle_scene_ubo.WriteMemory(scene_shader_data);
+    water_particle_scene_ubo.WriteMemory(rend_data_ctx.state, scene_shader_data);
 
-    gl_rend_state.disable_cull_face();
-    shaders_ft.set(SHADER_FT_W_PTCL);
+    rend_data_ctx.state.disable_cull_face();
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_W_PTCL);
 
-    gl_rend_state.bind_vertex_array(rctx->common_vao);
-    water_particle_scene_ubo.Bind(0);
-    storage.Bind(0);
+    rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, water_particle_scene_ubo);
+    storage.Bind(rend_data_ctx.state, 0);
     texture* tex = texture_manager_get_texture(splash_tex_id);
     if (tex)
-        gl_rend_state.active_bind_texture_2d(0, tex->glid);
+        rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
     storage.Draw(GL_TRIANGLES, 0, count * 6);
-    gl_rend_state.bind_vertex_array(0);
+    rend_data_ctx.state.bind_vertex_array(0);
 
-    shader::unbind();
-    gl_rend_state.enable_cull_face();
+    shader::unbind(rend_data_ctx.state);
+    rend_data_ctx.state.enable_cull_face();
 }
 
 static void TaskEffectAuth3D__SetVisibility(size_t This, bool value) {
@@ -2172,7 +2202,8 @@ static void TaskEffectAuth3D__SetVisibility(size_t This, bool value) {
     }
 }
 
-static void draw_fog_particle(EffectFogRing* data, mat4* mat) {
+static void draw_fog_particle(render_data_context& rend_data_ctx,
+    EffectFogRing* data, const cam_data& cam, mat4* mat) {
     if (!data->num_vtx)
         return;
 
@@ -2182,24 +2213,25 @@ static void draw_fog_particle(EffectFogRing* data, mat4* mat) {
 
     EffectStorage& storage = elem->second;
 
-    shaders_ft.set(SHADER_FT_FOGPTCL);
-    gl_rend_state.enable_blend();
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_FOGPTCL);
+    rend_data_ctx.state.enable_blend();
     texture* tex = texture_manager_get_texture(data->tex_id);
     if (tex)
-        gl_rend_state.active_bind_texture_2d(0, tex->glid);
-    gl_rend_state.bind_vertex_array(rctx->common_vao);
-    storage.Bind(0);
+        rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
+    rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
+    storage.Bind(rend_data_ctx.state, 0);
     storage.Draw(GL_TRIANGLES, 0, data->num_vtx);
-    gl_rend_state.bind_vertex_array(0);
-    gl_rend_state.disable_blend();
-    shader::unbind();
+    rend_data_ctx.state.bind_vertex_array(0);
+    rend_data_ctx.state.disable_blend();
+    shader::unbind(rend_data_ctx.state);
 }
 
-static void draw_ripple_particles(ripple_struct* data, mat4* mat) {
+static void draw_ripple_particles(render_data_context& rend_data_ctx,
+    ripple_struct* data, const cam_data& cam, mat4* mat) {
     if (data->count > 5000)
         return;
 
-    vec3* vtx_data = (vec3*)ripple_emit_storage.MapMemory();
+    vec3* vtx_data = (vec3*)ripple_emit_storage.MapMemory(rend_data_ctx.state);
     if (!vtx_data)
         return;
 
@@ -2209,7 +2241,7 @@ static void draw_ripple_particles(ripple_struct* data, mat4* mat) {
     for (size_t i = data->count; i; i--, vtx_data++, position++, color++)
         *vtx_data = { position->x, -position->z, (float_t)color->a * (float_t)(1.0 / 255.0) };
 
-    ripple_emit_storage.UnmapMemory();
+    ripple_emit_storage.UnmapMemory(rend_data_ctx.state);
 
     int32_t size = (int32_t)(data->size + 0.5f);
 
@@ -2232,29 +2264,30 @@ static void draw_ripple_particles(ripple_struct* data, mat4* mat) {
         1.0f / (float_t)width,
         1.0f / (float_t)height,
         0.0f, 0.0f };
-    ripple_emit_scene_ubo.WriteMemory(shader_data);
+    ripple_emit_scene_ubo.WriteMemory(rend_data_ctx.state, shader_data);
 
-    uniform->arr[U_RIPPLE] = data->ripple_uniform;
-    uniform->arr[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
+    rend_data_ctx.shader_flags.arr[U_RIPPLE] = data->ripple_uniform;
+    rend_data_ctx.shader_flags.arr[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
 
-    gl_rend_state.begin_event("EffectRipple::Impl::draw_ripple_particles");
-    gl_rend_state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
-    gl_rend_state.bind_vertex_array(rctx->common_vao);
+    rend_data_ctx.state.begin_event("EffectRipple::Impl::draw_ripple_particles");
+    rend_data_ctx.state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+    rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
 
-    shaders_ft.set(SHADER_FT_RIPEMIT);
-    ripple_emit_scene_ubo.Bind(0);
-    ripple_emit_storage.Bind(0);
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_RIPEMIT);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, ripple_emit_scene_ubo);
+    ripple_emit_storage.Bind(rend_data_ctx.state, 0);
     ripple_emit_storage.Draw(GL_TRIANGLES, 0, data->count * 6);
 
-    shader::unbind();
+    shader::unbind(rend_data_ctx.state);
 
-    gl_rend_state.bind_vertex_array(0);
-    gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    gl_rend_state.end_event();
+    rend_data_ctx.state.bind_vertex_array(0);
+    rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    rend_data_ctx.state.end_event();
 }
 
-static void draw_water_particle(water_particle* data, mat4* mat) {
-    data->draw(mat);
+static void draw_water_particle(render_data_context& rend_data_ctx,
+    water_particle* data, const cam_data& cam, mat4* mat) {
+    data->draw(rend_data_ctx, cam, mat);
 }
 
 static std::pair<vec3, float_t> sub_1406427A0(vec3 x, vec3 y) {
@@ -2267,7 +2300,7 @@ static std::pair<vec3, float_t> sub_1406427A0(vec3 x, vec3 y) {
     return { t3 * x, t3 * t1 };
 }
 
-static int32_t leaf_particle_disp() {
+static int32_t leaf_particle_disp(render_data_context& rend_data_ctx) {
     float_t size = leaf_ptcl_data[0].size;
 
     vec3 position[4];
@@ -2281,7 +2314,7 @@ static int32_t leaf_particle_disp() {
     normal[2] = sub_1406427A0(vec3(-0.2f, -0.2f, 1.0f), vec3(0.0f, 1.0f, 0.0f)).first;
     normal[3] = sub_1406427A0(vec3( 0.4f, -0.4f, 1.0f), vec3(0.0f, 1.0f, 0.0f)).first;
 
-    leaf_particle_vertex_data* vtx_data = (leaf_particle_vertex_data*)leaf_ptcl_vbo.MapMemory();
+    leaf_particle_vertex_data* vtx_data = (leaf_particle_vertex_data*)leaf_ptcl_vbo.MapMemory(rend_data_ctx.state);
     if (!vtx_data)
         return 0;
 
@@ -2359,7 +2392,7 @@ static int32_t leaf_particle_disp() {
         }
     }
 
-    leaf_ptcl_vbo.UnmapMemory();
+    leaf_ptcl_vbo.UnmapMemory(rend_data_ctx.state);
     return vtx_count;
 }
 
@@ -2431,16 +2464,16 @@ static void rain_particle_free() {
 }
 
 static void ripple_emit_init() {
-    ripple_batch_ubo.Create(sizeof(ripple_batch_shader_data));
-    ripple_scene_ubo.Create(sizeof(ripple_scene_shader_data));
+    ripple_batch_ubo.Create(gl_state, sizeof(ripple_batch_shader_data));
+    ripple_scene_ubo.Create(gl_state, sizeof(ripple_scene_shader_data));
 
     static const EffectStorageAttrib attribs[] = {
         { 0, sizeof(vec3), 0, },
         { (uint32_t)-1 },
     };
-    ripple_emit_storage.Create(sizeof(vec3), ripple_emit_count, attribs);
+    ripple_emit_storage.Create(gl_state, sizeof(vec3), ripple_emit_count, attribs);
 
-    ripple_emit_scene_ubo.Create(sizeof(ripple_emit_scene_shader_data));
+    ripple_emit_scene_ubo.Create(gl_state, sizeof(ripple_emit_scene_shader_data));
 }
 
 static void ripple_emit_free() {

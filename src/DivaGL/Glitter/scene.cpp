@@ -4,11 +4,12 @@
 */
 
 #include "glitter.hpp"
+#include "../gl_state.hpp"
 
 namespace Glitter {
-    void Scene::Disp(DispType disp_type) {
+    void Scene::Disp(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         if (!(flags & SCENE_NOT_DISP))
-            render_scene.Disp(disp_type);
+            render_scene.Disp(rend_data_ctx, disp_type, cam);
     }
 
     void Scene::CalcDisp() {
@@ -60,7 +61,7 @@ namespace Glitter {
         }
 
         if (disp)
-            effect_group->vbo.WriteMemory(0, effect_group->max_count * sizeof(Buffer), effect_group->buffer);
+            effect_group->vbo.WriteMemory(gl_state, 0, effect_group->max_count * sizeof(Buffer), effect_group->buffer);
 #endif
     }
 
@@ -137,13 +138,13 @@ namespace Glitter {
         }
     }
 
-    void SceneX::Disp(DispType disp_type) {
+    void SceneX::Disp(render_data_context& rend_data_ctx, DispType disp_type, const cam_data& cam) {
         if (flags & SCENE_NOT_DISP)
             return;
 
         for (SceneEffectX& i : effects)
             if (i.ptr && i.disp)
-                i.ptr->Disp(disp_type);
+                i.ptr->Disp(rend_data_ctx, disp_type, cam);
     }
 
     void SceneX::DispMesh() {

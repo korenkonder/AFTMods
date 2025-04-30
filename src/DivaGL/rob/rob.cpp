@@ -6,7 +6,7 @@
 #include "rob.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../mdl/disp_manager.hpp"
-#include "../gl_rend_state.hpp"
+#include "../gl_state.hpp"
 #include "../object.hpp"
 #include "../render_manager.hpp"
 #include <Helpers.h>
@@ -146,7 +146,7 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
 
     vertex_buffer->cycle_index();
     GL::ArrayBuffer buffer = vertex_buffer->get_buffer();
-    size_t data = (size_t)buffer.MapMemory();
+    size_t data = (size_t)buffer.MapMemory(gl_state);
     if (!data)
         return;
 
@@ -284,7 +284,7 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
         break;
     }
 
-    buffer.UnmapMemory();
+    buffer.UnmapMemory(gl_state);
 }
 
 HOOK(void, FASTCALL, sub_1405044B0, 0x00000001405044B0, rob_chara* rob_chr) {
@@ -754,7 +754,7 @@ void rob_chara_age_age_object::disp(size_t chara_index,
     obj_vert_buf.cycle_index();
 
     GL::ArrayBuffer buffer = obj_vert_buf.get_buffer();
-    size_t vtx_data = (size_t)buffer.MapMemory();
+    size_t vtx_data = (size_t)buffer.MapMemory(gl_state);
     if (!vtx_data)
         return;
 
@@ -763,7 +763,7 @@ void rob_chara_age_age_object::disp(size_t chara_index,
         memmove((void*)(vtx_data + vertex_array_size * i),
             (void*)((size_t)vertex_data + vertex_array_size * v44[i].second), vertex_array_size);
 
-    buffer.UnmapMemory();
+    buffer.UnmapMemory(gl_state);
 
     mesh.num_vertex = disp_count * num_vertex;
     sub_mesh.num_index = disp_count * num_index;

@@ -5,7 +5,7 @@
 
 #include "texture.hpp"
 #include "../AFTModsShared/types.hpp"
-#include "gl_rend_state.hpp"
+#include "gl_state.hpp"
 #include "shared.hpp"
 #include <Helpers.h>
 
@@ -281,7 +281,7 @@ HOOK(texture*, FASTCALL, texture_load_tex_cube_map, 0x000000014069B860,
         width, height, max_mipmap_level, data_ptr, false);
 }
 
-HOOK(texture*, FASTCALL, texture_load_tex_2d, 0x000000014069B8E0, 
+HOOK(texture*, FASTCALL, texture_load_tex_2d, 0x000000014069B8E0,
     texture_id id, GLenum internal_format, int32_t width, int32_t height,
     int32_t max_mipmap_level, const void** data_ptr, bool use_high_anisotropy) {
     return texture_load_tex(id, GL_TEXTURE_2D, internal_format,
@@ -334,10 +334,10 @@ texture_handler::texture_handler() : field_2C(), field_30(), field_34() {
 inline static void texture_bind(GLenum target, GLuint texture) {
     switch (target) {
     case GL_TEXTURE_2D:
-        gl_rend_state.bind_texture_2d(texture);
+        gl_state.bind_texture_2d(texture);
         break;
     case GL_TEXTURE_CUBE_MAP:
-        gl_rend_state.bind_texture_cube_map(texture);
+        gl_state.bind_texture_cube_map(texture);
         break;
     }
 }

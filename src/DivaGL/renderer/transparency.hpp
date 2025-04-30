@@ -10,6 +10,8 @@
 #include "../render_texture.hpp"
 #include "fbo.hpp"
 
+struct render_data_context;
+
 namespace renderer {
     struct Transparency {
     private:
@@ -22,8 +24,8 @@ namespace renderer {
         Transparency(GLuint color_texture, GLuint depth_texture, int32_t width, int32_t height);
         ~Transparency();
 
-        void combine(RenderTexture* rt, float_t alpha);
-        void copy(GLuint texture);
+        void combine(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha);
+        void copy(render_data_context& rend_data_ctx, GLuint texture);
 
         void resize(GLuint color_texture, GLuint depth_texture, int32_t width, int32_t height);
     };

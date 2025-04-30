@@ -7,6 +7,7 @@
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "../AFTModsShared/file_handler.hpp"
+#include "gl_state.hpp"
 #include "render_context.hpp"
 #include <Helpers.h>
 
@@ -241,19 +242,13 @@ void light_param_patch() {
     INSTALL_HOOK(light_param_data_storage__delete_textures);
 }
 
-void light_param_data_storage_data_set_ibl() {
-    static const int32_t ibl_texture_index[] = {
-        9, 10, 11, 12, 13
-    };
-
-    for (int32_t i = 0; i < 5; i++)
-        gl_rend_state.active_bind_texture_cube_map(ibl_texture_index[i],
-            light_param_data_storage_data->textures[i]);
+const GLuint* light_param_data_storage_data_get_ibl_textures() {
+    return light_param_data_storage_data->textures;
 }
 
 void light_param_data::set_ibl(const light_param_data_ibl* ibl, const light_param_data_storage* storage) {
     for (int32_t i = 0, j = -1; i < 5; i++, j++) {
-        gl_rend_state.bind_texture_cube_map(storage->textures[i]);
+        gl_state.bind_texture_cube_map(storage->textures[i]);
         glTexParameteriDLL(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteriDLL(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteriDLL(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -279,7 +274,7 @@ void light_param_data::set_ibl(const light_param_data_ibl* ibl, const light_para
             light_param_data::set_ibl_specular(&ibl->specular[j]);
         }
     }
-    gl_rend_state.bind_texture_cube_map(0);
+    gl_state.bind_texture_cube_map(0);
 
     ::light_set* set = &light_set_data[LIGHT_SET_MAIN];
     set->set_irradiance(ibl->diff_coef[1][0], ibl->diff_coef[1][1], ibl->diff_coef[1][2]);

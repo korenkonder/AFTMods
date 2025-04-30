@@ -1130,6 +1130,9 @@ typedef PROC (GLAPIENTRY * PFNWGLGETPROCADDRESSGLUTPROC) (LPCSTR lpszProc);
 typedef BOOL (GLAPIENTRY * PFNWGLMAKECURRENTGLUTPROC) (HDC hDc, HGLRC newContext);
 
 typedef void (GLAPIENTRY* PFNGLTEXPARAMETERIVPROC)(GLenum target, GLenum pname, const GLint* params);
+typedef void (GLAPIENTRY* PFNGLSTENCILMASKPROC)(GLuint mask);
+typedef void (GLAPIENTRY* PFNGLSTENCILFUNCPROC)(GLenum func, GLint ref, GLuint mask);
+typedef void (GLAPIENTRY* PFNGLSTENCILOPPROC)(GLenum fail, GLenum zfail, GLenum zpass);
 typedef void (GLAPIENTRY* PFNGLDRAWARRAYSINSTANCEDPROC)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
 typedef void (GLAPIENTRY* PFNGLPRIMITIVERESTARTINDEXPROC)(GLuint index);
 typedef GLuint (GLAPIENTRY* PFNGLGETUNIFORMBLOCKINDEXPROC)(GLuint program, const GLchar* uniformBlockName);
@@ -1149,6 +1152,8 @@ typedef void* (GLAPIENTRY* PFNGLMAPNAMEDBUFFERPROC)(GLuint buffer, GLenum access
 typedef void* (GLAPIENTRY* PFNGLMAPNAMEDBUFFERRANGEPROC)(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access);
 typedef GLboolean (GLAPIENTRY* PFNGLUNMAPNAMEDBUFFERPROC)(GLuint buffer);
 typedef void (GLAPIENTRY* PFNGLTEXTURESUBIMAGE2DPROC)(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
+typedef void (GLAPIENTRY* PFNGLGENERATETEXTUREMIPMAPPROC)(GLuint texture);
+typedef void (GLAPIENTRY* PFNGLBINDTEXTUREUNITPROC)(GLuint unit, GLuint texture);
 
 extern PFNGLBINDTEXTUREDLLPROC* divagl_glBindTextureDLL;
 extern PFNGLBLENDFUNCDLLPROC* divagl_glBlendFuncDLL;
@@ -2272,6 +2277,9 @@ extern PFNWGLGETPROCADDRESSGLUTPROC* divagl_wglGetProcAddressGLUT;
 extern PFNWGLMAKECURRENTGLUTPROC* divagl_wglMakeCurrentGLUT;
 
 extern PFNGLTEXPARAMETERIVPROC divagl_glTexParameteriv;
+extern PFNGLSTENCILMASKPROC diva_glStencilMask;
+extern PFNGLSTENCILFUNCPROC diva_glStencilFunc;
+extern PFNGLSTENCILOPPROC diva_glStencilOp;
 extern PFNGLDRAWARRAYSINSTANCEDPROC divagl_glDrawArraysInstanced;
 extern PFNGLPRIMITIVERESTARTINDEXPROC divagl_glPrimitiveRestartIndex;
 extern PFNGLGETUNIFORMBLOCKINDEXPROC divagl_glGetUniformBlockIndex;
@@ -2291,6 +2299,8 @@ extern PFNGLMAPNAMEDBUFFERPROC divagl_glMapNamedBuffer;
 extern PFNGLMAPNAMEDBUFFERRANGEPROC divagl_glMapNamedBufferRange;
 extern PFNGLUNMAPNAMEDBUFFERPROC divagl_glUnmapNamedBuffer;
 extern PFNGLTEXTURESUBIMAGE2DPROC divagl_glTextureSubImage2D;
+extern PFNGLGENERATETEXTUREMIPMAPPROC divagl_glGenerateTextureMipmap;
+extern PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit;
 
 #define glBindTextureDLL (*divagl_glBindTextureDLL)
 #define glBlendFuncDLL (*divagl_glBlendFuncDLL)
@@ -3414,6 +3424,9 @@ extern PFNGLTEXTURESUBIMAGE2DPROC divagl_glTextureSubImage2D;
 #define wglMakeCurrentGLUT (*divagl_wglMakeCurrentGLUT)
 
 #define glTexParameteriv divagl_glTexParameteriv
+#define glStencilMask diva_glStencilMask
+#define glStencilFunc diva_glStencilFunc
+#define glStencilOp diva_glStencilOp
 #define glDrawArraysInstanced divagl_glDrawArraysInstanced
 #define glPrimitiveRestartIndex divagl_glPrimitiveRestartIndex
 #define glGetUniformBlockIndex divagl_glGetUniformBlockIndex
@@ -3433,6 +3446,8 @@ extern PFNGLTEXTURESUBIMAGE2DPROC divagl_glTextureSubImage2D;
 #define glMapNamedBufferRange divagl_glMapNamedBufferRange
 #define glUnmapNamedBuffer divagl_glUnmapNamedBuffer
 #define glTextureSubImage2D divagl_glTextureSubImage2D
+#define glGenerateTextureMipmap divagl_glGenerateTextureMipmap
+#define glBindTextureUnit divagl_glBindTextureUnit
 
 extern bool DIVA_GL_VERSION_4_1;
 extern bool DIVA_GL_VERSION_4_2;

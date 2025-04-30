@@ -10,6 +10,7 @@
 #include "../KKdLib/vec.hpp"
 #include "../AFTModsShared/light_param/fog.hpp"
 #include "../AFTModsShared/light_param/light.hpp"
+#include "../AFTModsShared/uniform.hpp"
 #include "GL/array_buffer.hpp"
 #include "GL/shader_storage_buffer.hpp"
 #include "GL/uniform_buffer.hpp"
@@ -26,9 +27,9 @@ enum render_data_flags {
 };
 
 struct draw_state_stats {
-    int32_t object_draw_count;
-    int32_t object_translucent_draw_count;
-    int32_t object_reflect_draw_count;
+    int32_t sub_mesh_count;
+    int32_t sub_mesh_no_mat_count;
+    int32_t sub_mesh_cheap_count;
     int32_t field_C;
     int32_t field_10;
     int32_t draw_count;
@@ -49,7 +50,7 @@ struct sss_data {
 
     void free();
     void init();
-    void set_texture(int32_t);
+    void set_texture(struct p_gl_rend_state& p_gl_rend_st, int32_t texture_index);
 };
 
 static_assert(sizeof(sss_data) == 0xD8, "\"sss_data\" struct should have a size of 0xD8");
@@ -65,6 +66,18 @@ struct global_material_struct {
 static_assert(sizeof(global_material_struct) == 0x14, "\"global_material_struct\" struct should have a size of 0x14");
 
 struct draw_state_struct {
+    struct render_data {
+        int32_t shader_index;
+        bool self_shadow;
+        bool shadow;
+        bool blend;
+        bool cull_front;
+        int32_t field_8;
+        draw_state_stats stats;
+
+        render_data();
+    };
+
     draw_state_stats stats;
     draw_state_stats stats_prev;
     bool vertex_buffer;
@@ -376,7 +389,10 @@ struct render_data {
     };
 
     render_data_flags flags;
+    cam_data cam;
+    mat4 inv_view_mat;
     int32_t shader_index;
+    uniform_value shader_flags;
     obj_shader_data buffer_shader_data;
     obj_scene_data buffer_scene_data;
     obj_batch_data buffer_batch_data;
@@ -389,11 +405,12 @@ struct render_data {
 
     void init();
     void free();
-    void set(render_context* rctx);
+    void set_skinning_data(struct p_gl_rend_state& p_gl_rend_st, const mat4* mats, int32_t count);
+    void set_state(struct p_gl_rend_state& p_gl_rend_st);
     void set_shader(uint32_t index);
 };
 
-struct render_context {
+struct render_data_context {
     struct fog_params {
         vec4 depth_color;
         vec4 height_params;
@@ -404,6 +421,61 @@ struct render_context {
         float_t end;
     };
 
+    p_gl_rend_state state;
+    gl_rend_state_index index;
+    render_data& data;
+    uniform_value& shader_flags;
+
+    render_data_context(gl_rend_state_index index);
+
+    void get_scene_fog_params(render_data_context::fog_params& value);
+    void get_scene_light(vec4* light_env_stage_diffuse,
+        vec4* light_env_stage_specular, vec4* light_chara_dir, vec4* light_chara_luce,
+        vec4* light_env_chara_diffuse, vec4* light_env_chara_specular);
+    void reset_shader_flags();
+    void set_batch_alpha_threshold(const float_t value);
+    void set_batch_blend_color_offset_color(const vec4& blend_color, const vec4& offset_color);
+    void set_batch_material_color(const vec4& diffuse, const vec4& ambient,
+        const vec4& emission, const float_t material_shininess, const vec4& specular,
+        const vec4& fresnel_coefficients, const vec4& texture_color_coefficients,
+        const vec4& texture_color_offset, const vec4& texture_specular_coefficients,
+        const vec4& texture_specular_offset, const float_t shininess);
+    void set_batch_material_color_emission(const vec4& emission);
+    void set_batch_material_parameter(const vec4* specular, const vec4& bump_depth,
+        const vec4& intensity, const float_t reflect_uv_scale, const float_t refract_uv_scale);
+    void set_batch_min_alpha(const float_t value);
+    void set_batch_morph_weight(const float_t value);
+    void set_batch_scene_camera(const cam_data& cam);
+    void set_batch_sss_param(const vec4& sss_param);
+    void set_batch_texcoord_transforms(const mat4 mats[2]);
+    void set_batch_worlds(const mat4& mat);
+    void set_glitter_render_data_state();
+    void set_render_data_state();
+    void set_scene_fog_params(const render_data_context::fog_params& value);
+    void set_scene_framebuffer_size(const int32_t width, const int32_t height,
+        const int32_t render_width, const int32_t render_height);
+    void set_scene_light(const mat4& irradiance_r_transforms, const mat4& irradiance_g_transforms,
+        const mat4& irradiance_b_transforms, const vec4& light_env_stage_diffuse,
+        const vec4& light_env_stage_specular, const vec4& light_env_chara_diffuse,
+        const vec4& light_env_chara_ambient, const vec4& light_env_chara_specular,
+        const vec4& light_env_reflect_diffuse, const vec4& light_env_reflect_ambient,
+        const vec4& light_env_proj_diffuse, const vec4& light_env_proj_specular,
+        const vec4& light_env_proj_position, const vec4& light_stage_dir, const vec4& light_stage_diff,
+        const vec4& light_stage_spec, const vec4& light_chara_dir, const vec4& light_chara_spec,
+        const vec4& light_chara_luce, const vec4& light_chara_back, const vec4& light_face_diff,
+        const vec4& chara_color0, const vec4& chara_color1, const vec4& chara_f_dir, const vec4& chara_f_ambient,
+        const vec4& chara_f_diffuse, const vec4& chara_tc_param, const mat4& normal_tangent_transforms,
+        const vec4& light_reflect_dir, const vec4& clip_plane, const vec4& npr_cloth_spec_color);
+    void set_scene_light_projection(const mat4& light_projection);
+    void set_scene_shadow_params(const float_t esm_param,
+        const mat4 mats[2], const vec4& shadow_ambient, const vec4& shadow_ambient1);
+    void set_self_shadow(bool value);
+    void set_shader(uint32_t index);
+    void set_shadow(bool value);
+    void set_skinning_data(p_gl_rend_state& p_gl_rend_st, const mat4* mats, int32_t count);
+};
+
+struct render_context {
     struct shared_storage_buffer {
         void* data;
         size_t offset;
@@ -433,11 +505,6 @@ struct render_context {
         size_t offset;
         size_t size;
     };
-
-    mat4 view_mat;
-    mat4 proj_mat;
-    mat4 vp_mat;
-    vec4 g_near_far;
 
     GLuint box_vao;
     GL::ArrayBuffer box_vbo;
@@ -470,7 +537,9 @@ struct render_context {
     GL::UniformBuffer tone_map_ubo;
     GL::UniformBuffer transparency_batch_ubo;
 
-    render_data data;
+    render_data data[GL_REND_STATE_COUNT];
+    draw_state_struct::render_data draw_state_rend_data[GL_REND_STATE_COUNT];
+    cam_data render_manager_cam;
 
     texture* empty_texture_2d;
     texture* empty_texture_cube_map;
@@ -502,54 +571,10 @@ struct render_context {
 
     void add_shared_storage_uniform_buffer_data(size_t index,
         const void* data, size_t size, size_t max_size, bool storage = false);
-    void get_scene_fog_params(render_context::fog_params& value);
-    void get_scene_light(vec4* light_env_stage_diffuse,
-        vec4* light_env_stage_specular, vec4* light_chara_dir, vec4* light_chara_luce,
-        vec4* light_env_chara_diffuse, vec4* light_env_chara_specular);
     bool get_shared_storage_uniform_buffer_data(size_t index,
         GLuint& buffer, size_t& offset, size_t& size, bool storage = false);
     void post_proc();
     void pre_proc();
-    void set_batch_alpha_threshold(const float_t value);
-    void set_batch_blend_color(const vec4& blend_color);
-    void set_batch_blend_color_offset_color(const vec4& blend_color, const vec4& offset_color);
-    void set_batch_joint(const mat4& mat);
-    void set_batch_material_color(const vec4& diffuse, const vec4& ambient,
-        const vec4& emission, const float_t material_shininess, const vec4& specular,
-        const vec4& fresnel_coefficients, const vec4& texture_color_coefficients,
-        const vec4& texture_color_offset, const vec4& texture_specular_coefficients,
-        const vec4& texture_specular_offset, const float_t shininess);
-    void set_batch_material_color_emission(const vec4& emission);
-    void set_batch_material_parameter(const vec4* specular, const vec4& bump_depth,
-        const vec4& intensity, const float_t reflect_uv_scale, const float_t refract_uv_scale);
-    void set_batch_min_alpha(const float_t value);
-    void set_batch_morph_weight(const float_t value);
-    void set_batch_offset_color(const vec4& offset_color);
-    void set_batch_sss_param(const vec4& sss_param);
-    void set_batch_texcoord_transforms(const mat4 mats[2]);
-    void set_batch_worlds(const mat4& mat);
-    void set_glitter_render_data();
-    void set_render_data();
-    void set_scene_fog_params(const render_context::fog_params& value);
-    void set_scene_framebuffer_size(const int32_t width, const int32_t height,
-        const int32_t render_width, const int32_t render_height);
-    void set_scene_light(const mat4& irradiance_r_transforms, const mat4& irradiance_g_transforms,
-        const mat4& irradiance_b_transforms, const vec4& light_env_stage_diffuse,
-        const vec4& light_env_stage_specular, const vec4& light_env_chara_diffuse,
-        const vec4& light_env_chara_ambient, const vec4& light_env_chara_specular,
-        const vec4& light_env_reflect_diffuse, const vec4& light_env_reflect_ambient,
-        const vec4& light_env_proj_diffuse, const vec4& light_env_proj_specular,
-        const vec4& light_env_proj_position, const vec4& light_stage_dir, const vec4& light_stage_diff,
-        const vec4& light_stage_spec, const vec4& light_chara_dir, const vec4& light_chara_spec,
-        const vec4& light_chara_luce, const vec4& light_chara_back, const vec4& light_face_diff,
-        const vec4& chara_color0, const vec4& chara_color1, const vec4& chara_f_dir, const vec4& chara_f_ambient,
-        const vec4& chara_f_diffuse, const vec4& chara_tc_param, const mat4& normal_tangent_transforms,
-        const vec4& light_reflect_dir, const vec4& clip_plane, const vec4& npr_cloth_spec_color);
-    void set_scene_light_projection(const mat4& light_projection);
-    void set_scene_projection_view(const mat4& view, const mat4& proj, const vec3& view_position);
-    void set_scene_shadow_params(const float_t esm_param,
-        const mat4 mats[2], const vec4& shadow_ambient, const vec4& shadow_ambient1);
-    void set_shader(uint32_t index);
 };
 
 extern draw_state_struct& draw_state;

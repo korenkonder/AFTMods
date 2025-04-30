@@ -9,31 +9,37 @@
 #include "../shader_ft.hpp"
 #include "../texture.hpp"
 
-static bool draw_object_blend_set(
+static bool draw_object_blend_set(render_data_context& rend_data_ctx,
     const mdl::ObjSubMeshArgs* args, obj_material_shader_lighting_type lighting_type);
 static bool draw_object_blend_set_check_use_default_blend(int32_t index);
-static void draw_object_chara_color_fog_set(
+static void draw_object_chara_color_fog_set(render_data_context& rend_data_ctx,
     const mdl::ObjSubMeshArgs* args, bool disable_fog);
-static void draw_object_material_reset_default(const obj_material_data* mat_data);
-static void draw_object_material_reset_reflect();
-static void draw_object_material_set_default(
+static void draw_object_material_reset_cheap(render_data_context& rend_data_ctx);
+static void draw_object_material_reset_default(
+    render_data_context& rend_data_ctx, const obj_material_data* mat_data);
+static void draw_object_material_set_cheap(
+    render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
+static void draw_object_material_set_default(render_data_context& rend_data_ctx,
     const mdl::ObjSubMeshArgs* args, bool use_shader);
 static void draw_object_material_set_parameter(
-    const obj_material_data* mat_data);
-static void draw_object_material_set_reflect(const mdl::ObjSubMeshArgs* args);
-static void draw_object_material_set_uniform(const obj_material_data* mat_data, bool disable_color_l);
-static void draw_object_model_mat_load(const mat4& mat);
-static void draw_object_vertex_attrib_reset_default(const mdl::ObjSubMeshArgs* args);
-static void draw_object_vertex_attrib_reset_reflect(const mdl::ObjSubMeshArgs* args);
-static void draw_object_vertex_attrib_set_default(const mdl::ObjSubMeshArgs* args);
-static void draw_object_vertex_attrib_set_reflect(const mdl::ObjSubMeshArgs* args);
+    render_data_context& rend_data_ctx, const obj_material_data* mat_data);
+static void draw_object_material_set_uniform(render_data_context& rend_data_ctx,
+    const obj_material_data* mat_data, bool disable_color_l);
+static void draw_object_vertex_attrib_reset_cheap(
+    render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
+static void draw_object_vertex_attrib_reset_default(
+    render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
+static void draw_object_vertex_attrib_set_default(
+    render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
+static void draw_object_vertex_attrib_set_cheap(
+    render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args);
 
 static bool(FASTCALL* use_shader_get)() = (bool(FASTCALL*)())0x0000000140440E30;
 
 extern bool config_shared_storage_uniform_buffer;
 
 namespace mdl {
-    void draw(obj_primitive_type primitive_type, uint32_t count,
+    void draw(render_data_context& rend_data_ctx, obj_primitive_type primitive_type, uint32_t count,
         uint16_t start, uint16_t end, obj_index_format index_format, size_t indices) {
         GLenum mesh_draw_mode[] = {
             GL_ZERO, //GL_POINTS,
@@ -54,23 +60,24 @@ namespace mdl {
             GL_UNSIGNED_INT,
         };
 
-        rctx->set_render_data();
+        rend_data_ctx.set_render_data_state();
 
         if (primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP && index_format == OBJ_INDEX_U16)
-            shaders_ft.draw_range_elements(GL_TRIANGLE_STRIP,
+            rend_data_ctx.state.draw_range_elements(GL_TRIANGLE_STRIP,
                 start, end, count, GL_UNSIGNED_SHORT, (void*)indices);
         else
-            shaders_ft.draw_elements(mesh_draw_mode[primitive_type],
+            rend_data_ctx.state.draw_elements(mesh_draw_mode[primitive_type],
                 count, mesh_indices_type[index_format], (void*)indices);
 
-        draw_state.stats.draw_count += count;
+        draw_state_stats& stats = rctx->draw_state_rend_data[rend_data_ctx.index].stats;
+        stats.draw_count += count;
         if (primitive_type == OBJ_PRIMITIVE_TRIANGLES)
-            draw_state.stats.draw_triangle_count += count / 3;
+            stats.draw_triangle_count += count / 3;
         else if (primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP)
-            draw_state.stats.draw_triangle_count += count - 2;
+            stats.draw_triangle_count += count - 2;
     }
 
-    void draw_etc_obj(const mdl::EtcObj* etc, const mat4* mat) {
+    void draw_etc_obj(render_data_context& rend_data_ctx, const mdl::EtcObj* etc, const mat4* mat) {
         switch (etc->type) {
         case mdl::ETC_OBJ_TEAPOT:
         case mdl::ETC_OBJ_GRID:
@@ -94,7 +101,7 @@ namespace mdl {
         if (!vao)
             return;
 
-        draw_object_model_mat_load(*mat);
+        rend_data_ctx.set_batch_worlds(*mat);
 
         const vec4 color = etc->color;
 
@@ -105,159 +112,172 @@ namespace mdl {
             vec4 emission = etc->constant ? 1.0f : vec4(0.0f, 0.0f, 0.0f, 1.0f);
             vec4 specular = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-            rctx->set_batch_material_color(diffuse, ambient, emission,
+            rend_data_ctx.set_batch_material_color(diffuse, ambient, emission,
                 0.0f, specular, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-            rctx->set_batch_blend_color_offset_color(1.0f, 0.0f);
+            rend_data_ctx.set_batch_blend_color_offset_color(1.0f, 0.0f);
         }
         else
-            rctx->set_batch_blend_color_offset_color(color, 0.0f);
+            rend_data_ctx.set_batch_blend_color_offset_color(color, 0.0f);
 
-        gl_rend_state.bind_vertex_array(vao);
-        //rctx->set_shader(SHADER_FT_SIMPLE);
-        rctx->set_shader(etc->constant ? SHADER_FT_CONSTANT : SHADER_FT_SIMPLE);
-        rctx->set_render_data();
+        rend_data_ctx.state.bind_vertex_array(vao);
+        //rend_data_ctx.set_shader(SHADER_FT_SIMPLE);
+        rend_data_ctx.set_shader(etc->constant ? SHADER_FT_CONSTANT : SHADER_FT_SIMPLE);
+        rend_data_ctx.set_render_data_state();
         switch (etc->type) {
         case mdl::ETC_OBJ_TEAPOT:
-            shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
+            rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
             break;
         case mdl::ETC_OBJ_GRID:
-            gl_rend_state.set_line_width(0.2f);
-            shaders_ft.draw_arrays(GL_LINES, 0, etc->count);
-            gl_rend_state.set_line_width(2.0f);
-            shaders_ft.draw_arrays(GL_LINES, (GLint)etc->count, 4);
-            gl_rend_state.set_line_width(1.0f);
+            rend_data_ctx.state.set_line_width(0.2f);
+            rend_data_ctx.state.draw_arrays(GL_LINES, 0, etc->count);
+            rend_data_ctx.state.set_line_width(2.0f);
+            rend_data_ctx.state.draw_arrays(GL_LINES, (GLint)etc->count, 4);
+            rend_data_ctx.state.set_line_width(1.0f);
             break;
         case mdl::ETC_OBJ_CUBE:
             if (etc->data.sphere.wire)
-                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+                rend_data_ctx.state.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             else
-                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+                rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             break;
         case mdl::ETC_OBJ_SPHERE:
             if (etc->data.sphere.wire)
-                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+                rend_data_ctx.state.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             else
-                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+                rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             break;
         case mdl::ETC_OBJ_PLANE:
-            shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, etc->count);
+            rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, etc->count);
             break;
         case mdl::ETC_OBJ_CONE:
             if (etc->data.cone.wire)
-                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+                rend_data_ctx.state.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             else
-                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+                rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             break;
         case mdl::ETC_OBJ_LINE:
-            shaders_ft.draw_arrays(GL_LINES, 0, etc->count);
+            rend_data_ctx.state.draw_arrays(GL_LINES, 0, etc->count);
             break;
         case mdl::ETC_OBJ_CROSS:
-            shaders_ft.draw_arrays(GL_LINES, 0, etc->count);
+            rend_data_ctx.state.draw_arrays(GL_LINES, 0, etc->count);
             break;
         case mdl::ETC_OBJ_CAPSULE: // Added
             if (etc->data.capsule.wire)
-                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+                rend_data_ctx.state.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             else
-                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+                rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             break;
         case mdl::ETC_OBJ_CYLINDER: // Added
             if (etc->data.cylinder.wire)
-                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+                rend_data_ctx.state.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             else
-                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+                rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             break;
         }
-        shader::unbind();
-        uniform_value_reset();
+        shader::unbind(rend_data_ctx.state);
+        rend_data_ctx.reset_shader_flags();
 
-        rctx->set_batch_blend_color_offset_color(1.0f, 0.0f);
+        rend_data_ctx.set_batch_blend_color_offset_color(1.0f, 0.0f);
     }
 
-    void draw_sub_mesh(const ObjSubMeshArgs* args, const mat4* mat,
-        void(*func)(const ObjSubMeshArgs* args)) {
+    void draw_sub_mesh(render_data_context& rend_data_ctx, const ObjSubMeshArgs* args,
+        const mat4* mat, void(*func)(render_data_context& rend_data_ctx,
+            const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat), const cam_data& cam) {
         GLuint vao = disp_manager->get_vertex_array(args);
         if (!vao)
             return;
 
         if (args->mats) {
-            const mat4* mats = args->mats;
+            rend_data_ctx.set_skinning_data(rend_data_ctx.state, args->mats, args->mat_count);
 
-            if (args->mat_count == 2)
-                rctx->set_batch_joint(mats[0]);
+            rend_data_ctx.set_batch_worlds(mat4_identity);
 
-            if (config_shared_storage_uniform_buffer) {
-                GLuint buffer = 0;
-                size_t offset = 0;
-                size_t size = 0;
-                if (rctx->get_shared_storage_uniform_buffer_data(
-                    (size_t)args->mats, buffer, offset, size, !!DIVA_GL_VERSION_4_3))
-                    if (DIVA_GL_VERSION_4_3)
-                        gl_rend_state.bind_shader_storage_buffer_range(0, buffer, (GLintptr)offset, (GLsizeiptr)size);
-                    else
-                        gl_rend_state.bind_uniform_buffer_range(6, buffer, (GLintptr)offset, (GLsizeiptr)size);
-            }
-            else {
-                vec4* g_joint_transforms = rctx->data.buffer_skinning_data.g_joint_transforms;
-
-                mat4 mat;
-                for (int32_t i = 0; i < args->mat_count; i++, mats++, g_joint_transforms += 3) {
-                    mat4_transpose(mats, &mat);
-                    g_joint_transforms[0] = mat.row0;
-                    g_joint_transforms[1] = mat.row1;
-                    g_joint_transforms[2] = mat.row2;
-                }
-
-                if (DIVA_GL_VERSION_4_3)
-                    rctx->data.buffer_skinning.WriteMemory(rctx->data.buffer_skinning_data);
-                else
-                    rctx->data.buffer_skinning_ubo.WriteMemory(0,
-                        sizeof(vec4) * 3 * args->mat_count, &rctx->data.buffer_skinning_data);
-            }
-
-            rctx->set_batch_worlds(mat4_identity);
-
-            uniform->arr[U_SKINNING] = 1;
-            gl_rend_state.bind_vertex_array(vao);
-            func(args);
-            uniform->arr[U_SKINNING] = 0;
+            rend_data_ctx.shader_flags.arr[U_SKINNING] = 1;
+            rend_data_ctx.state.bind_vertex_array(vao);
+            func(rend_data_ctx, args, cam, mat);
+            rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
         }
         else {
             mat4 _mat;
             if (args->mesh->attrib.m.billboard)
-                model_mat_face_camera_view(&rctx->view_mat, mat, &_mat);
+                model_mat_face_camera_view(cam, mat, &_mat);
             else if (args->mesh->attrib.m.billboard_y_axis)
-                model_mat_face_camera_position(&rctx->view_mat, mat, &_mat);
+                model_mat_face_camera_position(cam, mat, &_mat);
             else
                 _mat = *mat;
 
-            uniform->arr[U_SKINNING] = 0;
-            gl_rend_state.bind_vertex_array(vao);
+            rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
+            rend_data_ctx.state.bind_vertex_array(vao);
             if (func != draw_sub_mesh_default || !args->instances_count) {
-                draw_object_model_mat_load(_mat);
-                func(args);
+                rend_data_ctx.set_batch_worlds(_mat);
+                func(rend_data_ctx, args, cam, &_mat);
             }
             else
-                draw_sub_mesh_default_instanced(args, &_mat);
-            uniform->arr[U_SKINNING] = 0;
+                draw_sub_mesh_default_instanced(rend_data_ctx, args, cam, &_mat);
+            rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
         }
     }
 
-    /*void draw_sub_mesh_show_vector(
-        const ObjSubMeshArgs* args, mat4* model, int32_t show_vector) {
-        return;
-    }*/
-
-    void draw_sub_mesh_default(const ObjSubMeshArgs* args) {
-        if (args->set_blend_color)
-            rctx->set_batch_blend_color_offset_color(args->blend_color, 0.0f);
-
-        if (!args->func)
-            draw_object_vertex_attrib_set_default(args);
-
-        draw_object_material_set_default(args, use_shader_get());
+    void draw_sub_mesh_cheap(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+        const obj_material_data* material = args->material;
+        draw_object_vertex_attrib_set_cheap(rend_data_ctx, args);
+        obj_material_shader_lighting_type lighting_type
+            = material->material.shader_info.get_lighting_type();
+        bool disable_fog = draw_object_blend_set(rend_data_ctx, args, lighting_type);
+        draw_object_chara_color_fog_set(rend_data_ctx, args, disable_fog);
+        draw_object_material_set_cheap(rend_data_ctx, args);
 
         const obj_sub_mesh* sub_mesh = args->sub_mesh;
-        draw(
+        if (sub_mesh->index_format != OBJ_INDEX_U8)
+            draw(rend_data_ctx,
+                sub_mesh->primitive_type,
+                sub_mesh->num_index,
+                sub_mesh->first_index,
+                sub_mesh->last_index,
+                sub_mesh->index_format,
+                sub_mesh->index_offset);
+
+        draw_object_material_reset_cheap(rend_data_ctx);
+        draw_object_vertex_attrib_reset_cheap(rend_data_ctx, args);
+        rend_data_ctx.reset_shader_flags();
+
+        rctx->draw_state_rend_data[rend_data_ctx.index].stats.sub_mesh_cheap_count++;
+    }
+
+    void draw_sub_mesh_cheap_reflect_map(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+        draw_object_vertex_attrib_set_cheap(rend_data_ctx, args);
+        draw_object_material_set_cheap(rend_data_ctx, args);
+
+        const obj_sub_mesh* sub_mesh = args->sub_mesh;
+        if (sub_mesh->index_format != OBJ_INDEX_U8)
+            draw(rend_data_ctx,
+                sub_mesh->primitive_type,
+                sub_mesh->num_index,
+                sub_mesh->first_index,
+                sub_mesh->last_index,
+                sub_mesh->index_format,
+                sub_mesh->index_offset);
+
+        draw_object_material_reset_cheap(rend_data_ctx);
+        draw_object_vertex_attrib_reset_cheap(rend_data_ctx, args);
+
+        rctx->draw_state_rend_data[rend_data_ctx.index].stats.sub_mesh_cheap_count++;
+    }
+
+    void draw_sub_mesh_default(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+        if (args->set_blend_color)
+            rend_data_ctx.set_batch_blend_color_offset_color(args->blend_color, 0.0f);
+
+        if (!args->func)
+            draw_object_vertex_attrib_set_default(rend_data_ctx, args);
+
+        draw_object_material_set_default(rend_data_ctx, args, use_shader_get());
+
+        const obj_sub_mesh* sub_mesh = args->sub_mesh;
+        draw(rend_data_ctx,
             sub_mesh->primitive_type,
             sub_mesh->num_index,
             sub_mesh->first_index,
@@ -265,33 +285,33 @@ namespace mdl {
             sub_mesh->index_format,
             sub_mesh->index_offset);
 
-        draw_object_material_reset_default(args->material);
+        draw_object_material_reset_default(rend_data_ctx, args->material);
         if (!args->func)
-            draw_object_vertex_attrib_reset_default(args);
+            draw_object_vertex_attrib_reset_default(rend_data_ctx, args);
 
         if (args->set_blend_color)
-            rctx->set_batch_blend_color_offset_color(1.0f, 0.0f);
+            rend_data_ctx.set_batch_blend_color_offset_color(1.0f, 0.0f);
 
-        draw_state.stats.object_draw_count++;
+        rctx->draw_state_rend_data[rend_data_ctx.index].stats.sub_mesh_count++;
     }
 
-    void draw_sub_mesh_default_instanced(
-        const ObjSubMeshArgs* args, const mat4* mat) {
+    void draw_sub_mesh_default_instanced(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
         if (args->set_blend_color)
-            rctx->set_batch_blend_color_offset_color(args->blend_color, 0.0f);
+            rend_data_ctx.set_batch_blend_color_offset_color(args->blend_color, 0.0f);
 
         if (!args->func)
-            draw_object_vertex_attrib_set_default(args);
+            draw_object_vertex_attrib_set_default(rend_data_ctx, args);
 
-        draw_object_material_set_default(args, use_shader_get());
+        draw_object_material_set_default(rend_data_ctx, args, use_shader_get());
 
         const obj_sub_mesh* sub_mesh = args->sub_mesh;
         const mat4* instances_mat = args->instances_mat;
         mat4 _mat;
         for (int32_t i = args->instances_count; i >= 0; i--, instances_mat++) {
             mat4_mul(instances_mat, mat, &_mat);
-            draw_object_model_mat_load(_mat);
-            draw(
+            rend_data_ctx.set_batch_worlds(_mat);
+            draw(rend_data_ctx,
                 sub_mesh->primitive_type,
                 sub_mesh->num_index,
                 sub_mesh->first_index,
@@ -300,133 +320,31 @@ namespace mdl {
                 sub_mesh->index_offset);
         }
 
-        draw_object_material_reset_default(args->material);
+        draw_object_material_reset_default(rend_data_ctx, args->material);
         if (!args->func)
-            draw_object_vertex_attrib_reset_default(args);
+            draw_object_vertex_attrib_reset_default(rend_data_ctx, args);
 
         if (args->set_blend_color)
-            rctx->set_batch_blend_color_offset_color(1.0f, 0.0f);
+            rend_data_ctx.set_batch_blend_color_offset_color(1.0f, 0.0f);
 
-        draw_state.stats.object_draw_count++;
+        rctx->draw_state_rend_data[rend_data_ctx.index].stats.sub_mesh_count++;
     }
 
-    void draw_sub_mesh_sss(const ObjSubMeshArgs* args) {
-        obj_material_attrib_member attrib = args->material->material.attrib.m;
-        uniform->arr[U_ALPHA_TEST] = (!attrib.flag_28 && (args->blend_color.w < 1.0f
-            || (attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through
-            || args->sub_mesh->attrib.m.translucent)
-            || attrib.punch_through) ? 1 : 0;
-
-        uniform->arr[U_NPR_NORMAL] = 1;
-        bool chara = false;
-        const obj_material_data* material = args->material;
-        switch (material->material.shader.index) {
-        case SHADER_FT_CLOTH:
-            if (!render_manager.npr_param && material->material.color.ambient.w < 1.0f
-                && material->material.shader_info.m.aniso_direction == OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
-                chara = true;
-            break;
-        case SHADER_FT_TIGHTS:
-            if (!render_manager.npr_param)
-                chara = true;
-            break;
-        case SHADER_FT_GLASEYE:
-            uniform->arr[U_NPR_NORMAL] = 0;
-            chara = true;
-            break;
-        case SHADER_FT_SKIN:
-            chara = true;
-            break;
-        }
-
-        if (chara) {
-            rctx->set_batch_sss_param({ 0.0f, 0.0f, 0.0f, 0.5f });
-            uniform->arr[U_SSS_CHARA] = 1;
-        }
-        else {
-            const vec4& sss_param = sss_data_get()->param;
-            rctx->set_batch_sss_param({ sss_param.x, sss_param.y, sss_param.z, 0.5f });
-            uniform->arr[U_SSS_CHARA] = 0;
-        }
-        draw_sub_mesh_default(args);
-    }
-
-    void draw_sub_mesh_reflect(const ObjSubMeshArgs* args) {
-        const obj_material_data* material = args->material;
-        draw_object_vertex_attrib_set_reflect(args);
-        obj_material_shader_lighting_type lighting_type
-            = material->material.shader_info.get_lighting_type();
-        bool disable_fog = draw_object_blend_set(args, lighting_type);
-        draw_object_chara_color_fog_set(args, disable_fog);
-        draw_object_material_set_reflect(args);
-
-        const obj_sub_mesh* sub_mesh = args->sub_mesh;
-        if (sub_mesh->index_format != OBJ_INDEX_U8)
-            draw(
-                sub_mesh->primitive_type,
-                sub_mesh->num_index,
-                sub_mesh->first_index,
-                sub_mesh->last_index,
-                sub_mesh->index_format,
-                sub_mesh->index_offset);
-
-        draw_object_material_reset_reflect();
-        draw_object_vertex_attrib_reset_reflect(args);
-        uniform_value_reset();
-
-        draw_state.stats.object_reflect_draw_count++;
-    }
-
-    void draw_sub_mesh_reflect_reflect_map(const ObjSubMeshArgs* args) {
-        draw_object_vertex_attrib_set_reflect(args);
-        draw_object_material_set_reflect(args);
-
-        const obj_sub_mesh* sub_mesh = args->sub_mesh;
-        if (sub_mesh->index_format != OBJ_INDEX_U8)
-            draw(
-                sub_mesh->primitive_type,
-                sub_mesh->num_index,
-                sub_mesh->first_index,
-                sub_mesh->last_index,
-                sub_mesh->index_format,
-                sub_mesh->index_offset);
-
-        draw_object_material_reset_reflect();
-        draw_object_vertex_attrib_reset_reflect(args);
-
-        draw_state.stats.object_reflect_draw_count++;
-    }
-
-    void draw_sub_mesh_shadow(const ObjSubMeshArgs* args) {
-        obj_material_attrib_member attrib = args->material->material.attrib.m;
-        if (!attrib.flag_28 && (args->blend_color.w < 1.0f
-            || (attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through
-            || args->sub_mesh->attrib.m.translucent)
-            || attrib.punch_through) {
-            uniform->arr[U_ALPHA_TEST] = 1;
-            rctx->set_batch_alpha_threshold(0.5f);
-            draw_sub_mesh_translucent(args);
-            uniform->arr[U_ALPHA_TEST] = 0;
-            rctx->set_batch_alpha_threshold(0.0f);
-        }
-        else
-            draw_sub_mesh_translucent(args);
-    }
-
-    void draw_sub_mesh_translucent(const ObjSubMeshArgs* args) {
+    void draw_sub_mesh_no_mat(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
         const obj_material_data* material = args->material;
         const prj::vector<GLuint>* textures = args->textures;
-        if (draw_state.shader_index != -1) {
-            rctx->set_batch_material_color_emission(args->emission);
-            draw_object_material_set_uniform(material, false);
+        if (rctx->draw_state_rend_data[rend_data_ctx.index].shader_index != -1) {
+            rend_data_ctx.set_batch_material_color_emission(args->emission);
+            draw_object_material_set_uniform(rend_data_ctx, material, false);
             if (material->material.attrib.m.alpha_texture)
-                uniform->arr[U_TEXTURE_COUNT] = 0;
-            rctx->set_shader(draw_state.shader_index);
+                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 0;
+            rend_data_ctx.set_shader(rctx->draw_state_rend_data[rend_data_ctx.index].shader_index);
         }
 
-        draw_object_vertex_attrib_set_default(args);
+        draw_object_vertex_attrib_set_default(rend_data_ctx, args);
         if (args->material->material.attrib.m.double_sided)
-            gl_rend_state.disable_cull_face();
+            rend_data_ctx.state.disable_cull_face();
 
         GLuint tex_id = -1;
         int32_t tex_index = 0;
@@ -467,7 +385,7 @@ namespace mdl {
                 if (tex_id == -1)
                     tex_id = rctx->empty_texture_2d->glid;;
 
-                gl_rend_state.active_bind_texture_2d(tex_index, tex_id);
+                rend_data_ctx.state.active_bind_texture_2d(tex_index, tex_id);
 
                 int32_t wrap_s;
                 if (texdata->attrib.m.mirror_u)
@@ -486,14 +404,14 @@ namespace mdl {
                     wrap_t = 0;
 
                 texture* tex = texture_manager_get_texture(texture_id);
-                gl_rend_state.bind_sampler(tex_index, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
+                rend_data_ctx.state.bind_sampler(tex_index, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
                     + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
             }
         }
 
         const obj_sub_mesh* sub_mesh = args->sub_mesh;
         if (sub_mesh->index_format != OBJ_INDEX_U8)
-            draw(
+            draw(rend_data_ctx,
                 sub_mesh->primitive_type,
                 sub_mesh->num_index,
                 sub_mesh->first_index,
@@ -502,21 +420,80 @@ namespace mdl {
                 sub_mesh->index_offset);
 
         if (tex_id != -1)
-            gl_rend_state.active_bind_texture_2d(tex_index, rctx->empty_texture_2d->glid);
+            rend_data_ctx.state.active_bind_texture_2d(tex_index, rctx->empty_texture_2d->glid);
 
-        gl_rend_state.enable_cull_face();
-        draw_object_vertex_attrib_reset_default(args);
+        rend_data_ctx.state.enable_cull_face();
+        draw_object_vertex_attrib_reset_default(rend_data_ctx, args);
 
-        if (draw_state.shader_index != -1)
-            uniform_value_reset();
+        if (rctx->draw_state_rend_data[rend_data_ctx.index].shader_index != -1)
+            rend_data_ctx.reset_shader_flags();
 
-        draw_state.stats.object_translucent_draw_count++;
+        rctx->draw_state_rend_data[rend_data_ctx.index].stats.sub_mesh_no_mat_count++;
+    }
+
+    void draw_sub_mesh_shadow(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+        obj_material_attrib_member attrib = args->material->material.attrib.m;
+        if (!attrib.flag_28 && (args->blend_color.w < 1.0f
+            || (attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through
+            || args->sub_mesh->attrib.m.translucent)
+            || attrib.punch_through) {
+            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 1;
+            rend_data_ctx.set_batch_alpha_threshold(0.5f);
+            draw_sub_mesh_no_mat(rend_data_ctx, args, cam, mat);
+            rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
+            rend_data_ctx.set_batch_alpha_threshold(0.0f);
+        }
+        else
+            draw_sub_mesh_no_mat(rend_data_ctx, args, cam, mat);
+    }
+
+    void draw_sub_mesh_sss(render_data_context& rend_data_ctx,
+        const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat) {
+        obj_material_attrib_member attrib = args->material->material.attrib.m;
+        rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = (!attrib.flag_28 && (args->blend_color.w < 1.0f
+            || (attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through
+            || args->sub_mesh->attrib.m.translucent)
+            || attrib.punch_through) ? 1 : 0;
+
+        rend_data_ctx.shader_flags.arr[U_NPR_NORMAL] = 1;
+        bool chara = false;
+        const obj_material_data* material = args->material;
+        switch (material->material.shader.index) {
+        case SHADER_FT_CLOTH:
+            if (!render_manager.npr_param && material->material.color.ambient.w < 1.0f
+                && material->material.shader_info.m.aniso_direction == OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
+                chara = true;
+            break;
+        case SHADER_FT_TIGHTS:
+            if (!render_manager.npr_param)
+                chara = true;
+            break;
+        case SHADER_FT_GLASEYE:
+            rend_data_ctx.shader_flags.arr[U_NPR_NORMAL] = 0;
+            chara = true;
+            break;
+        case SHADER_FT_SKIN:
+            chara = true;
+            break;
+        }
+
+        if (chara) {
+            rend_data_ctx.set_batch_sss_param({ 0.0f, 0.0f, 0.0f, 0.5f });
+            rend_data_ctx.shader_flags.arr[U_SSS_CHARA] = 1;
+        }
+        else {
+            const vec4& sss_param = sss_data_get()->param;
+            rend_data_ctx.set_batch_sss_param({ sss_param.x, sss_param.y, sss_param.z, 0.5f });
+            rend_data_ctx.shader_flags.arr[U_SSS_CHARA] = 0;
+        }
+        draw_sub_mesh_default(rend_data_ctx, args, cam, mat);
     }
 }
 
-inline void model_mat_face_camera_position(const mat4* view, const mat4* src, mat4* dst) {
+inline void model_mat_face_camera_position(const cam_data& cam, const mat4* src, mat4* dst) {
     mat4 mat;
-    mat4_invert_fast(view, &mat);
+    mat4_invert_fast(&cam.get_view_mat(), &mat);
 
     vec3 dir = vec3::normalize(*(vec3*)&mat.row3 - *(vec3*)&src->row3);
 
@@ -538,15 +515,15 @@ inline void model_mat_face_camera_position(const mat4* view, const mat4* src, ma
     dst->row3.w = 1.0f;
 }
 
-inline void model_mat_face_camera_view(const mat4* view, const mat4* src, mat4* dst) {
+inline void model_mat_face_camera_view(const cam_data& cam, const mat4* src, mat4* dst) {
     mat3 mat;
-    mat4_to_mat3(view, &mat);
+    mat4_to_mat3(&cam.get_view_mat(), &mat);
     mat3_invert(&mat, &mat);
     mat4_from_mat3(&mat, dst);
     mat4_mul(dst, src, dst);
 }
 
-static bool draw_object_blend_set(
+static bool draw_object_blend_set(render_data_context& rend_data_ctx,
     const mdl::ObjSubMeshArgs* args, obj_material_shader_lighting_type lighting_type) {
     static const GLenum blend_factor_table[] = {
         GL_ZERO,
@@ -581,7 +558,7 @@ static bool draw_object_blend_set(
         chara_color->get_specular(specular);
         if (specular.w >= 4.0f && chara_color->get_type() == LIGHT_PARALLEL
             && (src_blend_factor != GL_ONE || dst_blend_factor)) {
-            int32_t shader_index = draw_state.shader_index;
+            int32_t shader_index = rctx->draw_state_rend_data[rend_data_ctx.index].shader_index;
             if (shader_index == -1) {
                 shader_index = material->material.shader.index;
                 if (shader_index == SHADER_FT_BLINN) {
@@ -598,7 +575,7 @@ static bool draw_object_blend_set(
             }
         }
     }
-    gl_rend_state.set_blend_func(src_blend_factor, dst_blend_factor);
+    rend_data_ctx.state.set_blend_func(src_blend_factor, dst_blend_factor);
     return dst_blend_factor == GL_ONE;
 }
 
@@ -616,58 +593,139 @@ static bool draw_object_blend_set_check_use_default_blend(int32_t index) {
     return false;
 }
 
-static void draw_object_chara_color_fog_set(const mdl::ObjSubMeshArgs* args, bool disable_fog) {
-    uniform->arr[U_CHARA_COLOR] = 0;
+static void draw_object_chara_color_fog_set(render_data_context& rend_data_ctx,
+    const mdl::ObjSubMeshArgs* args, bool disable_fog) {
+    rend_data_ctx.shader_flags.arr[U_CHARA_COLOR] = 0;
     if (args->chara_color) {
         light_set* set = &light_set_data[LIGHT_SET_MAIN];
         light_data* chara_color = &set->lights[LIGHT_CHARA_COLOR];
         vec4 specular;
         chara_color->get_specular(specular);
         if (specular.w > 0.0f && chara_color->get_type() == LIGHT_PARALLEL)
-            uniform->arr[U_CHARA_COLOR] = 1;
+            rend_data_ctx.shader_flags.arr[U_CHARA_COLOR] = 1;
     }
 
     obj_material_attrib_member attrib = args->material->material.attrib.m;
     if (!attrib.no_fog && !disable_fog) {
-        uniform->arr[U_FOG_STAGE] = attrib.has_fog_height ? (attrib.fog_height ? 3 : 2) : 1;
-        uniform->arr[U_FOG_CHARA] = draw_state.fog_height ? 2 : 1;
+        rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = attrib.has_fog_height ? (attrib.fog_height ? 3 : 2) : 1;
+        rend_data_ctx.shader_flags.arr[U_FOG_CHARA] = draw_state.fog_height ? 2 : 1;
     }
 }
 
-static void draw_object_material_reset_default(const obj_material_data* mat_data) {
+static void draw_object_material_reset_cheap(render_data_context& rend_data_ctx) {
+    rend_data_ctx.state.active_bind_texture_2d(0, rctx->empty_texture_2d->glid);
+    rend_data_ctx.state.enable_cull_face();
+    rend_data_ctx.reset_shader_flags();
+}
+
+static void draw_object_material_reset_default(
+    render_data_context& rend_data_ctx, const obj_material_data* mat_data) {
     if (mat_data) {
-        gl_rend_state.enable_cull_face();
+        rend_data_ctx.state.enable_cull_face();
         obj_material_attrib_member attrib = mat_data->material.attrib.m;
         if ((attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through)
-            gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            rend_data_ctx.state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
-    uniform_value_reset();
+    rend_data_ctx.reset_shader_flags();
 }
 
-static void draw_object_material_reset_reflect() {
-    gl_rend_state.active_bind_texture_2d(0, rctx->empty_texture_2d->glid);
-    gl_rend_state.enable_cull_face();
-    uniform_value_reset();
+static void draw_object_material_set_cheap(
+    render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args) {
+    const obj_material_data* material = args->material;
+    const prj::vector<GLuint>* textures = args->textures;
+    if (material->material.attrib.m.double_sided)
+        rend_data_ctx.state.disable_cull_face();
+
+    const obj_material_texture_data* texdata = material->material.texdata;
+    for (int32_t i = 0; i < 1; i++, texdata++) {
+        uint32_t texture_id = texdata->tex_index & 0xFFFFF;
+        if (texdata->tex_index == -1)
+            break;
+
+        GLuint tex_id = -1;
+        for (int32_t j = 0; j < args->texture_pattern_count; j++)
+            if (args->texture_pattern_array[j].src == ::texture_id(0x00, texture_id)) {
+                texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
+                if (tex)
+                    tex_id = tex->glid;
+                break;
+            }
+
+        if (tex_id == -1)
+            tex_id = (*textures)[texdata->tex_index >> 20];
+
+        if (tex_id == -1)
+            tex_id = rctx->empty_texture_2d->glid;;
+
+        rend_data_ctx.state.active_bind_texture_2d(i, tex_id);
+
+        int32_t wrap_s;
+        if (texdata->attrib.m.mirror_u)
+            wrap_s = 2;
+        else if (texdata->attrib.m.repeat_u)
+            wrap_s = 1;
+        else
+            wrap_s = 0;
+
+        int32_t wrap_t;
+        if (texdata->attrib.m.mirror_v)
+            wrap_t = 2;
+        else if (texdata->attrib.m.repeat_v)
+            wrap_t = 1;
+        else
+            wrap_t = 0;
+
+        texture* tex = texture_manager_get_texture(texture_id);
+        rend_data_ctx.state.bind_sampler(i, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
+            + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
+    }
+
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 emission;
+    vec4 specular;
+    if (material->material.shader.index == -1) {
+        ambient = 1.0f;
+        diffuse = material->material.color.diffuse;
+        emission = 1.0f;
+        specular = material->material.color.specular;
+    }
+    else {
+        ambient = material->material.color.ambient;
+        diffuse = material->material.color.diffuse;
+        emission = args->emission;
+        specular = material->material.color.specular;
+    }
+
+    draw_object_material_set_uniform(rend_data_ctx, material, true);
+    rend_data_ctx.set_shader(rctx->draw_state_rend_data[rend_data_ctx.index].shader_index);
+    rend_data_ctx.set_batch_material_color(diffuse, ambient, emission,
+        0.0f, specular, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    draw_object_material_set_parameter(rend_data_ctx, args->material);
 }
 
-static void draw_object_material_set_default(const mdl::ObjSubMeshArgs* args, bool use_shader) {
+static void draw_object_material_set_default(render_data_context& rend_data_ctx,
+    const mdl::ObjSubMeshArgs* args, bool use_shader) {
     const prj::vector<GLuint>* textures = args->textures;
     const obj_material_data* material = args->material;
     obj_material_shader_lighting_type lighting_type =
         material->material.shader_info.get_lighting_type();
-    bool disable_fog = draw_object_blend_set(args, lighting_type);
-    draw_object_material_set_uniform(material, false);
-    if (!draw_state.shadow)
-        uniform->arr[U_STAGE_SHADOW] = 0;
-    else if (args->self_shadow)
-        uniform->arr[U_STAGE_SHADOW] = 1;
+    bool disable_fog = draw_object_blend_set(rend_data_ctx, args, lighting_type);
+    draw_object_material_set_uniform(rend_data_ctx, material, false);
+    if (!rctx->draw_state_rend_data[rend_data_ctx.index].shadow)
+        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 0;
+    else if (!args->self_shadow)
+        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = args->sub_mesh->attrib.m.recieve_shadow ? 1 : 0;
+    else if (args->self_shadow != 1)
+        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 0;
     else
-        uniform->arr[U_STAGE_SHADOW] = args->sub_mesh->attrib.m.recieve_shadow ? 1 : 0;
-    uniform->arr[U_CHARA_SHADOW2] = 0;
-    uniform->arr[U_CHARA_SHADOW] = draw_state.self_shadow ? 1 : 0;
+        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 1;
+
+    rend_data_ctx.shader_flags.arr[U_CHARA_SHADOW2] = args->shadow > SHADOW_CHARA ? 1 : 0;
+    rend_data_ctx.shader_flags.arr[U_CHARA_SHADOW]
+        = rctx->draw_state_rend_data[rend_data_ctx.index].self_shadow ? 1 : 0;
 
     const obj_material_texture_data* texdata = material->material.texdata;
-    uniform->arr[U_CHARA_SHADOW2] = args->shadow > SHADOW_CHARA;
     for (int32_t i = 0, j = 0; i < 8; i++, texdata++) {
         if (texdata->tex_index == -1)
             continue;
@@ -699,27 +757,27 @@ static void draw_object_material_set_default(const mdl::ObjSubMeshArgs* args, bo
         if (texdata->attrib.m.flag_29) {
             switch (tex_type) {
             case OBJ_MATERIAL_TEXTURE_NORMAL:
-                uniform->arr[U_NORMAL] = 0;
+                rend_data_ctx.shader_flags.arr[U_NORMAL] = 0;
                 break;
             case OBJ_MATERIAL_TEXTURE_SPECULAR:
-                uniform->arr[U_SPECULAR] = 0;
+                rend_data_ctx.shader_flags.arr[U_SPECULAR] = 0;
                 break;
             case OBJ_MATERIAL_TEXTURE_TRANSLUCENCY:
-                uniform->arr[U_TRANSLUCENCY] = 0;
+                rend_data_ctx.shader_flags.arr[U_TRANSLUCENCY] = 0;
                 break;
             case OBJ_MATERIAL_TEXTURE_TRANSPARENCY:
-                uniform->arr[U_TRANSPARENCY] = 0;
+                rend_data_ctx.shader_flags.arr[U_TRANSPARENCY] = 0;
                 break;
             }
             continue;
         }
 
         if (tex_type == OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE) {
-            gl_rend_state.active_bind_texture_cube_map(tex_index, tex_id);
-            gl_rend_state.bind_sampler(tex_index, 0);
+            rend_data_ctx.state.active_bind_texture_cube_map(tex_index, tex_id);
+            rend_data_ctx.state.bind_sampler(tex_index, 0);
         }
         else {
-            gl_rend_state.active_bind_texture_2d(tex_index, tex_id);
+            rend_data_ctx.state.active_bind_texture_2d(tex_index, tex_id);
 
             int32_t wrap_s;
             if (texdata->attrib.m.mirror_u)
@@ -738,7 +796,7 @@ static void draw_object_material_set_default(const mdl::ObjSubMeshArgs* args, bo
                 wrap_t = 0;
 
             texture* tex = texture_manager_get_texture(texture_id);
-            gl_rend_state.bind_sampler(tex_index, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
+            rend_data_ctx.state.bind_sampler(tex_index, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
                 + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
         }
 
@@ -749,26 +807,26 @@ static void draw_object_material_set_default(const mdl::ObjSubMeshArgs* args, bo
 
             texture* tex = texture_manager_get_texture(texture_id);
             if (!tex)
-                uniform->arr[uni_type] = 1;
+                rend_data_ctx.shader_flags.arr[uni_type] = 1;
             else if (tex->internal_format == GL_COMPRESSED_RED_RGTC1_EXT)
-                uniform->arr[uni_type] = 3;
+                rend_data_ctx.shader_flags.arr[uni_type] = 3;
             else if (tex->internal_format == GL_COMPRESSED_RED_GREEN_RGTC2_EXT)
-                uniform->arr[uni_type] = 2;
+                rend_data_ctx.shader_flags.arr[uni_type] = 2;
             else
-                uniform->arr[uni_type] = 1;
+                rend_data_ctx.shader_flags.arr[uni_type] = 1;
         }
 
         if (tex_index >= 0 && tex_index <= 1)
-            uniform->arr[U_TEXTURE_BLEND] = texdata->attrib.get_blend();
+            rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = texdata->attrib.get_blend();
     }
 
     if (material->material.attrib.m.double_sided) {
-        gl_rend_state.disable_cull_face();
+        rend_data_ctx.state.disable_cull_face();
         if (!material->material.attrib.m.normal_dir_light)
-            uniform->arr[U0B] = 1;
+            rend_data_ctx.shader_flags.arr[U0B] = 1;
     }
 
-    draw_object_chara_color_fog_set(args, disable_fog);
+    draw_object_chara_color_fog_set(rend_data_ctx, args, disable_fog);
 
     vec4 ambient = material->material.color.ambient;
     if (!sss_data_get()->enable)
@@ -783,17 +841,17 @@ static void draw_object_material_set_default(const mdl::ObjSubMeshArgs* args, bo
 
         float_t luma = vec3::dot(*(vec3*)&specular, { 0.30f, 0.59f, 0.11f });
         if (luma >= 0.01f || args->texture_color_coefficients.w >= 0.1f)
-            uniform->arr[U_SPECULAR_IBL] = 1;
+            rend_data_ctx.shader_flags.arr[U_SPECULAR_IBL] = 1;
         else
-            uniform->arr[U_SPECULAR_IBL] = 0;
+            rend_data_ctx.shader_flags.arr[U_SPECULAR_IBL] = 0;
 
         if (!material->material.shader_info.m.fresnel_type)
-            uniform->arr[U_TRANSLUCENCY] = 0;
+            rend_data_ctx.shader_flags.arr[U_TRANSLUCENCY] = 0;
 
         line_light = (float_t)material->material.shader_info.m.line_light * (float_t)(1.0 / 9.0);
     }
     else
-        line_light = 0.0;
+        line_light = 0.0f;
 
     float_t material_shininess = 0.0f;
     vec4 fresnel_coefficients;
@@ -841,31 +899,32 @@ static void draw_object_material_set_default(const mdl::ObjSubMeshArgs* args, bo
         }
     }
 
-    rctx->set_batch_material_color(diffuse, ambient, emission, material_shininess,
+    rend_data_ctx.set_batch_material_color(diffuse, ambient, emission, material_shininess,
         specular, fresnel_coefficients, texture_color_coefficients, texture_color_offset,
         texture_specular_coefficients, texture_specular_offset, shininess);
 
     if (!use_shader)
-        rctx->set_shader(SHADER_FT_SIMPLE);
-    else if (draw_state.shader_index != -1)
-        rctx->set_shader(draw_state.shader_index);
+        rend_data_ctx.set_shader(SHADER_FT_SIMPLE);
+    else if (rctx->draw_state_rend_data[rend_data_ctx.index].shader_index != -1)
+        rend_data_ctx.set_shader(rctx->draw_state_rend_data[rend_data_ctx.index].shader_index);
     else if (material->material.shader.index != -1) {
         if (material->material.shader.index != SHADER_FT_BLINN)
-            rctx->set_shader(material->material.shader.index);
+            rend_data_ctx.set_shader(material->material.shader.index);
         else if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT)
-            rctx->set_shader(SHADER_FT_LAMBERT);
+            rend_data_ctx.set_shader(SHADER_FT_LAMBERT);
         else if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_PHONG)
-            rctx->set_shader(SHADER_FT_BLINN);
+            rend_data_ctx.set_shader(SHADER_FT_BLINN);
         else
-            rctx->set_shader(SHADER_FT_CONSTANT);
+            rend_data_ctx.set_shader(SHADER_FT_CONSTANT);
     }
     else
-        rctx->set_shader(SHADER_FT_CONSTANT);
+        rend_data_ctx.set_shader(SHADER_FT_CONSTANT);
 
-    draw_object_material_set_parameter(material);
+    draw_object_material_set_parameter(rend_data_ctx, material);
 }
 
-static void draw_object_material_set_parameter(const obj_material_data* mat_data) {
+static void draw_object_material_set_parameter(
+    render_data_context& rend_data_ctx, const obj_material_data* mat_data) {
     vec4 specular;
     float_t bump_depth;
     float_t intensity;
@@ -893,87 +952,14 @@ static void draw_object_material_set_parameter(const obj_material_data* mat_data
         has_specular = false;
     }
 
-    rctx->set_batch_material_parameter(has_specular ? &specular : 0,
+    rend_data_ctx.set_batch_material_parameter(has_specular ? &specular : 0,
         { inv_bump_depth, bump_depth, 0.0f, 0.0f },
         { intensity, max_def(intensity, 1.0f), intensity * 25.5f, 1.0f },
         reflect_uv_scale, refract_uv_scale);
 }
 
-static void draw_object_material_set_reflect(const mdl::ObjSubMeshArgs* args) {
-    const obj_material_data* material = args->material;
-    const prj::vector<GLuint>* textures = args->textures;
-    if (material->material.attrib.m.double_sided)
-        gl_rend_state.disable_cull_face();
-
-    const obj_material_texture_data* texdata = material->material.texdata;
-    for (int32_t i = 0; i < 1; i++, texdata++) {
-        uint32_t texture_id = texdata->tex_index & 0xFFFFF;
-        if (texdata->tex_index == -1)
-            break;
-
-        GLuint tex_id = -1;
-        for (int32_t j = 0; j < args->texture_pattern_count; j++)
-            if (args->texture_pattern_array[j].src == ::texture_id(0x00, texture_id)) {
-                texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
-                if (tex)
-                    tex_id = tex->glid;
-                break;
-            }
-
-        if (tex_id == -1)
-            tex_id = (*textures)[texdata->tex_index >> 20];
-
-        if (tex_id == -1)
-            tex_id = rctx->empty_texture_2d->glid;;
-
-        gl_rend_state.active_bind_texture_2d(i, tex_id);
-
-        int32_t wrap_s;
-        if (texdata->attrib.m.mirror_u)
-            wrap_s = 2;
-        else if (texdata->attrib.m.repeat_u)
-            wrap_s = 1;
-        else
-            wrap_s = 0;
-
-        int32_t wrap_t;
-        if (texdata->attrib.m.mirror_v)
-            wrap_t = 2;
-        else if (texdata->attrib.m.repeat_v)
-            wrap_t = 1;
-        else
-            wrap_t = 0;
-
-        texture* tex = texture_manager_get_texture(texture_id);
-        gl_rend_state.bind_sampler(i, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
-            + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
-    }
-
-    vec4 ambient;
-    vec4 diffuse;
-    vec4 emission;
-    vec4 specular;
-    if (material->material.shader.index == -1) {
-        ambient = 1.0f;
-        diffuse = material->material.color.diffuse;
-        emission = 1.0f;
-        specular = material->material.color.specular;
-    }
-    else {
-        ambient = material->material.color.ambient;
-        diffuse = material->material.color.diffuse;
-        emission = args->emission;
-        specular = material->material.color.specular;
-    }
-
-    draw_object_material_set_uniform(material, true);
-    rctx->set_shader(draw_state.shader_index);
-    rctx->set_batch_material_color(diffuse, ambient, emission,
-        0.0f, specular, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-    draw_object_material_set_parameter(args->material);
-}
-
-static void draw_object_material_set_uniform(const obj_material_data* mat_data, bool disable_color_l) {
+static void draw_object_material_set_uniform(render_data_context& rend_data_ctx,
+    const obj_material_data* mat_data, bool disable_color_l) {
     obj_shader_compo_member shader_compo = mat_data->material.shader_compo.m;
     obj_material_shader_attrib_member shader_info = mat_data->material.shader_info.m;
 
@@ -987,83 +973,126 @@ static void draw_object_material_set_uniform(const obj_material_data* mat_data, 
     if (shader_compo.color) {
         if (!shader_compo.color_l2)
             if (shader_compo.color_l1) {
-                uniform->arr[U_TEXTURE_COUNT] = 2;
+                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 2;
                 v4 = 3;
             }
             else {
-                uniform->arr[U_TEXTURE_COUNT] = 1;
+                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 1;
                 v4 = 1;
             }
     }
     else if (shader_compo.color_l1 && !shader_compo.color_l2) {
-        uniform->arr[U_TEXTURE_COUNT] = 1;
+        rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 1;
         v4 = 1;
     }
     else
-        uniform->arr[U_TEXTURE_COUNT] = 0;
+        rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 0;
 
     if (shader_compo.normal_01)
-        uniform->arr[U_NORMAL] = 1;
+        rend_data_ctx.shader_flags.arr[U_NORMAL] = 1;
     if (shader_compo.specular)
-        uniform->arr[U_SPECULAR] = 1;
+        rend_data_ctx.shader_flags.arr[U_SPECULAR] = 1;
     if (shader_compo.transparency) {
-        uniform->arr[U_TRANSPARENCY] = 1;
+        rend_data_ctx.shader_flags.arr[U_TRANSPARENCY] = 1;
         v4 |= 2;
     }
     if (shader_compo.translucency) {
-        uniform->arr[U_TRANSLUCENCY] = 1;
+        rend_data_ctx.shader_flags.arr[U_TRANSLUCENCY] = 1;
         v4 |= 2;
     }
     if (shader_compo.override_ibl)
-        uniform->arr[U_ENV_MAP] = 1;
+        rend_data_ctx.shader_flags.arr[U_ENV_MAP] = 1;
 
     if (shader_info.aniso_direction != OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
-        uniform->arr[U_ANISO] = shader_info.aniso_direction;
+        rend_data_ctx.shader_flags.arr[U_ANISO] = shader_info.aniso_direction;
 
     if (v4 == 1)
-        uniform->arr[U45] = 0;
+        rend_data_ctx.shader_flags.arr[U45] = 0;
     else if (v4 == 2 || v4 == 3)
-        uniform->arr[U45] = 1;
+        rend_data_ctx.shader_flags.arr[U45] = 1;
 }
 
-static void draw_object_model_mat_load(const mat4& mat) {
-    rctx->set_batch_worlds(mat);
-}
-
-static void draw_object_vertex_attrib_reset_default(const mdl::ObjSubMeshArgs* args) {
+static void draw_object_vertex_attrib_reset_cheap(
+    render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args) {
     const obj_mesh* mesh = args->mesh;
     obj_vertex_format vertex_format = mesh->vertex_format;
 
     if ((vertex_format & OBJ_VERTEX_BONE_DATA) == OBJ_VERTEX_BONE_DATA)
-        uniform->arr[U_SKINNING] = 0;
+        rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
 
     if (args->morph_vertex_buffer) {
-        uniform->arr[U_MORPH] = 0;
-        uniform->arr[U_MORPH_COLOR] = 0;
+        rend_data_ctx.shader_flags.arr[U_MORPH] = 0;
+        rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 0;
+    }
+
+    rend_data_ctx.state.active_texture(0);
+}
+
+static void draw_object_vertex_attrib_reset_default(
+    render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args) {
+    const obj_mesh* mesh = args->mesh;
+    obj_vertex_format vertex_format = mesh->vertex_format;
+
+    if ((vertex_format & OBJ_VERTEX_BONE_DATA) == OBJ_VERTEX_BONE_DATA)
+        rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
+
+    if (args->morph_vertex_buffer) {
+        rend_data_ctx.shader_flags.arr[U_MORPH] = 0;
+        rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 0;
     }
 
     /*if (args->instances_count)
-        uniform->arr[U_INSTANCE] = 0;*/
+        rend_data_ctx.shader_flags.arr[U_INSTANCE] = 0;*/
 
-    gl_rend_state.active_texture(0);
+    rend_data_ctx.state.active_texture(0);
 }
 
-static void draw_object_vertex_attrib_reset_reflect(const mdl::ObjSubMeshArgs* args) {
+static void draw_object_vertex_attrib_set_cheap(
+    render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args) {
     const obj_mesh* mesh = args->mesh;
     obj_vertex_format vertex_format = mesh->vertex_format;
 
-    if ((vertex_format & OBJ_VERTEX_BONE_DATA) == OBJ_VERTEX_BONE_DATA)
-        uniform->arr[U_SKINNING] = 0;
+    mat4 mats[2];
+    mats[0] = mat4_identity;
+    mats[1] = mat4_identity;
+    const obj_material_data* material = args->material;
+    if (material->material.texdata[0].tex_index != -1) {
+        uint32_t texture_id = material->material.texdata[0].tex_index & 0xFFFFF;
 
-    if (args->morph_vertex_buffer) {
-        uniform->arr[U_MORPH] = 0;
-        uniform->arr[U_MORPH_COLOR] = 0;
+        mats[0] = material->material.texdata[0].tex_coord_mat;
+        if (material->material.texdata[0].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
+            for (int32_t j = 0; j < args->texture_transform_count; j++)
+                if (args->texture_transform_array[j].id == texture_id) {
+                    mats[0] = args->texture_transform_array[j].mat;
+                    break;
+                }
     }
 
-    gl_rend_state.active_texture(0);
+    rend_data_ctx.set_batch_texcoord_transforms(mats);
+
+    if (vertex_format & OBJ_VERTEX_BONE_DATA)
+        rend_data_ctx.shader_flags.arr[U_SKINNING] = 1;
+    else
+        rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
+
+    if (args->morph_vertex_buffer) {
+        rend_data_ctx.shader_flags.arr[U_MORPH] = 1;
+
+        if (vertex_format & OBJ_VERTEX_COLOR0)
+            rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 1;
+        else
+            rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 0;
+
+        rend_data_ctx.set_batch_morph_weight(args->morph_weight);
+    }
+    else {
+        rend_data_ctx.shader_flags.arr[U_MORPH] = 0;
+        rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 0;
+    }
 }
 
-static void draw_object_vertex_attrib_set_default(const mdl::ObjSubMeshArgs* args) {
+static void draw_object_vertex_attrib_set_default(
+    render_data_context& rend_data_ctx, const mdl::ObjSubMeshArgs* args) {
     const obj_mesh* mesh = args->mesh;
     obj_vertex_format vertex_format = mesh->vertex_format;
 
@@ -1102,73 +1131,30 @@ static void draw_object_vertex_attrib_set_default(const mdl::ObjSubMeshArgs* arg
                 }
     }
 
-    rctx->set_batch_texcoord_transforms(mats);
+    rend_data_ctx.set_batch_texcoord_transforms(mats);
 
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
-        uniform->arr[U_SKINNING] = 1;
+        rend_data_ctx.shader_flags.arr[U_SKINNING] = 1;
     else
-        uniform->arr[U_SKINNING] = 0;
+        rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
 
     if (args->morph_vertex_buffer) {
-        uniform->arr[U_MORPH] = 1;
+        rend_data_ctx.shader_flags.arr[U_MORPH] = 1;
 
         if (vertex_format & OBJ_VERTEX_COLOR0)
-            uniform->arr[U_MORPH_COLOR] = 1;
+            rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 1;
         else
-            uniform->arr[U_MORPH_COLOR] = 0;
+            rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 0;
 
-        rctx->set_batch_morph_weight(args->morph_weight);
+        rend_data_ctx.set_batch_morph_weight(args->morph_weight);
     }
     else {
-        uniform->arr[U_MORPH] = 0;
-        uniform->arr[U_MORPH_COLOR] = 0;
+        rend_data_ctx.shader_flags.arr[U_MORPH] = 0;
+        rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 0;
     }
 
     /*if (args->instances_count)
-        uniform->arr[U_INSTANCE] = 1;
+        rend_data_ctx.shader_flags.arr[U_INSTANCE] = 1;
     else
-        uniform->arr[U_INSTANCE] = 0;*/
-}
-
-static void draw_object_vertex_attrib_set_reflect(const mdl::ObjSubMeshArgs* args) {
-    const obj_mesh* mesh = args->mesh;
-    obj_vertex_format vertex_format = mesh->vertex_format;
-
-    mat4 mats[2];
-    mats[0] = mat4_identity;
-    mats[1] = mat4_identity;
-    const obj_material_data* material = args->material;
-    if (material->material.texdata[0].tex_index != -1) {
-        uint32_t texture_id = material->material.texdata[0].tex_index & 0xFFFFF;
-
-        mats[0] = material->material.texdata[0].tex_coord_mat;
-        if (material->material.texdata[0].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
-            for (int32_t j = 0; j < args->texture_transform_count; j++)
-                if (args->texture_transform_array[j].id == texture_id) {
-                    mats[0] = args->texture_transform_array[j].mat;
-                    break;
-                }
-    }
-
-    rctx->set_batch_texcoord_transforms(mats);
-
-    if (vertex_format & OBJ_VERTEX_BONE_DATA)
-        uniform->arr[U_SKINNING] = 1;
-    else
-        uniform->arr[U_SKINNING] = 0;
-
-    if (args->morph_vertex_buffer) {
-        uniform->arr[U_MORPH] = 1;
-
-        if (vertex_format & OBJ_VERTEX_COLOR0)
-            uniform->arr[U_MORPH_COLOR] = 1;
-        else
-            uniform->arr[U_MORPH_COLOR] = 0;
-
-        rctx->set_batch_morph_weight(args->morph_weight);
-    }
-    else {
-        uniform->arr[U_MORPH] = 0;
-        uniform->arr[U_MORPH_COLOR] = 0;
-    }
+        rend_data_ctx.shader_flags.arr[U_INSTANCE] = 0;*/
 }

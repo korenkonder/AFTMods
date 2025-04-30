@@ -36,7 +36,8 @@ struct shader_set_data;
 
 typedef int32_t (*PFNSHADERGETINDEXFUNCPROC)(const char* name);
 
-typedef void (*PFNSHADERBINDFUNCPROC)(shader_set_data* set, shader* shad);
+typedef void (*PFNSHADERBINDFUNCPROC)(struct p_gl_rend_state& p_gl_rend_st,
+    struct uniform_value& shader_flags, shader_set_data* set, shader* shad);
 
 struct shader_bind_func {
     uint32_t name_index;
@@ -59,38 +60,29 @@ struct shader {
     const uniform_name* use_uniform;
     PFNSHADERBINDFUNCPROC bind_func;
 
-    int32_t bind(shader_set_data* set, uint32_t sub_index);
+    int32_t bind(struct p_gl_rend_state& p_gl_rend_st,
+        struct uniform_value& shader_flags, shader_set_data* set, uint32_t sub_index);
 
     static bool parse_define(const char* data, std::string& temp);
     static bool parse_define(const char* data, int32_t num_uniform,
         int32_t* uniform_value, std::string& temp);
     static char* parse_include(char* data, farc* f);
-    static void unbind();
+    static void unbind(struct p_gl_rend_state& p_gl_rend_st);
 };
 
 struct shader_set_data {
     size_t size;
     shader* shaders;
-    GLuint curr_program;
-    GLboolean primitive_restart;
-    GLuint primitive_restart_index;
 
     PFNSHADERGETINDEXFUNCPROC get_index_by_name_func;
 
     shader_set_data();
 
-    void disable_primitive_restart();
-    void draw_arrays(GLenum mode, GLint first, GLsizei count);
-    void draw_elements(GLenum mode,
-        GLsizei count, GLenum type, const void* indices);
-    void draw_range_elements(GLenum mode,
-        GLuint start, GLuint end, GLsizei count, GLenum type, const void* indices);
-    void enable_primitive_restart();
     int32_t get_index_by_name(const char* name);
     void load(farc* f, bool ignore_cache, const char* name,
         const shader_table* shaders_table, const size_t size,
         const shader_bind_func* bind_func_table, const size_t bind_func_table_size,
         PFNSHADERGETINDEXFUNCPROC get_index_by_name);
-    void set(uint32_t index);
+    void set(struct p_gl_rend_state& p_gl_rend_st, struct uniform_value& shader_flags, uint32_t index);
     void unload();
 };
