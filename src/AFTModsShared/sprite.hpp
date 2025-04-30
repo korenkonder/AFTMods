@@ -290,4 +290,6 @@ extern bool (FASTCALL* sprite_manager_load_file)(int32_t set_id);
 extern const spr_db_spr* sprite_database_get_spr_by_id(int32_t id);
 extern int32_t sprite_database_get_spr_set_id_by_name(const prj::string& name);
 
+extern texture* sprite_manager_get_spr_texture(spr_info info);
+
 extern void sprite_shared_init();

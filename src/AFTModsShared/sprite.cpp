@@ -33,6 +33,9 @@ spr::SpriteVertex* sprite_vertex_array = (spr::SpriteVertex*)0x000000014CC62480;
 
 size_t& sprite_vertex_array_count = *(size_t*)0x000000014CC611B0;
 
+const size_t sprite_manager = 0x000000014CC611C0;
+const size_t sprite_database = 0x000000014CC62290;
+
 bool sprite_break_sprite_vertex_limit = false;
 
 namespace spr {
@@ -239,17 +242,21 @@ namespace spr {
 }
 
 const spr_db_spr* sprite_database_get_spr_by_id(int32_t id) {
-    const spr_db_spr* (FASTCALL* sprite_database_struct__get_spr_by_id)
-        (size_t _this, int32_t id)
+    const spr_db_spr* (FASTCALL * sprite_database_struct__get_spr_by_id)(size_t _this, int32_t id)
         = (const spr_db_spr * (FASTCALL*)(size_t _this, int32_t id))0x000000014063C800;
-    return sprite_database_struct__get_spr_by_id(0x000000014CC62290, id);
+    return sprite_database_struct__get_spr_by_id(sprite_database, id);
 }
 
 int32_t sprite_database_get_spr_set_id_by_name(const prj::string& name) {
-    int32_t(FASTCALL * sprite_database_struct__get_spr_set_id_by_name)
-        (size_t _this, const prj::string & name)
+    int32_t(FASTCALL * sprite_database_struct__get_spr_set_id_by_name)(size_t _this, const prj::string & name)
         = (int32_t(FASTCALL*)(size_t _this, const prj::string & name))0x00000001401121A0;
-    return sprite_database_struct__get_spr_set_id_by_name(0x000000014CC62290, name);
+    return sprite_database_struct__get_spr_set_id_by_name(sprite_database, name);
+}
+
+texture* sprite_manager_get_spr_texture(spr_info info) {
+    texture* (FASTCALL * spr__SpriteManager__GetSprTexture)(size_t _this, uint32_t info)
+        = (texture * (FASTCALL*)(size_t _this, uint32_t info))0x000000014063C990;
+    return spr__SpriteManager__GetSprTexture(sprite_manager, *(uint32_t*)&info);
 }
 
 void sprite_shared_init() {

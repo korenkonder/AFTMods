@@ -3997,9 +3997,9 @@ void TaskPvGameX::load(int32_t pv_id, int32_t modules[6]) {
         static_assert(sizeof(module_data) == 0xB8, "\"module_data\" struct should have a size of 0xB8");
 #pragma warning(pop)
 
-        static size_t(FASTCALL* module_data_handler_data_get)() = (size_t(FASTCALL*)()) 0x00000001403F8C30;
+        static size_t(FASTCALL* module_data_handler_data_get)() = (size_t(FASTCALL*)())0x00000001403F8C30;
         static bool (FASTCALL* module_data_handler__get_module_by_id)(size_t _this, int32_t id, module_data* data)
-            = (bool (FASTCALL*)(size_t _this, int32_t id, module_data * data)) 0x00000001403F8B40;
+            = (bool (FASTCALL*)(size_t _this, int32_t id, module_data * data))0x00000001403F8B40;
 
         for (int32_t i = 0; i < 6; i++) {
             module_data mdl;

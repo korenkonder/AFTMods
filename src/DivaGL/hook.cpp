@@ -191,6 +191,95 @@ HOOK(void, FASTCALL, rndr__RenderManager__rndpass_post_proc, 0x0000000140502C70)
     rend_data_ctx.state.end_event();
 }
 
+HOOK(void, FASTCALL, SelModule__DispRandom, 0x000000014058FCE0, __int64 a1) {
+    float_t alpha_next = (float_t)*(int32_t*)(a1 + 748) * 4.0f * 0.025f;
+    alpha_next = clamp_def(alpha_next, 0.0f, 1.0f);
+
+    static size_t(FASTCALL * module_data_handler_data_get)() = (size_t(FASTCALL*)())0x00000001403F8C30;
+    static bool (FASTCALL * module_data_handler__check_random)(size_t _this, int32_t id)
+        = (bool (FASTCALL*)(size_t _this, int32_t id))0x00000001403F8E70;
+    static int32_t(FASTCALL * sub_1405905D0)(int32_t* a1)
+        = (int32_t(FASTCALL*)(int32_t* a1))0x00000001405905D0;
+
+    static const int32_t* dword_140A36538 = (const int32_t*)0x0000000140A36538;
+    static const int32_t* spr_sel_module_rnd_only_spr = (const int32_t*)0x0000000140A36620;
+    static const int32_t* spr_sel_module_rnd_all_spr = (const int32_t*)0x0000000140A36650;
+
+    vec3* pos = (vec3*)(a1 + 600);
+    int32_t* v5 = (int32_t*)(a1 + 148);
+    int32_t* v6 = (int32_t*)(a1 + 124);
+    for (int32_t i = 0; i < 3; i++, v6 += 2, v5++, pos++) {
+        if (i >= *(int32_t*)(a1 + 720) || *v5 != 9
+            || !*(uint8_t*)(a1 + 595 + i) || !*(uint8_t*)(a1 + 592 + i))
+            continue;
+
+        if (!module_data_handler__check_random(module_data_handler_data_get(), v6[1]))
+            continue;
+
+        int32_t index = sub_1405905D0(v6);
+        if (index < 0)
+            continue;
+
+        int32_t index_next = -1;
+        if (!index) {
+            int32_t v14 = *(int32_t*)(a1 + 744);
+            int32_t v15 = v14;
+            if (++v15 >= 10)
+                v15 = 0;
+
+            index = dword_140A36538[v14];
+            index_next = dword_140A36538[v15];
+        }
+
+        float_t alpha = 1.0f;
+        texture* rnd_tex = 0;
+        texture* rnd_tex_next = 0;
+        if (index_next >= 0) {
+            rnd_tex = sprite_manager_get_spr_texture(
+                sprite_database_get_spr_by_id(spr_sel_module_rnd_all_spr[index])->info);
+            rnd_tex_next = sprite_manager_get_spr_texture(
+                sprite_database_get_spr_by_id(spr_sel_module_rnd_all_spr[index_next])->info);
+            alpha = 1.0f - alpha_next;
+        }
+        else
+            rnd_tex = sprite_manager_get_spr_texture(
+                sprite_database_get_spr_by_id(spr_sel_module_rnd_only_spr[index])->info);
+
+        if (!rnd_tex)
+            continue;
+
+        mat4 mat;
+        mat4_translate(pos->x + 0.04f, pos->y, pos->z, &mat);
+        mat4_mul_rotate_x(&mat, (float_t)(12.0 * DEG_TO_RAD), &mat);
+        mat4_scale_rot(&mat, 0.92f, 1.03f, 1.0f, &mat);
+        mat4_transpose(&mat, &mat);
+
+        texture_pattern_struct tex_pat(texture_id(0x00, 0x9A61), rnd_tex->id);
+        disp_manager->set_texture_pattern(1, &tex_pat);
+        disp_manager->entry_obj_by_object_info(mat, object_info(0x00, 0x07F5), alpha);
+        disp_manager->set_texture_pattern();
+
+        if (rnd_tex_next) {
+            mat4_transpose(&mat, &mat);
+            mat4_mul_translate_z(&mat, 0.01f, &mat);
+            mat4_transpose(&mat, &mat);
+
+            texture_pattern_struct tex_pat(texture_id(0x00, 0x9A61), rnd_tex_next->id);
+            disp_manager->set_texture_pattern(1, &tex_pat);
+            disp_manager->entry_obj_by_object_info(mat, object_info(0x00, 0x07F5), alpha_next);
+            disp_manager->set_texture_pattern();
+        }
+    }
+
+    int32_t& v24 = *(int32_t*)(a1 + 748);
+    if (++v24 > 40) {
+        v24 = 0;
+        int32_t& v23 = *(int32_t*)(a1 + 744);
+        if (++v23 >= 10)
+            v23 = 0;
+    }
+}
+
 HOOK(void, FASTCALL, shader_free, 0x00000001405E4DB0) {
     shaders_ft.unload();
 }
@@ -273,6 +362,8 @@ void hook_funcs() {
     INSTALL_HOOK(rndr__RenderManager__rndpass_pre_proc);
     INSTALL_HOOK(rndr__RenderManager__render_all);
     INSTALL_HOOK(rndr__RenderManager__rndpass_post_proc);
+
+    INSTALL_HOOK(SelModule__DispRandom);
 
     INSTALL_HOOK(shader_free);
     INSTALL_HOOK(shader_load_all_shaders);
