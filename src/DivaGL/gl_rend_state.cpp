@@ -259,6 +259,8 @@ struct gl_rend_state {
     void set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass);
     void set_viewport(const gl_rend_state_rect& rect);
     void set_viewport(GLint x, GLint y, GLsizei width, GLsizei height);
+    void tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+        GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
     void update();
     void update_program();
     void update_active_texture();
@@ -604,6 +606,11 @@ void p_gl_rend_state::set_viewport(const gl_rend_state_rect& rect) {
 
 void p_gl_rend_state::set_viewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     ptr.set_viewport(x, y, width, height);
+}
+
+void p_gl_rend_state::tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+    GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
+    ptr.tex_sub_image_2d(target, level, xoffset, yoffset, width, height, format, type, pixels);
 }
 
 void p_gl_rend_state::update() {
@@ -1320,6 +1327,13 @@ inline void gl_rend_state::set_viewport(GLint x, GLint y, GLsizei width, GLsizei
     viewport.width = width;
     viewport.height = height;
     enum_or(update_flags, GL_REND_STATE_UPDATE_VIEWPORT);
+}
+
+inline void gl_rend_state::tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+    GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
+    update_curr_active_texture();
+    glTexSubImage2DDLL(target, level, xoffset, yoffset, width, height, format, type, pixels);
+    enum_or(flags, GL_REND_STATE_EXECUTE);
 }
 
 void gl_rend_state::update() {

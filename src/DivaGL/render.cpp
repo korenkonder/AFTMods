@@ -1769,7 +1769,7 @@ namespace rndr {
                 16 * TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, tex_data);
         else {
             p_gl_rend_st.bind_texture_2d(tonemap_lut_texture);
-            glTexSubImage2DDLL(GL_TEXTURE_2D, 0, 0, 0,
+            p_gl_rend_st.tex_sub_image_2d(GL_TEXTURE_2D, 0, 0, 0,
                 16 * TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, tex_data);
         }
     }

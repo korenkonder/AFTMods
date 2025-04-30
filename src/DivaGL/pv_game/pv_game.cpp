@@ -10,6 +10,7 @@
 #include "../../AFTModsShared/auth_3d.hpp"
 #include "../../AFTModsShared/print_work.hpp"
 #include "../Glitter/glitter.hpp"
+#include "../static_var.hpp"
 #include "dsc.hpp"
 #include "firstread.hpp"
 #include "pvpp.hpp"
@@ -3852,8 +3853,7 @@ bool TaskPvGameX::init() {
     use = true;
     x_pv_game_firstread_ptr->read();
     reflect_full = false;
-    extern bool config_reflect_full;
-    if (firstread_ptr && firstread_ptr->stage_data_array && config_reflect_full) {
+    if (firstread_ptr && firstread_ptr->stage_data_array && sv_reflect_full) {
         const firstread_stage_data_array* stage_data_array = firstread_ptr->stage_data_array;
         const uint32_t num_stage_data = stage_data_array->num_stage_data;
         for (uint32_t i = 0; i < num_stage_data; i++) {

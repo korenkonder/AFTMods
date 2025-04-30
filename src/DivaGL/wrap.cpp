@@ -12,375 +12,6 @@
 #include <Helpers.h>
 #include <time.h>
 
-struct func_struct {
-    size_t address;
-    size_t orig_func;
-    size_t func;
-};
-
-#define GLDRAWBUFFERGLUT 0
-#define GLENABLEGLUT 1
-#define GLFINISHGLUT 2
-#define GLGETERRORGLUT 3
-#define GLGETINTEGERVGLUT 4
-#define GLGETSTRINGGLUT 5
-#define GLPIXELSTOREIGLUT 6
-#define GLREADBUFFERGLUT 7
-#define GLVIEWPORTGLUT 8
-#define WGLCREATECONTEXTGLUT 9
-#define WGLDELETECONTEXTGLUT 10
-#define WGLGETCURRENTCONTEXTGLUT 11
-#define WGLGETCURRENTDCGLUT 12
-#define WGLGETPROCADDRESSGLUT 13
-#define WGLMAKECURRENTGLUT 14
-
-#define GLALPHAFUNCDLL 0
-#define GLBEGINDLL 1
-#define GLCOLOR3FDLL 2
-#define GLCOLOR4FDLL 3
-#define GLCOLOR4UBDLL 4
-#define GLCOLOR4UBVDLL 5
-#define GLCOLORPOINTERDLL 6
-#define GLDISABLECLIENTSTATEDLL 7
-#define GLENABLECLIENTSTATEDLL 8
-#define GLENDDLL 9
-#define GLFOGFDLL 10
-#define GLFOGFVDLL 11
-#define GLFOGIDLL 12
-#define GLFRUSTUMDLL 13
-#define GLGETMATERIALFVDLL 14
-#define GLGETTEXLEVELPARAMETERIVDLL 15
-#define GLGETTEXPARAMETERIVDLL 16
-#define GLLIGHTFVDLL 17
-#define GLLIGHTMODELFVDLL 18
-#define GLLINEWIDTHDLL 19
-#define GLLOADIDENTITYDLL 20
-#define GLLOADMATRIXFDLL 21
-#define GLMATERIALFDLL 22
-#define GLMATERIALFVDLL 23
-#define GLMATRIXMODEDLL 24
-#define GLMULTMATRIXDDLL 25
-#define GLNORMAL3FDLL 26
-#define GLNORMALPOINTERDLL 27
-#define GLORTHODLL 28
-#define GLPOINTSIZEDLL 29
-#define GLPOPATTRIBDLL 30
-#define GLPOPCLIENTATTRIBDLL 31
-#define GLPOPMATRIXDLL 32
-#define GLPUSHATTRIBDLL 33
-#define GLPUSHCLIENTATTRIBDLL 34
-#define GLPUSHMATRIXDLL 35
-#define GLROTATEFDLL 36
-#define GLSCALEFDLL 37
-#define GLSHADEMODELDLL 38
-#define GLTEXCOORD2FDLL 39
-#define GLTEXCOORDPOINTERDLL 40
-#define GLTEXENVFDLL 41
-#define GLTEXENVIDLL 42
-#define GLTRANSLATEFDLL 43
-#define GLVERTEX3FDLL 44
-#define GLVERTEX3FVDLL 45
-#define GLVERTEXPOINTERDLL 46
-
-#define GLBINDBUFFERARB 0
-#define GLBINDBUFFERBASENV 1
-#define GLBINDFRAMEBUFFEREXT 2
-#define GLBINDMULTITEXTUREEXT 3
-#define GLBINDRENDERBUFFEREXT 4
-#define GLBUFFERDATAARB 5
-#define GLCLAMPCOLORARB 6
-#define GLCLIENTACTIVETEXTURE 7
-#define GLCOPYMULTITEXSUBIMAGE2DEXT 8
-#define GLDELETEBUFFERSARB 9
-#define GLDELETEFRAMEBUFFERSEXT 10
-#define GLDELETERENDERBUFFERSEXT 11
-#define GLDISABLEVERTEXATTRIBARRAYARB 12
-#define GLENABLEVERTEXATTRIBARRAYARB 13
-#define GLFRAMEBUFFERRENDERBUFFEREXT 14
-#define GLFRAMEBUFFERTEXTURE2DEXT 15
-#define GLGENFRAMEBUFFERSEXT 16
-#define GLGENRENDERBUFFERSEXT 17
-#define GLGETPROGRAMENVPARAMETERFVARB 18
-#define GLGETPROGRAMIVARB 19
-#define GLGETTEXTUREIMAGEEXT 20
-#define GLISBUFFERARB 21
-#define GLLOADTRANSPOSEMATRIXF 22
-#define GLMAPNAMEDBUFFEREXT 23
-#define GLMULTITEXCOORD2F 24
-#define GLMULTITEXCOORD2FV 25
-#define GLMULTTRANSPOSEMATRIXF 26
-#define GLNAMEDBUFFERDATAEXT 27
-#define GLNAMEDBUFFERSUBDATAEXT 28
-#define GLPOINTPARAMETERF 29
-#define GLPOINTPARAMETERFV 30
-#define GLPOINTPARAMETERI 31
-#define GLPRIMITIVERESTARTINDEXNV 32
-#define GLPROGRAMBUFFERPARAMETERSFVNV 33
-#define GLPROGRAMENVPARAMETER4FARB 34
-#define GLPROGRAMENVPARAMETER4FVARB 35
-#define GLPROGRAMENVPARAMETERS4FVEXT 36
-#define GLPROGRAMLOCALPARAMETER4FARB 37
-#define GLPROGRAMLOCALPARAMETER4FVARB 38
-#define GLPROGRAMLOCALPARAMETERS4FVEXT 39
-#define GLRENDERBUFFERSTORAGEEXT 40
-#define GLRENDERBUFFERSTORAGEMULTISAMPLECOVERAGENV 41
-#define GLUNMAPNAMEDBUFFEREXT 42
-#define GLVERTEXATTRIBPOINTERARB 43
-
-#define GLBEGINGLUT 0
-#define GLBITMAPGLUT 1
-#define GLENDGLUT 2
-#define GLEVALMESH2GLUT 3
-#define GLMAP2FGLUT 4
-#define GLMAPGRID2FGLUT 5
-#define GLNORMAL3FGLUT 6
-#define GLNORMAL3FVGLUT 7
-#define GLPOLYGONMODEGLUT 8
-#define GLPOPATTRIBGLUT 9
-#define GLPOPMATRIXGLUT 10
-#define GLPUSHATTRIBGLUT 11
-#define GLPUSHMATRIXGLUT 12
-#define GLROTATEFGLUT 13
-#define GLSCALEFGLUT 14
-#define GLTRANSLATEFGLUT 15
-#define GLVERTEX2FGLUT 16
-#define GLVERTEX3FGLUT 17
-#define GLVERTEX3FVGLUT 18
-
-typedef void (GLAPIENTRY* PFNGLALPHAFUNCDLLPROC)(GLenum func, GLfloat ref);
-typedef void (GLAPIENTRY* PFNGLBEGINDLLPROC)(GLenum mode);
-typedef void (GLAPIENTRY* PFNGLCOLOR3FDLLPROC)(GLfloat red, GLfloat green, GLfloat blue);
-typedef void (GLAPIENTRY* PFNGLCOLOR4FDLLPROC)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-typedef void (GLAPIENTRY* PFNGLCOLOR4UBDLLPROC)(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha);
-typedef void (GLAPIENTRY* PFNGLCOLOR4UBVDLLPROC)(GLubyte const * v);
-typedef void (GLAPIENTRY* PFNGLCOLORPOINTERDLLPROC)(GLint size, GLenum type, GLsizei stride, const void * pointer);
-typedef void (GLAPIENTRY* PFNGLDISABLECLIENTSTATEDLLPROC)(GLenum array);
-typedef void (GLAPIENTRY* PFNGLENABLECLIENTSTATEDLLPROC)(GLenum array);
-typedef void (GLAPIENTRY* PFNGLENDDLLPROC)();
-typedef void (GLAPIENTRY* PFNGLFOGFDLLPROC)(GLenum pname, GLfloat param);
-typedef void (GLAPIENTRY* PFNGLFOGFVDLLPROC)(GLenum pname, GLfloat const * params);
-typedef void (GLAPIENTRY* PFNGLFOGIDLLPROC)(GLenum pname, GLint param);
-typedef void (GLAPIENTRY* PFNGLFRUSTUMDLLPROC)(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar);
-typedef void (GLAPIENTRY* PFNGLGETMATERIALFVDLLPROC)(GLenum face, GLenum pname, GLfloat * params);
-typedef void (GLAPIENTRY* PFNGLGETTEXLEVELPARAMETERIVDLLPROC)(GLenum target, GLint level, GLenum pname, GLint * params);
-typedef void (GLAPIENTRY* PFNGLGETTEXPARAMETERIVDLLPROC)(GLenum target, GLenum pname, GLint * params);
-typedef void (GLAPIENTRY* PFNGLLIGHTFVDLLPROC)(GLenum light, GLenum pname, GLfloat const * params);
-typedef void (GLAPIENTRY* PFNGLLIGHTMODELFVDLLPROC)(GLenum pname, GLfloat const * params);
-typedef void (GLAPIENTRY* PFNGLLINEWIDTHDLLPROC)(GLfloat width);
-typedef void (GLAPIENTRY* PFNGLLOADIDENTITYDLLPROC)();
-typedef void (GLAPIENTRY* PFNGLLOADMATRIXFDLLPROC)(GLfloat const * m);
-typedef void (GLAPIENTRY* PFNGLMATERIALFDLLPROC)(GLenum face, GLenum pname, GLfloat param);
-typedef void (GLAPIENTRY* PFNGLMATERIALFVDLLPROC)(GLenum face, GLenum pname, GLfloat const * params);
-typedef void (GLAPIENTRY* PFNGLMATRIXMODEDLLPROC)(GLenum mode);
-typedef void (GLAPIENTRY* PFNGLMULTMATRIXDDLLPROC)(GLdouble const * m);
-typedef void (GLAPIENTRY* PFNGLNORMAL3FDLLPROC)(GLfloat nx, GLfloat ny, GLfloat nz);
-typedef void (GLAPIENTRY* PFNGLNORMALPOINTERDLLPROC)(GLenum type, GLsizei stride, const void * pointer);
-typedef void (GLAPIENTRY* PFNGLORTHODLLPROC)(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar);
-typedef void (GLAPIENTRY* PFNGLPOINTSIZEDLLPROC)(GLfloat size);
-typedef void (GLAPIENTRY* PFNGLPOPATTRIBDLLPROC)();
-typedef void (GLAPIENTRY* PFNGLPOPCLIENTATTRIBDLLPROC)();
-typedef void (GLAPIENTRY* PFNGLPOPMATRIXDLLPROC)();
-typedef void (GLAPIENTRY* PFNGLPUSHATTRIBDLLPROC)(GLbitfield mask);
-typedef void (GLAPIENTRY* PFNGLPUSHCLIENTATTRIBDLLPROC)(GLbitfield mask);
-typedef void (GLAPIENTRY* PFNGLPUSHMATRIXDLLPROC)();
-typedef void (GLAPIENTRY* PFNGLROTATEFDLLPROC)(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
-typedef void (GLAPIENTRY* PFNGLSCALEFDLLPROC)(GLfloat x, GLfloat y, GLfloat z);
-typedef void (GLAPIENTRY* PFNGLSHADEMODELDLLPROC)(GLenum mode);
-typedef void (GLAPIENTRY* PFNGLTEXCOORD2FDLLPROC)(GLfloat s, GLfloat t);
-typedef void (GLAPIENTRY* PFNGLTEXCOORDPOINTERDLLPROC)(GLint size, GLenum type, GLsizei stride, const void * pointer);
-typedef void (GLAPIENTRY* PFNGLTEXENVFDLLPROC)(GLenum target, GLenum pname, GLfloat param);
-typedef void (GLAPIENTRY* PFNGLTEXENVIDLLPROC)(GLenum target, GLenum pname, GLint param);
-typedef void (GLAPIENTRY* PFNGLTRANSLATEFDLLPROC)(GLfloat x, GLfloat y, GLfloat z);
-typedef void (GLAPIENTRY* PFNGLVERTEX3FDLLPROC)(GLfloat x, GLfloat y, GLfloat z);
-typedef void (GLAPIENTRY* PFNGLVERTEX3FVDLLPROC)(GLfloat const * v);
-typedef void (GLAPIENTRY* PFNGLVERTEXPOINTERDLLPROC)(GLint size, GLenum type, GLsizei stride, const void * pointer);
-
-typedef void (GLAPIENTRY* PFNGLBINDBUFFERARBPROC)(GLenum target, GLuint buffer);
-typedef void (GLAPIENTRY* PFNGLBINDBUFFERBASENVPROC)(GLenum target, GLuint index, GLuint buffer);
-typedef void (GLAPIENTRY* PFNGLBINDFRAMEBUFFEREXTPROC)(GLenum target, GLuint framebuffer);
-typedef void (GLAPIENTRY* PFNGLBINDMULTITEXTUREEXTPROC)(GLenum texunit, GLenum target, GLuint texture);
-typedef void (GLAPIENTRY* PFNGLBINDRENDERBUFFEREXTPROC)(GLenum target, GLuint renderbuffer);
-typedef void (GLAPIENTRY* PFNGLBUFFERDATAARBPROC)(GLenum target, GLsizeiptrARB size, const void * data, GLenum usage);
-typedef void (GLAPIENTRY* PFNGLCLAMPCOLORARBPROC)(GLenum target, GLenum clamp);
-typedef void (GLAPIENTRY* PFNGLCLIENTACTIVETEXTUREPROC)(GLenum texture);
-typedef void (GLAPIENTRY* PFNGLCOPYMULTITEXSUBIMAGE2DEXTPROC)(GLenum texunit, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
-typedef void (GLAPIENTRY* PFNGLDELETEBUFFERSARBPROC)(GLsizei n, GLuint const * buffers);
-typedef void (GLAPIENTRY* PFNGLDELETEFRAMEBUFFERSEXTPROC)(GLsizei n, GLuint const * framebuffers);
-typedef void (GLAPIENTRY* PFNGLDELETERENDERBUFFERSEXTPROC)(GLsizei n, GLuint const * renderbuffers);
-typedef void (GLAPIENTRY* PFNGLDISABLEVERTEXATTRIBARRAYARBPROC)(GLuint index);
-typedef void (GLAPIENTRY* PFNGLENABLEVERTEXATTRIBARRAYARBPROC)(GLuint index);
-typedef void (GLAPIENTRY* PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
-typedef void (GLAPIENTRY* PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
-typedef void (GLAPIENTRY* PFNGLGENFRAMEBUFFERSEXTPROC)(GLsizei n, GLuint * framebuffers);
-typedef void (GLAPIENTRY* PFNGLGENRENDERBUFFERSEXTPROC)(GLsizei n, GLuint * renderbuffers);
-typedef void (GLAPIENTRY* PFNGLGETPROGRAMENVPARAMETERFVARBPROC)(GLenum target, GLuint index, GLfloat * params);
-typedef void (GLAPIENTRY* PFNGLGETPROGRAMIVARBPROC)(GLenum target, GLenum pname, GLint * params);
-typedef void (GLAPIENTRY* PFNGLGETTEXTUREIMAGEEXTPROC)(GLuint texture, GLenum target, GLint level, GLenum format, GLenum type, void * pixels);
-typedef GLboolean (GLAPIENTRY* PFNGLISBUFFERARBPROC)(GLuint buffer);
-typedef void (GLAPIENTRY* PFNGLLOADTRANSPOSEMATRIXFPROC)(GLfloat const * m);
-typedef void * (GLAPIENTRY* PFNGLMAPNAMEDBUFFEREXTPROC)(GLuint buffer, GLenum access);
-typedef void (GLAPIENTRY* PFNGLMULTITEXCOORD2FPROC)(GLenum target, GLfloat s, GLfloat t);
-typedef void (GLAPIENTRY* PFNGLMULTITEXCOORD2FVPROC)(GLenum target, GLfloat const * v);
-typedef void (GLAPIENTRY* PFNGLMULTTRANSPOSEMATRIXFPROC)(GLfloat const * m);
-typedef void (GLAPIENTRY* PFNGLNAMEDBUFFERDATAEXTPROC)(GLuint buffer, GLsizeiptr size, const void * data, GLenum usage);
-typedef void (GLAPIENTRY* PFNGLNAMEDBUFFERSUBDATAEXTPROC)(GLuint buffer, GLintptr offset, GLsizeiptr size, const void * data);
-typedef void (GLAPIENTRY* PFNGLPOINTPARAMETERFPROC)(GLenum pname, GLfloat param);
-typedef void (GLAPIENTRY* PFNGLPOINTPARAMETERFVPROC)(GLenum pname, GLfloat const * params);
-typedef void (GLAPIENTRY* PFNGLPOINTPARAMETERIPROC)(GLenum pname, GLint param);
-typedef void (GLAPIENTRY* PFNGLPRIMITIVERESTARTINDEXNVPROC)(GLuint index);
-typedef void (GLAPIENTRY* PFNGLPROGRAMBUFFERPARAMETERSFVNVPROC)(GLenum target, GLuint bindingIndex, GLuint wordIndex, GLsizei count, GLfloat const * params);
-typedef void (GLAPIENTRY* PFNGLPROGRAMENVPARAMETER4FARBPROC)(GLenum target, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-typedef void (GLAPIENTRY* PFNGLPROGRAMENVPARAMETER4FVARBPROC)(GLenum target, GLuint index, GLfloat const * params);
-typedef void (GLAPIENTRY* PFNGLPROGRAMENVPARAMETERS4FVEXTPROC)(GLenum target, GLuint index, GLsizei count, GLfloat const * params);
-typedef void (GLAPIENTRY* PFNGLPROGRAMLOCALPARAMETER4FARBPROC)(GLenum target, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-typedef void (GLAPIENTRY* PFNGLPROGRAMLOCALPARAMETER4FVARBPROC)(GLenum target, GLuint index, GLfloat const * params);
-typedef void (GLAPIENTRY* PFNGLPROGRAMLOCALPARAMETERS4FVEXTPROC)(GLenum target, GLuint index, GLsizei count, GLfloat const * params);
-typedef void (GLAPIENTRY* PFNGLRENDERBUFFERSTORAGEEXTPROC)(GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
-typedef void (GLAPIENTRY* PFNGLRENDERBUFFERSTORAGEMULTISAMPLECOVERAGENVPROC)(GLenum target, GLsizei coverageSamples, GLsizei colorSamples, GLenum internalformat, GLsizei width, GLsizei height);
-typedef GLboolean (GLAPIENTRY* PFNGLUNMAPNAMEDBUFFEREXTPROC)(GLuint buffer);
-typedef void (GLAPIENTRY* PFNGLVERTEXATTRIBPOINTERARBPROC)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void * pointer);
-
-typedef void (GLAPIENTRY* PFNGLBEGINGLUTPROC)(GLenum mode);
-typedef void (GLAPIENTRY* PFNGLBITMAPGLUTPROC)(GLsizei width, GLsizei height, GLfloat xorig, GLfloat yorig, GLfloat xmove, GLfloat ymove, GLubyte const * bitmap);
-typedef void (GLAPIENTRY* PFNGLENDGLUTPROC)();
-typedef void (GLAPIENTRY* PFNGLEVALMESH2GLUTPROC)(GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2);
-typedef void (GLAPIENTRY* PFNGLMAP2FGLUTPROC)(GLenum target, GLfloat u1, GLfloat u2, GLint ustride, GLint uorder, GLfloat v1, GLfloat v2, GLint vstride, GLint vorder, GLfloat const * points);
-typedef void (GLAPIENTRY* PFNGLMAPGRID2FGLUTPROC)(GLint un, GLfloat u1, GLfloat u2, GLint vn, GLfloat v1, GLfloat v2);
-typedef void (GLAPIENTRY* PFNGLNORMAL3FGLUTPROC)(GLfloat nx, GLfloat ny, GLfloat nz);
-typedef void (GLAPIENTRY* PFNGLNORMAL3FVGLUTPROC)(GLfloat const * v);
-typedef void (GLAPIENTRY* PFNGLPOLYGONMODEGLUTPROC)(GLenum face, GLenum mode);
-typedef void (GLAPIENTRY* PFNGLPOPATTRIBGLUTPROC)();
-typedef void (GLAPIENTRY* PFNGLPOPMATRIXGLUTPROC)();
-typedef void (GLAPIENTRY* PFNGLPUSHATTRIBGLUTPROC)(GLbitfield mask);
-typedef void (GLAPIENTRY* PFNGLPUSHMATRIXGLUTPROC)();
-typedef void (GLAPIENTRY* PFNGLROTATEFGLUTPROC)(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
-typedef void (GLAPIENTRY* PFNGLSCALEFGLUTPROC)(GLfloat x, GLfloat y, GLfloat z);
-typedef void (GLAPIENTRY* PFNGLTRANSLATEFGLUTPROC)(GLfloat x, GLfloat y, GLfloat z);
-typedef void (GLAPIENTRY* PFNGLVERTEX2FGLUTPROC)(GLfloat x, GLfloat y);
-typedef void (GLAPIENTRY* PFNGLVERTEX3FGLUTPROC)(GLfloat x, GLfloat y, GLfloat z);
-typedef void (GLAPIENTRY* PFNGLVERTEX3FVGLUTPROC)(GLfloat const * v);
-
-extern size_t glut_handle;
-
-func_struct wrap_addr_dll[47] = {
-    { 0x0000000140965A00, 0, (size_t)&glAlphaFuncDLL, }, // glAlphaFunc
-    { 0x0000000140965A70, 0, (size_t)&glBeginDLL, }, // glBegin
-    { 0x0000000140965A88, 0, (size_t)&glColor3fDLL, }, // glColor3f
-    { 0x0000000140965A90, 0, (size_t)&glColor4fDLL, }, // glColor4f
-    { 0x0000000140965B88, 0, (size_t)&glColor4ubDLL, }, // glColor4ub
-    { 0x0000000140965B90, 0, (size_t)&glColor4ubvDLL, }, // glColor4ubv
-    { 0x0000000140965C30, 0, (size_t)&glColorPointerDLL, }, // glColorPointer
-    { 0x0000000140965C28, 0, (size_t)&glDisableClientStateDLL, }, // glDisableClientState
-    { 0x0000000140965BE8, 0, (size_t)&glEnableClientStateDLL, }, // glEnableClientState
-    { 0x0000000140965A78, 0, (size_t)&glEndDLL, }, // glEnd
-    { 0x0000000140965A58, 0, (size_t)&glFogfDLL, }, // glFogf
-    { 0x0000000140965A60, 0, (size_t)&glFogfvDLL, }, // glFogfv
-    { 0x0000000140965A68, 0, (size_t)&glFogiDLL, }, // glFogi
-    { 0x0000000140965C98, 0, (size_t)&glFrustumDLL, }, // glFrustum
-    { 0x0000000140965CB0, 0, (size_t)&glGetMaterialfvDLL, }, // glGetMaterialfv
-    { 0x0000000140965AA0, 0, (size_t)&glGetTexLevelParameterivDLL, }, // glGetTexLevelParameteriv
-    { 0x0000000140965AA8, 0, (size_t)&glGetTexParameterivDLL, }, // glGetTexParameteriv
-    { 0x0000000140965AC8, 0, (size_t)&glLightfvDLL, }, // glLightfv
-    { 0x0000000140965AC0, 0, (size_t)&glLightModelfvDLL, }, // glLightModelfv
-    { 0x0000000140965B10, 0, (size_t)&glLineWidthDLL, }, // glLineWidth
-    { 0x0000000140965C88, 0, (size_t)&glLoadIdentityDLL, }, // glLoadIdentity
-    { 0x0000000140965A50, 0, (size_t)&glLoadMatrixfDLL, }, // glLoadMatrixf
-    { 0x0000000140965A08, 0, (size_t)&glMaterialfDLL, }, // glMaterialf
-    { 0x0000000140965A80, 0, (size_t)&glMaterialfvDLL, }, // glMaterialfv
-    { 0x0000000140965C80, 0, (size_t)&glMatrixModeDLL, }, // glMatrixMode
-    { 0x0000000140965B48, 0, (size_t)&glMultMatrixdDLL, }, // glMultMatrixd
-    { 0x0000000140965B18, 0, (size_t)&glNormal3fDLL, }, // glNormal3f
-    { 0x0000000140965B20, 0, (size_t)&glNormalPointerDLL, }, // glNormalPointer
-    { 0x0000000140965B50, 0, (size_t)&glOrthoDLL, }, // glOrtho
-    { 0x0000000140965BE0, 0, (size_t)&glPointSizeDLL, }, // glPointSize
-    { 0x0000000140965BD8, 0, (size_t)&glPopAttribDLL, }, // glPopAttrib
-    { 0x0000000140965BD0, 0, (size_t)&glPopClientAttribDLL, }, // glPopClientAttrib
-    { 0x0000000140965CA8, 0, (size_t)&glPopMatrixDLL, }, // glPopMatrix
-    { 0x0000000140965BC8, 0, (size_t)&glPushAttribDLL, }, // glPushAttrib
-    { 0x0000000140965BC0, 0, (size_t)&glPushClientAttribDLL, }, // glPushClientAttrib
-    { 0x0000000140965CA0, 0, (size_t)&glPushMatrixDLL, }, // glPushMatrix
-    { 0x0000000140965C70, 0, (size_t)&glRotatefDLL, }, // glRotatef
-    { 0x0000000140965C68, 0, (size_t)&glScalefDLL, }, // glScalef
-    { 0x0000000140965C20, 0, (size_t)&glShadeModelDLL, }, // glShadeModel
-    { 0x0000000140965B80, 0, (size_t)&glTexCoord2fDLL, }, // glTexCoord2f
-    { 0x0000000140965A30, 0, (size_t)&glTexCoordPointerDLL, }, // glTexCoordPointer
-    { 0x0000000140965B28, 0, (size_t)&glTexEnvfDLL, }, // glTexEnvf
-    { 0x0000000140965BB8, 0, (size_t)&glTexEnviDLL, }, // glTexEnvi
-    { 0x0000000140965C60, 0, (size_t)&glTranslatefDLL, }, // glTranslatef
-    { 0x0000000140965AB8, 0, (size_t)&glVertex3fDLL, }, // glVertex3f
-    { 0x0000000140965B30, 0, (size_t)&glVertex3fvDLL, }, // glVertex3fv
-    { 0x0000000140965B00, 0, (size_t)&glVertexPointerDLL, }, // glVertexPointer
-};
-
-func_struct wrap_addr[44] = {
-    { 0x00000001411A4B10, 0, (size_t)&glBindBufferARB, }, // glBindBufferARB
-    { 0x00000001411A3578, 0, (size_t)&glBindBufferBaseNV, }, // glBindBufferBaseNV
-    { 0x00000001411A54D8, 0, (size_t)&glBindFramebufferEXT, }, // glBindFramebufferEXT
-    { 0x00000001411A3818, 0, (size_t)&glBindMultiTextureEXT, }, // glBindMultiTextureEXT
-    { 0x00000001411A54A8, 0, (size_t)&glBindRenderbufferEXT, }, // glBindRenderbufferEXT
-    { 0x00000001411A4B30, 0, (size_t)&glBufferDataARB, }, // glBufferDataARB
-    { 0x00000001411A4D00, 0, (size_t)&glClampColorARB, }, // glClampColorARB
-    { 0x00000001411A3DC8, 0, (size_t)&glClientActiveTexture, }, // glClientActiveTexture
-    { 0x00000001411A37D0, 0, (size_t)&glCopyMultiTexSubImage2DEXT, }, // glCopyMultiTexSubImage2DEXT
-    { 0x00000001411A4B18, 0, (size_t)&glDeleteBuffersARB, }, // glDeleteBuffersARB
-    { 0x00000001411A54E0, 0, (size_t)&glDeleteFramebuffersEXT, }, // glDeleteFramebuffersEXT
-    { 0x00000001411A54B0, 0, (size_t)&glDeleteRenderbuffersEXT, }, // glDeleteRenderbuffersEXT
-    { 0x00000001411A4A50, 0, (size_t)&glDisableVertexAttribArrayARB, }, // glDisableVertexAttribArrayARB
-    { 0x00000001411A4A48, 0, (size_t)&glEnableVertexAttribArrayARB, }, // glEnableVertexAttribArrayARB
-    { 0x00000001411A5510, 0, (size_t)&glFramebufferRenderbufferEXT, }, // glFramebufferRenderbufferEXT
-    { 0x00000001411A5500, 0, (size_t)&glFramebufferTexture2DEXT, }, // glFramebufferTexture2DEXT
-    { 0x00000001411A54E8, 0, (size_t)&glGenFramebuffersEXT, }, // glGenFramebuffersEXT
-    { 0x00000001411A54B8, 0, (size_t)&glGenRenderbuffersEXT, }, // glGenRenderbuffersEXT
-    { 0x00000001411A4AC0, 0, (size_t)&glGetProgramEnvParameterfvARB, }, // glGetProgramEnvParameterfvARB
-    { 0x00000001411A4AD8, 0, (size_t)&glGetProgramivARB, }, // glGetProgramivARB
-    { 0x00000001411A3738, 0, (size_t)&glGetTextureImageEXT, }, // glGetTextureImageEXT
-    { 0x00000001411A4B28, 0, (size_t)&glIsBufferARB, }, // glIsBufferARB
-    { 0x00000001411A3FD8, 0, (size_t)&glLoadTransposeMatrixf, }, // glLoadTransposeMatrixf
-    { 0x00000001411A3B20, 0, (size_t)&glMapNamedBufferEXT, }, // glMapNamedBufferEXT
-    { 0x00000001411A3E78, 0, (size_t)&glMultiTexCoord2f, }, // glMultiTexCoord2f
-    { 0x00000001411A3E88, 0, (size_t)&glMultiTexCoord2fv, }, // glMultiTexCoord2fv
-    { 0x00000001411A3FE8, 0, (size_t)&glMultTransposeMatrixf, }, // glMultTransposeMatrixf
-    { 0x00000001411A3B10, 0, (size_t)&glNamedBufferDataEXT, }, // glNamedBufferDataEXT
-    { 0x00000001411A3B18, 0, (size_t)&glNamedBufferSubDataEXT, }, // glNamedBufferSubDataEXT
-    { 0x00000001411A4078, 0, (size_t)&glPointParameterf, }, // glPointParameterf
-    { 0x00000001411A4080, 0, (size_t)&glPointParameterfv, }, // glPointParameterfv
-    { 0x00000001411A4088, 0, (size_t)&glPointParameteri, }, // glPointParameteri
-    { 0x00000001411A5488, 0, (size_t)&glPrimitiveRestartIndexNV, }, // glPrimitiveRestartIndexNV
-    { 0x00000001411A3508, 0, (size_t)&glProgramBufferParametersfvNV, }, // glProgramBufferParametersfvNV
-    { 0x00000001411A4A88, 0, (size_t)&glProgramEnvParameter4fARB, }, // glProgramEnvParameter4fARB
-    { 0x00000001411A4A90, 0, (size_t)&glProgramEnvParameter4fvARB, }, // glProgramEnvParameter4fvARB
-    { 0x00000001411A5548, 0, (size_t)&glProgramEnvParameters4fvEXT, }, // glProgramEnvParameters4fvEXT
-    { 0x00000001411A4AA8, 0, (size_t)&glProgramLocalParameter4fARB, }, // glProgramLocalParameter4fARB
-    { 0x00000001411A4AB0, 0, (size_t)&glProgramLocalParameter4fvARB, }, // glProgramLocalParameter4fvARB
-    { 0x00000001411A5550, 0, (size_t)&glProgramLocalParameters4fvEXT, }, // glProgramLocalParameters4fvEXT
-    { 0x00000001411A54C0, 0, (size_t)&glRenderbufferStorageEXT, }, // glRenderbufferStorageEXT
-    { 0x00000001411A3500, 0, (size_t)&glRenderbufferStorageMultisampleCoverageNV, }, // glRenderbufferStorageMultisampleCoverageNV
-    { 0x00000001411A3B28, 0, (size_t)&glUnmapNamedBufferEXT, }, // glUnmapNamedBufferEXT
-    { 0x00000001411A4A40, 0, (size_t)&glVertexAttribPointerARB, }, // glVertexAttribPointerARB
-};
-
-func_struct wrap_addr_glut[19] = {
-    { 0x000000000002A380, 0, (size_t)&glBeginGLUT, }, // glBegin
-    { 0x000000000002A348, 0, (size_t)&glBitmapGLUT, }, // glBitmap
-    { 0x000000000002A388, 0, (size_t)&glEndGLUT, }, // glEnd
-    { 0x000000000002A3E0, 0, (size_t)&glEvalMesh2GLUT, }, // glEvalMesh2
-    { 0x000000000002A3E8, 0, (size_t)&glMap2fGLUT, }, // glMap2f
-    { 0x000000000002A3F0, 0, (size_t)&glMapGrid2fGLUT, }, // glMapGrid2f
-    { 0x000000000002A390, 0, (size_t)&glNormal3fGLUT, }, // glNormal3f
-    { 0x000000000002A398, 0, (size_t)&glNormal3fvGLUT, }, // glNormal3fv
-    { 0x000000000002A3A0, 0, (size_t)&glPolygonModeGLUT, }, // glPolygonMode
-    { 0x000000000002A3A8, 0, (size_t)&glPopAttribGLUT, }, // glPopAttrib
-    { 0x000000000002A3F8, 0, (size_t)&glPopMatrixGLUT, }, // glPopMatrix
-    { 0x000000000002A3B0, 0, (size_t)&glPushAttribGLUT, }, // glPushAttrib
-    { 0x000000000002A400, 0, (size_t)&glPushMatrixGLUT, }, // glPushMatrix
-    { 0x000000000002A408, 0, (size_t)&glRotatefGLUT, }, // glRotatef
-    { 0x000000000002A410, 0, (size_t)&glScalefGLUT, }, // glScalef
-    { 0x000000000002A3C8, 0, (size_t)&glTranslatefGLUT, }, // glTranslatef
-    { 0x000000000002A3D0, 0, (size_t)&glVertex2fGLUT, }, // glVertex2f
-    { 0x000000000002A3B8, 0, (size_t)&glVertex3fGLUT, }, // glVertex3f
-    { 0x000000000002A3C0, 0, (size_t)&glVertex3fvGLUT, }, // glVertex3fv
-};
-
 bool DIVA_GL_VERSION_4_1 = false;
 bool DIVA_GL_VERSION_4_2 = false;
 bool DIVA_GL_VERSION_4_3 = false;
@@ -388,6 +19,12 @@ bool DIVA_GL_VERSION_4_4 = false;
 bool DIVA_GL_VERSION_4_5 = false;
 bool DIVA_GL_VERSION_4_6 = false;
 
+extern size_t glut_handle;
+
+PFNGLALPHAFUNCDLLPROC* divagl_glAlphaFuncDLL
+    = (PFNGLALPHAFUNCDLLPROC*)0x0000000140965A00; // glAlphaFunc
+PFNGLBEGINDLLPROC* divagl_glBeginDLL
+    = (PFNGLBEGINDLLPROC*)0x0000000140965A70; // glBegin
 PFNGLBINDTEXTUREDLLPROC* divagl_glBindTextureDLL
     = (PFNGLBINDTEXTUREDLLPROC*)0x0000000140965BF8; // glBindTexture
 PFNGLBLENDFUNCDLLPROC* divagl_glBlendFuncDLL
@@ -400,8 +37,18 @@ PFNGLCLEARDEPTHDLLPROC* divagl_glClearDepthDLL
     = (PFNGLCLEARDEPTHDLLPROC*)0x0000000140965C08; // glClearDepth
 PFNGLCLEARSTENCILDLLPROC* divagl_glClearStencilDLL
     = (PFNGLCLEARSTENCILDLLPROC*)0x0000000140965C10; // glClearStencil
+PFNGLCOLOR3FDLLPROC* divagl_glColor3fDLL
+    = (PFNGLCOLOR3FDLLPROC*)0x0000000140965A88; // glColor3f
+PFNGLCOLOR4FDLLPROC* divagl_glColor4fDLL
+    = (PFNGLCOLOR4FDLLPROC*)0x0000000140965A90; // glColor4f
+PFNGLCOLOR4UBDLLPROC* divagl_glColor4ubDLL
+    = (PFNGLCOLOR4UBDLLPROC*)0x0000000140965B88; // glColor4ub
+PFNGLCOLOR4UBVDLLPROC* divagl_glColor4ubvDLL
+    = (PFNGLCOLOR4UBVDLLPROC*)0x0000000140965B90; // glColor4ubv
 PFNGLCOLORMASKDLLPROC* divagl_glColorMaskDLL
     = (PFNGLCOLORMASKDLLPROC*)0x0000000140965A38; // glColorMask
+PFNGLCOLORPOINTERDLLPROC* divagl_glColorPointerDLL
+    = (PFNGLCOLORPOINTERDLLPROC*)0x0000000140965C30; // glColorPointer
 PFNGLCOPYTEXIMAGE2DDLLPROC* divagl_glCopyTexImage2DDLL
     = (PFNGLCOPYTEXIMAGE2DDLLPROC*)0x0000000140965B40; // glCopyTexImage2D
 PFNGLCOPYTEXSUBIMAGE2DDLLPROC* divagl_glCopyTexSubImage2DDLL
@@ -416,6 +63,8 @@ PFNGLDEPTHMASKDLLPROC* divagl_glDepthMaskDLL
     = (PFNGLDEPTHMASKDLLPROC*)0x0000000140965A28; // glDepthMask
 PFNGLDISABLEDLLPROC* divagl_glDisableDLL
     = (PFNGLDISABLEDLLPROC*)0x0000000140965C48; // glDisable
+PFNGLDISABLECLIENTSTATEDLLPROC* divagl_glDisableClientStateDLL
+    = (PFNGLDISABLECLIENTSTATEDLLPROC*)0x0000000140965C28; // glDisableClientState
 PFNGLDRAWARRAYSDLLPROC* divagl_glDrawArraysDLL
     = (PFNGLDRAWARRAYSDLLPROC*)0x0000000140965BF0; // glDrawArrays
 PFNGLDRAWBUFFERDLLPROC* divagl_glDrawBufferDLL
@@ -424,10 +73,22 @@ PFNGLDRAWELEMENTSDLLPROC* divagl_glDrawElementsDLL
     = (PFNGLDRAWELEMENTSDLLPROC*)0x0000000140965A48; // glDrawElements
 PFNGLENABLEDLLPROC* divagl_glEnableDLL
     = (PFNGLENABLEDLLPROC*)0x0000000140965C50; // glEnable
+PFNGLENABLECLIENTSTATEDLLPROC* divagl_glEnableClientStateDLL
+    = (PFNGLENABLECLIENTSTATEDLLPROC*)0x0000000140965BE8; // glEnableClientState
+PFNGLENDDLLPROC* divagl_glEndDLL
+    = (PFNGLENDDLLPROC*)0x0000000140965A78; // glEnd
 PFNGLFINISHDLLPROC* divagl_glFinishDLL
     = (PFNGLFINISHDLLPROC*)0x0000000140965B68; // glFinish
+PFNGLFOGFDLLPROC* divagl_glFogfDLL
+    = (PFNGLFOGFDLLPROC*)0x0000000140965A58; // glFogf
+PFNGLFOGFVDLLPROC* divagl_glFogfvDLL
+    = (PFNGLFOGFVDLLPROC*)0x0000000140965A60; // glFogfv
+PFNGLFOGIDLLPROC* divagl_glFogiDLL
+    = (PFNGLFOGIDLLPROC*)0x0000000140965A68; // glFogi
 PFNGLFRONTFACEDLLPROC* divagl_glFrontFaceDLL
     = (PFNGLFRONTFACEDLLPROC*)0x0000000140965BB0; // glFrontFace
+PFNGLFRUSTUMDLLPROC* divagl_glFrustumDLL
+    = (PFNGLFRUSTUMDLLPROC*)0x0000000140965C98; // glFrustum
 PFNGLGENTEXTURESDLLPROC* divagl_glGenTexturesDLL
     = (PFNGLGENTEXTURESDLLPROC*)0x0000000140965AD8; // glGenTextures
 PFNGLGETBOOLEANVDLLPROC* divagl_glGetBooleanvDLL
@@ -438,20 +99,78 @@ PFNGLGETFLOATVDLLPROC* divagl_glGetFloatvDLL
     = (PFNGLGETFLOATVDLLPROC*)0x0000000140965C90; // glGetFloatv
 PFNGLGETINTEGERVDLLPROC* divagl_glGetIntegervDLL
     = (PFNGLGETINTEGERVDLLPROC*)0x0000000140965AF8; // glGetIntegerv
+PFNGLGETMATERIALFVDLLPROC* divagl_glGetMaterialfvDLL
+    = (PFNGLGETMATERIALFVDLLPROC*)0x0000000140965CB0; // glGetMaterialfv
 PFNGLGETTEXIMAGEDLLPROC* divagl_glGetTexImageDLL
     = (PFNGLGETTEXIMAGEDLLPROC*)0x0000000140965C00; // glGetTexImage
+PFNGLGETTEXLEVELPARAMETERIVDLLPROC* divagl_glGetTexLevelParameterivDLL
+    = (PFNGLGETTEXLEVELPARAMETERIVDLLPROC*)0x0000000140965AA0; // glGetTexLevelParameteriv
+PFNGLGETTEXPARAMETERIVDLLPROC* divagl_glGetTexParameterivDLL
+    = (PFNGLGETTEXPARAMETERIVDLLPROC*)0x0000000140965AA8; // glGetTexParameteriv
 PFNGLISENABLEDDLLPROC* divagl_glIsEnabledDLL
     = (PFNGLISENABLEDDLLPROC*)0x0000000140965B08; // glIsEnabled
+PFNGLLIGHTFVDLLPROC* divagl_glLightfvDLL
+    = (PFNGLLIGHTFVDLLPROC*)0x0000000140965AC8; // glLightfv
+PFNGLLIGHTMODELFVDLLPROC* divagl_glLightModelfvDLL
+    = (PFNGLLIGHTMODELFVDLLPROC*)0x0000000140965AC0; // glLightModelfv
+PFNGLLINEWIDTHDLLPROC* divagl_glLineWidthDLL
+    = (PFNGLLINEWIDTHDLLPROC*)0x0000000140965B10; // glLineWidth
+PFNGLLOADIDENTITYDLLPROC* divagl_glLoadIdentityDLL
+    = (PFNGLLOADIDENTITYDLLPROC*)0x0000000140965C88; // glLoadIdentity
+PFNGLLOADMATRIXFDLLPROC* divagl_glLoadMatrixfDLL
+    = (PFNGLLOADMATRIXFDLLPROC*)0x0000000140965A50; // glLoadMatrixf
+PFNGLMATERIALFDLLPROC* divagl_glMaterialfDLL
+    = (PFNGLMATERIALFDLLPROC*)0x0000000140965A08; // glMaterialf
+PFNGLMATERIALFVDLLPROC* divagl_glMaterialfvDLL
+    = (PFNGLMATERIALFVDLLPROC*)0x0000000140965A80; // glMaterialfv
+PFNGLMATRIXMODEDLLPROC* divagl_glMatrixModeDLL
+    = (PFNGLMATRIXMODEDLLPROC*)0x0000000140965C80; // glMatrixMode
+PFNGLMULTMATRIXDDLLPROC* divagl_glMultMatrixdDLL
+    = (PFNGLMULTMATRIXDDLLPROC*)0x0000000140965B48; // glMultMatrixd
+PFNGLNORMAL3FDLLPROC* divagl_glNormal3fDLL
+    = (PFNGLNORMAL3FDLLPROC*)0x0000000140965B18; // glNormal3f
+PFNGLNORMALPOINTERDLLPROC* divagl_glNormalPointerDLL
+    = (PFNGLNORMALPOINTERDLLPROC*)0x0000000140965B20; // glNormalPointer
+PFNGLORTHODLLPROC* divagl_glOrthoDLL
+    = (PFNGLORTHODLLPROC*)0x0000000140965B50; // glOrtho
 PFNGLPIXELSTOREIDLLPROC* divagl_glPixelStoreiDLL
     = (PFNGLPIXELSTOREIDLLPROC*)0x0000000140965BA0; // glPixelStorei
+PFNGLPOINTSIZEDLLPROC* divagl_glPointSizeDLL
+    = (PFNGLPOINTSIZEDLLPROC*)0x0000000140965BE0; // glPointSize
 PFNGLPOLYGONMODEDLLPROC* divagl_glPolygonModeDLL
     = (PFNGLPOLYGONMODEDLLPROC*)0x0000000140965B98; // glPolygonMode
+PFNGLPOPATTRIBDLLPROC* divagl_glPopAttribDLL
+    = (PFNGLPOPATTRIBDLLPROC*)0x0000000140965BD8; // glPopAttrib
+PFNGLPOPCLIENTATTRIBDLLPROC* divagl_glPopClientAttribDLL
+    = (PFNGLPOPCLIENTATTRIBDLLPROC*)0x0000000140965BD0; // glPopClientAttrib
+PFNGLPOPMATRIXDLLPROC* divagl_glPopMatrixDLL
+    = (PFNGLPOPMATRIXDLLPROC*)0x0000000140965CA8; // glPopMatrix
+PFNGLPUSHATTRIBDLLPROC* divagl_glPushAttribDLL
+    = (PFNGLPUSHATTRIBDLLPROC*)0x0000000140965BC8; // glPushAttrib
+PFNGLPUSHCLIENTATTRIBDLLPROC* divagl_glPushClientAttribDLL
+    = (PFNGLPUSHCLIENTATTRIBDLLPROC*)0x0000000140965BC0; // glPushClientAttrib
+PFNGLPUSHMATRIXDLLPROC* divagl_glPushMatrixDLL
+    = (PFNGLPUSHMATRIXDLLPROC*)0x0000000140965CA0; // glPushMatrix
 PFNGLREADBUFFERDLLPROC* divagl_glReadBufferDLL
     = (PFNGLREADBUFFERDLLPROC*)0x0000000140965B70; // glReadBuffer
 PFNGLREADPIXELSDLLPROC* divagl_glReadPixelsDLL
     = (PFNGLREADPIXELSDLLPROC*)0x0000000140965B78; // glReadPixels
+PFNGLROTATEFDLLPROC* divagl_glRotatefDLL
+    = (PFNGLROTATEFDLLPROC*)0x0000000140965C70; // glRotatef
+PFNGLSCALEFDLLPROC* divagl_glScalefDLL
+    = (PFNGLSCALEFDLLPROC*)0x0000000140965C68; // glScalef
 PFNGLSCISSORDLLPROC* divagl_glScissorDLL
     = (PFNGLSCISSORDLLPROC*)0x0000000140965A40; // glScissor
+PFNGLSHADEMODELDLLPROC* divagl_glShadeModelDLL
+    = (PFNGLSHADEMODELDLLPROC*)0x0000000140965C20; // glShadeModel
+PFNGLTEXCOORD2FDLLPROC* divagl_glTexCoord2fDLL
+    = (PFNGLTEXCOORD2FDLLPROC*)0x0000000140965B80; // glTexCoord2f
+PFNGLTEXCOORDPOINTERDLLPROC* divagl_glTexCoordPointerDLL
+    = (PFNGLTEXCOORDPOINTERDLLPROC*)0x0000000140965A30; // glTexCoordPointer
+PFNGLTEXENVFDLLPROC* divagl_glTexEnvfDLL
+    = (PFNGLTEXENVFDLLPROC*)0x0000000140965B28; // glTexEnvf
+PFNGLTEXENVIDLLPROC* divagl_glTexEnviDLL
+    = (PFNGLTEXENVIDLLPROC*)0x0000000140965BB8; // glTexEnvi
 PFNGLTEXIMAGE1DDLLPROC* divagl_glTexImage1DDLL
     = (PFNGLTEXIMAGE1DDLLPROC*)0x0000000140965B58; // glTexImage1D
 PFNGLTEXIMAGE2DDLLPROC* divagl_glTexImage2DDLL
@@ -464,6 +183,14 @@ PFNGLTEXPARAMETERIDLLPROC* divagl_glTexParameteriDLL
     = (PFNGLTEXPARAMETERIDLLPROC*)0x0000000140965A18; // glTexParameteri
 PFNGLTEXSUBIMAGE2DDLLPROC* divagl_glTexSubImage2DDLL
     = (PFNGLTEXSUBIMAGE2DDLLPROC*)0x0000000140965AB0; // glTexSubImage2D
+PFNGLTRANSLATEFDLLPROC* divagl_glTranslatefDLL
+    = (PFNGLTRANSLATEFDLLPROC*)0x0000000140965C60; // glTranslatef
+PFNGLVERTEX3FDLLPROC* divagl_glVertex3fDLL
+    = (PFNGLVERTEX3FDLLPROC*)0x0000000140965AB8; // glVertex3f
+PFNGLVERTEX3FVDLLPROC* divagl_glVertex3fvDLL
+    = (PFNGLVERTEX3FVDLLPROC*)0x0000000140965B30; // glVertex3fv
+PFNGLVERTEXPOINTERDLLPROC* divagl_glVertexPointerDLL
+    = (PFNGLVERTEXPOINTERDLLPROC*)0x0000000140965B00; // glVertexPointer
 PFNGLVIEWPORTDLLPROC* divagl_glViewportDLL
     = (PFNGLVIEWPORTDLLPROC*)0x0000000140965C78; // glViewport
 PFNWGLGETPROCADDRESSDLLPROC* divagl_wglGetProcAddressDLL
@@ -507,8 +234,12 @@ PFNGLBINDATTRIBLOCATIONARBPROC* divagl_glBindAttribLocationARB
     = (PFNGLBINDATTRIBLOCATIONARBPROC*)0x00000001411A4CE0; // glBindAttribLocationARB
 PFNGLBINDBUFFERPROC* divagl_glBindBuffer
     = (PFNGLBINDBUFFERPROC*)0x00000001411A41E0; // glBindBuffer
+PFNGLBINDBUFFERARBPROC* divagl_glBindBufferARB
+    = (PFNGLBINDBUFFERARBPROC*)0x00000001411A4B10; // glBindBufferARB
 PFNGLBINDBUFFERBASEPROC* divagl_glBindBufferBase
     = (PFNGLBINDBUFFERBASEPROC*)0x00000001411A4598; // glBindBufferBase
+PFNGLBINDBUFFERBASENVPROC* divagl_glBindBufferBaseNV
+    = (PFNGLBINDBUFFERBASENVPROC*)0x00000001411A3578; // glBindBufferBaseNV
 PFNGLBINDBUFFEROFFSETNVPROC* divagl_glBindBufferOffsetNV
     = (PFNGLBINDBUFFEROFFSETNVPROC*)0x00000001411A3570; // glBindBufferOffsetNV
 PFNGLBINDBUFFERRANGEPROC* divagl_glBindBufferRange
@@ -521,12 +252,18 @@ PFNGLBINDFRAGDATALOCATIONEXTPROC* divagl_glBindFragDataLocationEXT
     = (PFNGLBINDFRAGDATALOCATIONEXTPROC*)0x00000001411A56C0; // glBindFragDataLocationEXT
 PFNGLBINDFRAMEBUFFERPROC* divagl_glBindFramebuffer
     = (PFNGLBINDFRAMEBUFFERPROC*)0x00000001411A4D50; // glBindFramebuffer
+PFNGLBINDFRAMEBUFFEREXTPROC* divagl_glBindFramebufferEXT
+    = (PFNGLBINDFRAMEBUFFEREXTPROC*)0x00000001411A54D8; // glBindFramebufferEXT
+PFNGLBINDMULTITEXTUREEXTPROC* divagl_glBindMultiTextureEXT
+    = (PFNGLBINDMULTITEXTUREEXTPROC*)0x00000001411A3818; // glBindMultiTextureEXT
 PFNGLBINDPROGRAMARBPROC* divagl_glBindProgramARB
     = (PFNGLBINDPROGRAMARBPROC*)0x00000001411A4A60; // glBindProgramARB
 PFNGLBINDPROGRAMNVPROC* divagl_glBindProgramNV
     = (PFNGLBINDPROGRAMNVPROC*)0x00000001411A5090; // glBindProgramNV
 PFNGLBINDRENDERBUFFERPROC* divagl_glBindRenderbuffer
     = (PFNGLBINDRENDERBUFFERPROC*)0x00000001411A4D20; // glBindRenderbuffer
+PFNGLBINDRENDERBUFFEREXTPROC* divagl_glBindRenderbufferEXT
+    = (PFNGLBINDRENDERBUFFEREXTPROC*)0x00000001411A54A8; // glBindRenderbufferEXT
 PFNGLBINDSAMPLERPROC* divagl_glBindSampler
     = (PFNGLBINDSAMPLERPROC*)0x00000001411A3FA0; // glBindSampler
 PFNGLBINDTEXTUREEXTPROC* divagl_glBindTextureEXT
@@ -555,6 +292,8 @@ PFNGLBLITFRAMEBUFFEREXTPROC* divagl_glBlitFramebufferEXT
     = (PFNGLBLITFRAMEBUFFEREXTPROC*)0x00000001411A5528; // glBlitFramebufferEXT
 PFNGLBUFFERDATAPROC* divagl_glBufferData
     = (PFNGLBUFFERDATAPROC*)0x00000001411A4200; // glBufferData
+PFNGLBUFFERDATAARBPROC* divagl_glBufferDataARB
+    = (PFNGLBUFFERDATAARBPROC*)0x00000001411A4B30; // glBufferDataARB
 PFNGLBUFFERSUBDATAPROC* divagl_glBufferSubData
     = (PFNGLBUFFERSUBDATAPROC*)0x00000001411A4208; // glBufferSubData
 PFNGLBUFFERSUBDATAARBPROC* divagl_glBufferSubDataARB
@@ -565,6 +304,8 @@ PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC* divagl_glCheckFramebufferStatusEXT
     = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC*)0x00000001411A54F0; // glCheckFramebufferStatusEXT
 PFNGLCHECKNAMEDFRAMEBUFFERSTATUSEXTPROC* divagl_glCheckNamedFramebufferStatusEXT
     = (PFNGLCHECKNAMEDFRAMEBUFFERSTATUSEXTPROC*)0x00000001411A3B80; // glCheckNamedFramebufferStatusEXT
+PFNGLCLAMPCOLORARBPROC* divagl_glClampColorARB
+    = (PFNGLCLAMPCOLORARBPROC*)0x00000001411A4D00; // glClampColorARB
 PFNGLCLEARBUFFERFIPROC* divagl_glClearBufferfi
     = (PFNGLCLEARBUFFERFIPROC*)0x00000001411A4708; // glClearBufferfi
 PFNGLCLEARBUFFERFVPROC* divagl_glClearBufferfv
@@ -579,6 +320,8 @@ PFNGLCLEARCOLORIUIEXTPROC* divagl_glClearColorIuiEXT
     = (PFNGLCLEARCOLORIUIEXTPROC*)0x00000001411A35E8; // glClearColorIuiEXT
 PFNGLCLEARDEPTHDNVPROC* divagl_glClearDepthdNV
     = (PFNGLCLEARDEPTHDNVPROC*)0x00000001411A34F0; // glClearDepthdNV
+PFNGLCLIENTACTIVETEXTUREPROC* divagl_glClientActiveTexture
+    = (PFNGLCLIENTACTIVETEXTUREPROC*)0x00000001411A3DC8; // glClientActiveTexture
 PFNGLCLIENTACTIVETEXTUREARBPROC* divagl_glClientActiveTextureARB
     = (PFNGLCLIENTACTIVETEXTUREARBPROC*)0x00000001411A4728; // glClientActiveTextureARB
 PFNGLCLIENTATTRIBDEFAULTEXTPROC* divagl_glClientAttribDefaultEXT
@@ -703,6 +446,8 @@ PFNGLCOPYMULTITEXIMAGE2DEXTPROC* divagl_glCopyMultiTexImage2DEXT
     = (PFNGLCOPYMULTITEXIMAGE2DEXTPROC*)0x00000001411A37C0; // glCopyMultiTexImage2DEXT
 PFNGLCOPYMULTITEXSUBIMAGE1DEXTPROC* divagl_glCopyMultiTexSubImage1DEXT
     = (PFNGLCOPYMULTITEXSUBIMAGE1DEXTPROC*)0x00000001411A37C8; // glCopyMultiTexSubImage1DEXT
+PFNGLCOPYMULTITEXSUBIMAGE2DEXTPROC* divagl_glCopyMultiTexSubImage2DEXT
+    = (PFNGLCOPYMULTITEXSUBIMAGE2DEXTPROC*)0x00000001411A37D0; // glCopyMultiTexSubImage2DEXT
 PFNGLCOPYMULTITEXSUBIMAGE3DEXTPROC* divagl_glCopyMultiTexSubImage3DEXT
     = (PFNGLCOPYMULTITEXSUBIMAGE3DEXTPROC*)0x00000001411A3810; // glCopyMultiTexSubImage3DEXT
 PFNGLCOPYTEXSUBIMAGE3DPROC* divagl_glCopyTexSubImage3D
@@ -729,10 +474,14 @@ PFNGLCREATESHADEROBJECTARBPROC* divagl_glCreateShaderObjectARB
     = (PFNGLCREATESHADEROBJECTARBPROC*)0x00000001411A4BC0; // glCreateShaderObjectARB
 PFNGLDELETEBUFFERSPROC* divagl_glDeleteBuffers
     = (PFNGLDELETEBUFFERSPROC*)0x00000001411A41E8; // glDeleteBuffers
+PFNGLDELETEBUFFERSARBPROC* divagl_glDeleteBuffersARB
+    = (PFNGLDELETEBUFFERSARBPROC*)0x00000001411A4B18; // glDeleteBuffersARB
 PFNGLDELETEFENCESNVPROC* divagl_glDeleteFencesNV
     = (PFNGLDELETEFENCESNVPROC*)0x00000001411A5040; // glDeleteFencesNV
 PFNGLDELETEFRAMEBUFFERSPROC* divagl_glDeleteFramebuffers
     = (PFNGLDELETEFRAMEBUFFERSPROC*)0x00000001411A4D58; // glDeleteFramebuffers
+PFNGLDELETEFRAMEBUFFERSEXTPROC* divagl_glDeleteFramebuffersEXT
+    = (PFNGLDELETEFRAMEBUFFERSEXTPROC*)0x00000001411A54E0; // glDeleteFramebuffersEXT
 PFNGLDELETEOBJECTARBPROC* divagl_glDeleteObjectARB
     = (PFNGLDELETEOBJECTARBPROC*)0x00000001411A4BA8; // glDeleteObjectARB
 PFNGLDELETEOCCLUSIONQUERIESNVPROC* divagl_glDeleteOcclusionQueriesNV
@@ -749,6 +498,8 @@ PFNGLDELETEQUERIESARBPROC* divagl_glDeleteQueriesARB
     = (PFNGLDELETEQUERIESARBPROC*)0x00000001411A4B70; // glDeleteQueriesARB
 PFNGLDELETERENDERBUFFERSPROC* divagl_glDeleteRenderbuffers
     = (PFNGLDELETERENDERBUFFERSPROC*)0x00000001411A4D28; // glDeleteRenderbuffers
+PFNGLDELETERENDERBUFFERSEXTPROC* divagl_glDeleteRenderbuffersEXT
+    = (PFNGLDELETERENDERBUFFERSEXTPROC*)0x00000001411A54B0; // glDeleteRenderbuffersEXT
 PFNGLDELETESAMPLERSPROC* divagl_glDeleteSamplers
     = (PFNGLDELETESAMPLERSPROC*)0x00000001411A3F90; // glDeleteSamplers
 PFNGLDELETESHADERPROC* divagl_glDeleteShader
@@ -777,6 +528,8 @@ PFNGLDISABLEINDEXEDEXTPROC* divagl_glDisableIndexedEXT
     = (PFNGLDISABLEINDEXEDEXTPROC*)0x00000001411A3540; // glDisableIndexedEXT
 PFNGLDISABLEVERTEXATTRIBARRAYPROC* divagl_glDisableVertexAttribArray
     = (PFNGLDISABLEVERTEXATTRIBARRAYPROC*)0x00000001411A42A0; // glDisableVertexAttribArray
+PFNGLDISABLEVERTEXATTRIBARRAYARBPROC* divagl_glDisableVertexAttribArrayARB
+    = (PFNGLDISABLEVERTEXATTRIBARRAYARBPROC*)0x00000001411A4A50; // glDisableVertexAttribArrayARB
 PFNGLDRAWARRAYSEXTPROC* divagl_glDrawArraysEXT
     = (PFNGLDRAWARRAYSEXTPROC*)0x00000001411A4E70; // glDrawArraysEXT
 PFNGLDRAWARRAYSINSTANCEDARBPROC* divagl_glDrawArraysInstancedARB
@@ -807,6 +560,8 @@ PFNGLENABLEINDEXEDEXTPROC* divagl_glEnableIndexedEXT
     = (PFNGLENABLEINDEXEDEXTPROC*)0x00000001411A3538; // glEnableIndexedEXT
 PFNGLENABLEVERTEXATTRIBARRAYPROC* divagl_glEnableVertexAttribArray
     = (PFNGLENABLEVERTEXATTRIBARRAYPROC*)0x00000001411A42A8; // glEnableVertexAttribArray
+PFNGLENABLEVERTEXATTRIBARRAYARBPROC* divagl_glEnableVertexAttribArrayARB
+    = (PFNGLENABLEVERTEXATTRIBARRAYARBPROC*)0x00000001411A4A48; // glEnableVertexAttribArrayARB
 PFNGLENDCONDITIONALRENDERPROC* divagl_glEndConditionalRender
     = (PFNGLENDCONDITIONALRENDERPROC*)0x00000001411A45B8; // glEndConditionalRender
 PFNGLENDCONDITIONALRENDERNVPROC* divagl_glEndConditionalRenderNV
@@ -865,6 +620,8 @@ PFNGLFRAMEBUFFERREADBUFFEREXTPROC* divagl_glFramebufferReadBufferEXT
     = (PFNGLFRAMEBUFFERREADBUFFEREXTPROC*)0x00000001411A3C20; // glFramebufferReadBufferEXT
 PFNGLFRAMEBUFFERRENDERBUFFERPROC* divagl_glFramebufferRenderbuffer
     = (PFNGLFRAMEBUFFERRENDERBUFFERPROC*)0x00000001411A4D88; // glFramebufferRenderbuffer
+PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC* divagl_glFramebufferRenderbufferEXT
+    = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC*)0x00000001411A5510; // glFramebufferRenderbufferEXT
 PFNGLFRAMEBUFFERTEXTUREPROC* divagl_glFramebufferTexture
     = (PFNGLFRAMEBUFFERTEXTUREPROC*)0x00000001411A3F50; // glFramebufferTexture
 PFNGLFRAMEBUFFERTEXTURE1DPROC* divagl_glFramebufferTexture1D
@@ -873,6 +630,8 @@ PFNGLFRAMEBUFFERTEXTURE1DEXTPROC* divagl_glFramebufferTexture1DEXT
     = (PFNGLFRAMEBUFFERTEXTURE1DEXTPROC*)0x00000001411A54F8; // glFramebufferTexture1DEXT
 PFNGLFRAMEBUFFERTEXTURE2DPROC* divagl_glFramebufferTexture2D
     = (PFNGLFRAMEBUFFERTEXTURE2DPROC*)0x00000001411A4D78; // glFramebufferTexture2D
+PFNGLFRAMEBUFFERTEXTURE2DEXTPROC* divagl_glFramebufferTexture2DEXT
+    = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC*)0x00000001411A5500; // glFramebufferTexture2DEXT
 PFNGLFRAMEBUFFERTEXTURE3DPROC* divagl_glFramebufferTexture3D
     = (PFNGLFRAMEBUFFERTEXTURE3DPROC*)0x00000001411A4D80; // glFramebufferTexture3D
 PFNGLFRAMEBUFFERTEXTURE3DEXTPROC* divagl_glFramebufferTexture3DEXT
@@ -907,6 +666,8 @@ PFNGLGENFENCESNVPROC* divagl_glGenFencesNV
     = (PFNGLGENFENCESNVPROC*)0x00000001411A5048; // glGenFencesNV
 PFNGLGENFRAMEBUFFERSPROC* divagl_glGenFramebuffers
     = (PFNGLGENFRAMEBUFFERSPROC*)0x00000001411A4D60; // glGenFramebuffers
+PFNGLGENFRAMEBUFFERSEXTPROC* divagl_glGenFramebuffersEXT
+    = (PFNGLGENFRAMEBUFFERSEXTPROC*)0x00000001411A54E8; // glGenFramebuffersEXT
 PFNGLGENOCCLUSIONQUERIESNVPROC* divagl_glGenOcclusionQueriesNV
     = (PFNGLGENOCCLUSIONQUERIESNVPROC*)0x00000001411A5288; // glGenOcclusionQueriesNV
 PFNGLGENPROGRAMSARBPROC* divagl_glGenProgramsARB
@@ -919,6 +680,8 @@ PFNGLGENQUERIESARBPROC* divagl_glGenQueriesARB
     = (PFNGLGENQUERIESARBPROC*)0x00000001411A4B68; // glGenQueriesARB
 PFNGLGENRENDERBUFFERSPROC* divagl_glGenRenderbuffers
     = (PFNGLGENRENDERBUFFERSPROC*)0x00000001411A4D30; // glGenRenderbuffers
+PFNGLGENRENDERBUFFERSEXTPROC* divagl_glGenRenderbuffersEXT
+    = (PFNGLGENRENDERBUFFERSEXTPROC*)0x00000001411A54B8; // glGenRenderbuffersEXT
 PFNGLGENSAMPLERSPROC* divagl_glGenSamplers
     = (PFNGLGENSAMPLERSPROC*)0x00000001411A3F80; // glGenSamplers
 PFNGLGENTEXTURESPROC* divagl_glGenTextures
@@ -1099,6 +862,8 @@ PFNGLGETPOINTERVEXTPROC* divagl_glGetPointervEXT
     = (PFNGLGETPOINTERVEXTPROC*)0x00000001411A4E80; // glGetPointervEXT
 PFNGLGETPROGRAMENVPARAMETERDVARBPROC* divagl_glGetProgramEnvParameterdvARB
     = (PFNGLGETPROGRAMENVPARAMETERDVARBPROC*)0x00000001411A4AB8; // glGetProgramEnvParameterdvARB
+PFNGLGETPROGRAMENVPARAMETERFVARBPROC* divagl_glGetProgramEnvParameterfvARB
+    = (PFNGLGETPROGRAMENVPARAMETERFVARBPROC*)0x00000001411A4AC0; // glGetProgramEnvParameterfvARB
 PFNGLGETPROGRAMENVPARAMETERIIVNVPROC* divagl_glGetProgramEnvParameterIivNV
     = (PFNGLGETPROGRAMENVPARAMETERIIVNVPROC*)0x00000001411A55C8; // glGetProgramEnvParameterIivNV
 PFNGLGETPROGRAMENVPARAMETERIUIVNVPROC* divagl_glGetProgramEnvParameterIuivNV
@@ -1107,6 +872,8 @@ PFNGLGETPROGRAMINFOLOGPROC* divagl_glGetProgramInfoLog
     = (PFNGLGETPROGRAMINFOLOGPROC*)0x00000001411A42D8; // glGetProgramInfoLog
 PFNGLGETPROGRAMIVPROC* divagl_glGetProgramiv
     = (PFNGLGETPROGRAMIVPROC*)0x00000001411A42D0; // glGetProgramiv
+PFNGLGETPROGRAMIVARBPROC* divagl_glGetProgramivARB
+    = (PFNGLGETPROGRAMIVARBPROC*)0x00000001411A4AD8; // glGetProgramivARB
 PFNGLGETPROGRAMIVNVPROC* divagl_glGetProgramivNV
     = (PFNGLGETPROGRAMIVNVPROC*)0x00000001411A50C0; // glGetProgramivNV
 PFNGLGETPROGRAMLOCALPARAMETERDVARBPROC* divagl_glGetProgramLocalParameterdvARB
@@ -1171,6 +938,8 @@ PFNGLGETTEXPARAMETERIUIVPROC* divagl_glGetTexParameterIuiv
     = (PFNGLGETTEXPARAMETERIUIVPROC*)0x00000001411A46E8; // glGetTexParameterIuiv
 PFNGLGETTEXPARAMETERIUIVEXTPROC* divagl_glGetTexParameterIuivEXT
     = (PFNGLGETTEXPARAMETERIUIVEXTPROC*)0x00000001411A35D8; // glGetTexParameterIuivEXT
+PFNGLGETTEXTUREIMAGEEXTPROC* divagl_glGetTextureImageEXT
+    = (PFNGLGETTEXTUREIMAGEEXTPROC*)0x00000001411A3738; // glGetTextureImageEXT
 PFNGLGETTEXTURELEVELPARAMETERFVEXTPROC* divagl_glGetTextureLevelParameterfvEXT
     = (PFNGLGETTEXTURELEVELPARAMETERFVEXTPROC*)0x00000001411A3750; // glGetTextureLevelParameterfvEXT
 PFNGLGETTEXTURELEVELPARAMETERIVEXTPROC* divagl_glGetTextureLevelParameterivEXT
@@ -1257,6 +1026,8 @@ PFNGLINDEXPOINTEREXTPROC* divagl_glIndexPointerEXT
     = (PFNGLINDEXPOINTEREXTPROC*)0x00000001411A4E88; // glIndexPointerEXT
 PFNGLISBUFFERPROC* divagl_glIsBuffer
     = (PFNGLISBUFFERPROC*)0x00000001411A41F8; // glIsBuffer
+PFNGLISBUFFERARBPROC* divagl_glIsBufferARB
+    = (PFNGLISBUFFERARBPROC*)0x00000001411A4B28; // glIsBufferARB
 PFNGLISENABLEDIPROC* divagl_glIsEnabledi
     = (PFNGLISENABLEDIPROC*)0x00000001411A4578; // glIsEnabledi
 PFNGLISENABLEDINDEXEDEXTPROC* divagl_glIsEnabledIndexedEXT
@@ -1299,6 +1070,8 @@ PFNGLLOADTRANSPOSEMATRIXDPROC* divagl_glLoadTransposeMatrixd
     = (PFNGLLOADTRANSPOSEMATRIXDPROC*)0x00000001411A3FE0; // glLoadTransposeMatrixd
 PFNGLLOADTRANSPOSEMATRIXDARBPROC* divagl_glLoadTransposeMatrixdARB
     = (PFNGLLOADTRANSPOSEMATRIXDARBPROC*)0x00000001411A4838; // glLoadTransposeMatrixdARB
+PFNGLLOADTRANSPOSEMATRIXFPROC* divagl_glLoadTransposeMatrixf
+    = (PFNGLLOADTRANSPOSEMATRIXFPROC*)0x00000001411A3FD8; // glLoadTransposeMatrixf
 PFNGLLOADTRANSPOSEMATRIXFARBPROC* divagl_glLoadTransposeMatrixfARB
     = (PFNGLLOADTRANSPOSEMATRIXFARBPROC*)0x00000001411A4830; // glLoadTransposeMatrixfARB
 PFNGLLOCKARRAYSEXTPROC* divagl_glLockArraysEXT
@@ -1309,6 +1082,8 @@ PFNGLMAPBUFFERARBPROC* divagl_glMapBufferARB
     = (PFNGLMAPBUFFERARBPROC*)0x00000001411A4B48; // glMapBufferARB
 PFNGLMAPBUFFERRANGEPROC* divagl_glMapBufferRange
     = (PFNGLMAPBUFFERRANGEPROC*)0x00000001411A4DD8; // glMapBufferRange
+PFNGLMAPNAMEDBUFFEREXTPROC* divagl_glMapNamedBufferEXT
+    = (PFNGLMAPNAMEDBUFFEREXTPROC*)0x00000001411A3B20; // glMapNamedBufferEXT
 PFNGLMATRIXFRUSTUMEXTPROC* divagl_glMatrixFrustumEXT
     = (PFNGLMATRIXFRUSTUMEXTPROC*)0x00000001411A3698; // glMatrixFrustumEXT
 PFNGLMATRIXLOADDEXTPROC* divagl_glMatrixLoaddEXT
@@ -1403,8 +1178,12 @@ PFNGLMULTITEXCOORD2DVPROC* divagl_glMultiTexCoord2dv
     = (PFNGLMULTITEXCOORD2DVPROC*)0x00000001411A3E68; // glMultiTexCoord2dv
 PFNGLMULTITEXCOORD2DVARBPROC* divagl_glMultiTexCoord2dvARB
     = (PFNGLMULTITEXCOORD2DVARBPROC*)0x00000001411A4778; // glMultiTexCoord2dvARB
+PFNGLMULTITEXCOORD2FPROC* divagl_glMultiTexCoord2f
+    = (PFNGLMULTITEXCOORD2FPROC*)0x00000001411A3E78; // glMultiTexCoord2f
 PFNGLMULTITEXCOORD2FARBPROC* divagl_glMultiTexCoord2fARB
     = (PFNGLMULTITEXCOORD2FARBPROC*)0x00000001411A4780; // glMultiTexCoord2fARB
+PFNGLMULTITEXCOORD2FVPROC* divagl_glMultiTexCoord2fv
+    = (PFNGLMULTITEXCOORD2FVPROC*)0x00000001411A3E88; // glMultiTexCoord2fv
 PFNGLMULTITEXCOORD2FVARBPROC* divagl_glMultiTexCoord2fvARB
     = (PFNGLMULTITEXCOORD2FVARBPROC*)0x00000001411A4788; // glMultiTexCoord2fvARB
 PFNGLMULTITEXCOORD2HNVPROC* divagl_glMultiTexCoord2hNV
@@ -1551,8 +1330,14 @@ PFNGLMULTTRANSPOSEMATRIXDPROC* divagl_glMultTransposeMatrixd
     = (PFNGLMULTTRANSPOSEMATRIXDPROC*)0x00000001411A3FF0; // glMultTransposeMatrixd
 PFNGLMULTTRANSPOSEMATRIXDARBPROC* divagl_glMultTransposeMatrixdARB
     = (PFNGLMULTTRANSPOSEMATRIXDARBPROC*)0x00000001411A4848; // glMultTransposeMatrixdARB
+PFNGLMULTTRANSPOSEMATRIXFPROC* divagl_glMultTransposeMatrixf
+    = (PFNGLMULTTRANSPOSEMATRIXFPROC*)0x00000001411A3FE8; // glMultTransposeMatrixf
 PFNGLMULTTRANSPOSEMATRIXFARBPROC* divagl_glMultTransposeMatrixfARB
     = (PFNGLMULTTRANSPOSEMATRIXFARBPROC*)0x00000001411A4840; // glMultTransposeMatrixfARB
+PFNGLNAMEDBUFFERDATAEXTPROC* divagl_glNamedBufferDataEXT
+    = (PFNGLNAMEDBUFFERDATAEXTPROC*)0x00000001411A3B10; // glNamedBufferDataEXT
+PFNGLNAMEDBUFFERSUBDATAEXTPROC* divagl_glNamedBufferSubDataEXT
+    = (PFNGLNAMEDBUFFERSUBDATAEXTPROC*)0x00000001411A3B18; // glNamedBufferSubDataEXT
 PFNGLNAMEDFRAMEBUFFERRENDERBUFFEREXTPROC* divagl_glNamedFramebufferRenderbufferEXT
     = (PFNGLNAMEDFRAMEBUFFERRENDERBUFFEREXTPROC*)0x00000001411A3BC0; // glNamedFramebufferRenderbufferEXT
 PFNGLNAMEDFRAMEBUFFERTEXTURE1DEXTPROC* divagl_glNamedFramebufferTexture1DEXT
@@ -1605,14 +1390,20 @@ PFNGLNORMALPOINTEREXTPROC* divagl_glNormalPointerEXT
     = (PFNGLNORMALPOINTEREXTPROC*)0x00000001411A4E90; // glNormalPointerEXT
 PFNGLPIXELDATARANGENVPROC* divagl_glPixelDataRangeNV
     = (PFNGLPIXELDATARANGENVPROC*)0x00000001411A5470; // glPixelDataRangeNV
+PFNGLPOINTPARAMETERFPROC* divagl_glPointParameterf
+    = (PFNGLPOINTPARAMETERFPROC*)0x00000001411A4078; // glPointParameterf
 PFNGLPOINTPARAMETERFARBPROC* divagl_glPointParameterfARB
     = (PFNGLPOINTPARAMETERFARBPROC*)0x00000001411A4890; // glPointParameterfARB
 PFNGLPOINTPARAMETERFEXTPROC* divagl_glPointParameterfEXT
     = (PFNGLPOINTPARAMETERFEXTPROC*)0x00000001411A4EB0; // glPointParameterfEXT
+PFNGLPOINTPARAMETERFVPROC* divagl_glPointParameterfv
+    = (PFNGLPOINTPARAMETERFVPROC*)0x00000001411A4080; // glPointParameterfv
 PFNGLPOINTPARAMETERFVARBPROC* divagl_glPointParameterfvARB
     = (PFNGLPOINTPARAMETERFVARBPROC*)0x00000001411A4898; // glPointParameterfvARB
 PFNGLPOINTPARAMETERFVEXTPROC* divagl_glPointParameterfvEXT
     = (PFNGLPOINTPARAMETERFVEXTPROC*)0x00000001411A4EB8; // glPointParameterfvEXT
+PFNGLPOINTPARAMETERIPROC* divagl_glPointParameteri
+    = (PFNGLPOINTPARAMETERIPROC*)0x00000001411A4088; // glPointParameteri
 PFNGLPOINTPARAMETERINVPROC* divagl_glPointParameteriNV
     = (PFNGLPOINTPARAMETERINVPROC*)0x00000001411A52C0; // glPointParameteriNV
 PFNGLPOINTPARAMETERIVPROC* divagl_glPointParameteriv
@@ -1623,10 +1414,14 @@ PFNGLPRESENTFRAMEDUALFILLNVPROC* divagl_glPresentFrameDualFillNV
     = (PFNGLPRESENTFRAMEDUALFILLNVPROC*)0x00000001411A3608; // glPresentFrameDualFillNV
 PFNGLPRESENTFRAMEKEYEDNVPROC* divagl_glPresentFrameKeyedNV
     = (PFNGLPRESENTFRAMEKEYEDNVPROC*)0x00000001411A3600; // glPresentFrameKeyedNV
+PFNGLPRIMITIVERESTARTINDEXNVPROC* divagl_glPrimitiveRestartIndexNV
+    = (PFNGLPRIMITIVERESTARTINDEXNVPROC*)0x00000001411A5488; // glPrimitiveRestartIndexNV
 PFNGLPRIMITIVERESTARTNVPROC* divagl_glPrimitiveRestartNV
     = (PFNGLPRIMITIVERESTARTNVPROC*)0x00000001411A5480; // glPrimitiveRestartNV
 PFNGLPRIORITIZETEXTURESEXTPROC* divagl_glPrioritizeTexturesEXT
     = (PFNGLPRIORITIZETEXTURESEXTPROC*)0x00000001411A4E58; // glPrioritizeTexturesEXT
+PFNGLPROGRAMBUFFERPARAMETERSFVNVPROC* divagl_glProgramBufferParametersfvNV
+    = (PFNGLPROGRAMBUFFERPARAMETERSFVNVPROC*)0x00000001411A3508; // glProgramBufferParametersfvNV
 PFNGLPROGRAMBUFFERPARAMETERSIIVNVPROC* divagl_glProgramBufferParametersIivNV
     = (PFNGLPROGRAMBUFFERPARAMETERSIIVNVPROC*)0x00000001411A3510; // glProgramBufferParametersIivNV
 PFNGLPROGRAMBUFFERPARAMETERSIUIVNVPROC* divagl_glProgramBufferParametersIuivNV
@@ -1635,6 +1430,10 @@ PFNGLPROGRAMENVPARAMETER4DARBPROC* divagl_glProgramEnvParameter4dARB
     = (PFNGLPROGRAMENVPARAMETER4DARBPROC*)0x00000001411A4A78; // glProgramEnvParameter4dARB
 PFNGLPROGRAMENVPARAMETER4DVARBPROC* divagl_glProgramEnvParameter4dvARB
     = (PFNGLPROGRAMENVPARAMETER4DVARBPROC*)0x00000001411A4A80; // glProgramEnvParameter4dvARB
+PFNGLPROGRAMENVPARAMETER4FARBPROC* divagl_glProgramEnvParameter4fARB
+    = (PFNGLPROGRAMENVPARAMETER4FARBPROC*)0x00000001411A4A88; // glProgramEnvParameter4fARB
+PFNGLPROGRAMENVPARAMETER4FVARBPROC* divagl_glProgramEnvParameter4fvARB
+    = (PFNGLPROGRAMENVPARAMETER4FVARBPROC*)0x00000001411A4A90; // glProgramEnvParameter4fvARB
 PFNGLPROGRAMENVPARAMETERI4INVPROC* divagl_glProgramEnvParameterI4iNV
     = (PFNGLPROGRAMENVPARAMETERI4INVPROC*)0x00000001411A5588; // glProgramEnvParameterI4iNV
 PFNGLPROGRAMENVPARAMETERI4IVNVPROC* divagl_glProgramEnvParameterI4ivNV
@@ -1643,6 +1442,8 @@ PFNGLPROGRAMENVPARAMETERI4UINVPROC* divagl_glProgramEnvParameterI4uiNV
     = (PFNGLPROGRAMENVPARAMETERI4UINVPROC*)0x00000001411A55A0; // glProgramEnvParameterI4uiNV
 PFNGLPROGRAMENVPARAMETERI4UIVNVPROC* divagl_glProgramEnvParameterI4uivNV
     = (PFNGLPROGRAMENVPARAMETERI4UIVNVPROC*)0x00000001411A55A8; // glProgramEnvParameterI4uivNV
+PFNGLPROGRAMENVPARAMETERS4FVEXTPROC* divagl_glProgramEnvParameters4fvEXT
+    = (PFNGLPROGRAMENVPARAMETERS4FVEXTPROC*)0x00000001411A5548; // glProgramEnvParameters4fvEXT
 PFNGLPROGRAMENVPARAMETERSI4IVNVPROC* divagl_glProgramEnvParametersI4ivNV
     = (PFNGLPROGRAMENVPARAMETERSI4IVNVPROC*)0x00000001411A5598; // glProgramEnvParametersI4ivNV
 PFNGLPROGRAMENVPARAMETERSI4UIVNVPROC* divagl_glProgramEnvParametersI4uivNV
@@ -1651,6 +1452,10 @@ PFNGLPROGRAMLOCALPARAMETER4DARBPROC* divagl_glProgramLocalParameter4dARB
     = (PFNGLPROGRAMLOCALPARAMETER4DARBPROC*)0x00000001411A4A98; // glProgramLocalParameter4dARB
 PFNGLPROGRAMLOCALPARAMETER4DVARBPROC* divagl_glProgramLocalParameter4dvARB
     = (PFNGLPROGRAMLOCALPARAMETER4DVARBPROC*)0x00000001411A4AA0; // glProgramLocalParameter4dvARB
+PFNGLPROGRAMLOCALPARAMETER4FARBPROC* divagl_glProgramLocalParameter4fARB
+    = (PFNGLPROGRAMLOCALPARAMETER4FARBPROC*)0x00000001411A4AA8; // glProgramLocalParameter4fARB
+PFNGLPROGRAMLOCALPARAMETER4FVARBPROC* divagl_glProgramLocalParameter4fvARB
+    = (PFNGLPROGRAMLOCALPARAMETER4FVARBPROC*)0x00000001411A4AB0; // glProgramLocalParameter4fvARB
 PFNGLPROGRAMLOCALPARAMETERI4INVPROC* divagl_glProgramLocalParameterI4iNV
     = (PFNGLPROGRAMLOCALPARAMETERI4INVPROC*)0x00000001411A5558; // glProgramLocalParameterI4iNV
 PFNGLPROGRAMLOCALPARAMETERI4IVNVPROC* divagl_glProgramLocalParameterI4ivNV
@@ -1659,6 +1464,8 @@ PFNGLPROGRAMLOCALPARAMETERI4UINVPROC* divagl_glProgramLocalParameterI4uiNV
     = (PFNGLPROGRAMLOCALPARAMETERI4UINVPROC*)0x00000001411A5570; // glProgramLocalParameterI4uiNV
 PFNGLPROGRAMLOCALPARAMETERI4UIVNVPROC* divagl_glProgramLocalParameterI4uivNV
     = (PFNGLPROGRAMLOCALPARAMETERI4UIVNVPROC*)0x00000001411A5578; // glProgramLocalParameterI4uivNV
+PFNGLPROGRAMLOCALPARAMETERS4FVEXTPROC* divagl_glProgramLocalParameters4fvEXT
+    = (PFNGLPROGRAMLOCALPARAMETERS4FVEXTPROC*)0x00000001411A5550; // glProgramLocalParameters4fvEXT
 PFNGLPROGRAMLOCALPARAMETERSI4IVNVPROC* divagl_glProgramLocalParametersI4ivNV
     = (PFNGLPROGRAMLOCALPARAMETERSI4IVNVPROC*)0x00000001411A5568; // glProgramLocalParametersI4ivNV
 PFNGLPROGRAMLOCALPARAMETERSI4UIVNVPROC* divagl_glProgramLocalParametersI4uivNV
@@ -1763,8 +1570,12 @@ PFNGLQUERYCOUNTERPROC* divagl_glQueryCounter
     = (PFNGLQUERYCOUNTERPROC*)0x00000001411A3F30; // glQueryCounter
 PFNGLRENDERBUFFERSTORAGEPROC* divagl_glRenderbufferStorage
     = (PFNGLRENDERBUFFERSTORAGEPROC*)0x00000001411A4D38; // glRenderbufferStorage
+PFNGLRENDERBUFFERSTORAGEEXTPROC* divagl_glRenderbufferStorageEXT
+    = (PFNGLRENDERBUFFERSTORAGEEXTPROC*)0x00000001411A54C0; // glRenderbufferStorageEXT
 PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC* divagl_glRenderbufferStorageMultisample
     = (PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC*)0x00000001411A4DA8; // glRenderbufferStorageMultisample
+PFNGLRENDERBUFFERSTORAGEMULTISAMPLECOVERAGENVPROC* divagl_glRenderbufferStorageMultisampleCoverageNV
+    = (PFNGLRENDERBUFFERSTORAGEMULTISAMPLECOVERAGENVPROC*)0x00000001411A3500; // glRenderbufferStorageMultisampleCoverageNV
 PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC* divagl_glRenderbufferStorageMultisampleEXT
     = (PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC*)0x00000001411A5530; // glRenderbufferStorageMultisampleEXT
 PFNGLREQUESTRESIDENTPROGRAMSNVPROC* divagl_glRequestResidentProgramsNV
@@ -2083,6 +1894,8 @@ PFNGLUNMAPBUFFERPROC* divagl_glUnmapBuffer
     = (PFNGLUNMAPBUFFERPROC*)0x00000001411A4220; // glUnmapBuffer
 PFNGLUNMAPBUFFERARBPROC* divagl_glUnmapBufferARB
     = (PFNGLUNMAPBUFFERARBPROC*)0x00000001411A4B50; // glUnmapBufferARB
+PFNGLUNMAPNAMEDBUFFEREXTPROC* divagl_glUnmapNamedBufferEXT
+    = (PFNGLUNMAPNAMEDBUFFEREXTPROC*)0x00000001411A3B28; // glUnmapNamedBufferEXT
 PFNGLUSEPROGRAMPROC* divagl_glUseProgram
     = (PFNGLUSEPROGRAMPROC*)0x00000001411A4350; // glUseProgram
 PFNGLUSEPROGRAMOBJECTARBPROC* divagl_glUseProgramObjectARB
@@ -2403,6 +2216,8 @@ PFNGLVERTEXATTRIBIPOINTEREXTPROC* divagl_glVertexAttribIPointerEXT
     = (PFNGLVERTEXATTRIBIPOINTEREXTPROC*)0x00000001411A56A0; // glVertexAttribIPointerEXT
 PFNGLVERTEXATTRIBPOINTERPROC* divagl_glVertexAttribPointer
     = (PFNGLVERTEXATTRIBPOINTERPROC*)0x00000001411A4518; // glVertexAttribPointer
+PFNGLVERTEXATTRIBPOINTERARBPROC* divagl_glVertexAttribPointerARB
+    = (PFNGLVERTEXATTRIBPOINTERARBPROC*)0x00000001411A4A40; // glVertexAttribPointerARB
 PFNGLVERTEXATTRIBPOINTERNVPROC* divagl_glVertexAttribPointerNV
     = (PFNGLVERTEXATTRIBPOINTERNVPROC*)0x00000001411A5148; // glVertexAttribPointerNV
 PFNGLVERTEXATTRIBS1DVNVPROC* divagl_glVertexAttribs1dvNV
@@ -2596,14 +2411,33 @@ PFNWGLSETPBUFFERATTRIBARBPROC* divagl_wglSetPbufferAttribARB
 PFNWGLSWAPINTERVALEXTPROC* divagl_wglSwapIntervalEXT
     = (PFNWGLSWAPINTERVALEXTPROC*)0x00000001411A3E30; // wglSwapIntervalEXT
 
+PFNGLBEGINGLUTPROC* divagl_glBeginGLUT = 0;
+PFNGLBITMAPGLUTPROC* divagl_glBitmapGLUT = 0;
 PFNGLDRAWBUFFERGLUTPROC* divagl_glDrawBufferGLUT = 0;
 PFNGLENABLEGLUTPROC* divagl_glEnableGLUT = 0;
+PFNGLENDGLUTPROC* divagl_glEndGLUT = 0;
+PFNGLEVALMESH2GLUTPROC* divagl_glEvalMesh2GLUT = 0;
 PFNGLFINISHGLUTPROC* divagl_glFinishGLUT = 0;
 PFNGLGETERRORGLUTPROC* divagl_glGetErrorGLUT = 0;
 PFNGLGETINTEGERVGLUTPROC* divagl_glGetIntegervGLUT = 0;
 PFNGLGETSTRINGGLUTPROC* divagl_glGetStringGLUT = 0;
+PFNGLMAP2FGLUTPROC* divagl_glMap2fGLUT = 0;
+PFNGLMAPGRID2FGLUTPROC* divagl_glMapGrid2fGLUT = 0;
+PFNGLNORMAL3FGLUTPROC* divagl_glNormal3fGLUT = 0;
+PFNGLNORMAL3FVGLUTPROC* divagl_glNormal3fvGLUT = 0;
 PFNGLPIXELSTOREIGLUTPROC* divagl_glPixelStoreiGLUT = 0;
+PFNGLPOLYGONMODEGLUTPROC* divagl_glPolygonModeGLUT = 0;
+PFNGLPOPATTRIBGLUTPROC* divagl_glPopAttribGLUT = 0;
+PFNGLPOPMATRIXGLUTPROC* divagl_glPopMatrixGLUT = 0;
+PFNGLPUSHATTRIBGLUTPROC* divagl_glPushAttribGLUT = 0;
+PFNGLPUSHMATRIXGLUTPROC* divagl_glPushMatrixGLUT = 0;
 PFNGLREADBUFFERGLUTPROC* divagl_glReadBufferGLUT = 0;
+PFNGLROTATEFGLUTPROC* divagl_glRotatefGLUT = 0;
+PFNGLSCALEFGLUTPROC* divagl_glScalefGLUT = 0;
+PFNGLTRANSLATEFGLUTPROC* divagl_glTranslatefGLUT = 0;
+PFNGLVERTEX2FGLUTPROC* divagl_glVertex2fGLUT = 0;
+PFNGLVERTEX3FGLUTPROC* divagl_glVertex3fGLUT = 0;
+PFNGLVERTEX3FVGLUTPROC* divagl_glVertex3fvGLUT = 0;
 PFNGLVIEWPORTGLUTPROC* divagl_glViewportGLUT = 0;
 PFNWGLCREATECONTEXTGLUTPROC* divagl_wglCreateContextGLUT = 0;
 PFNWGLDELETECONTEXTGLUTPROC* divagl_wglDeleteContextGLUT = 0;
@@ -2630,6 +2464,7 @@ PFNGLPOPDEBUGGROUPPROC divagl_glPopDebugGroup = 0;
 PFNGLBUFFERSTORAGEPROC divagl_glBufferStorage = 0;
 PFNGLCREATEBUFFERSPROC divagl_glCreateBuffers = 0;
 PFNGLNAMEDBUFFERSTORAGEPROC divagl_glNamedBufferStorage = 0;
+PFNGLNAMEDBUFFERDATAPROC divagl_glNamedBufferData = 0;
 PFNGLNAMEDBUFFERSUBDATAPROC divagl_glNamedBufferSubData = 0;
 PFNGLMAPNAMEDBUFFERPROC divagl_glMapNamedBuffer = 0;
 PFNGLMAPNAMEDBUFFERRANGEPROC divagl_glMapNamedBufferRange = 0;
@@ -2647,7 +2482,6 @@ PFNGLPOPDEBUGGROUPPROC divagl_glPopDebugGroup_orig = 0;
 
 extern size_t opengl32_handle;
 
-static void GLAPIENTRY divagl_glGetBooleanvDLL_impl(GLenum pname, GLboolean* data);
 static void GLAPIENTRY divagl_glTexImage1DDLL_impl(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const void* pixels);
 static void GLAPIENTRY divagl_glTexImage2DDLL_impl(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void* pixels);
 
@@ -2675,71 +2509,40 @@ static void print_debug_error(const char* c, const char* e) {
 #endif
 
 void wrap_addresses() {
-#ifdef DEBUG
-    print_debug_error("Patching tables", 0);
-#endif
-
-    for (int i = 0; i < 47; i++)
-        if (wrap_addr_dll[i].func != *(size_t*)wrap_addr_dll[i].address) {
-            wrap_addr_dll[i].orig_func = *(size_t*)wrap_addr_dll[i].address;
-            WRITE_MEMORY(wrap_addr_dll[i].address, uint64_t, wrap_addr_dll[i].func);
-        }
-
-#ifdef DEBUG
-    print_debug_error("DLL include table patched", 0);
-#endif
-
-    for (int i = 0; i < 19; i++)
-        if (wrap_addr_glut[i].func != *(size_t*)(glut_handle + wrap_addr_glut[i].address)) {
-            wrap_addr_glut[i].orig_func = *(size_t*)(glut_handle + wrap_addr_glut[i].address);
-            WRITE_MEMORY(glut_handle + wrap_addr_glut[i].address, uint64_t, wrap_addr_glut[i].func);
-        }
-
-    divagl_glDrawBufferGLUT = (PFNGLDRAWBUFFERGLUTPROC*)
-        (glut_handle + 0x0002A370); // glDrawBuffer
-    divagl_glEnableGLUT = (PFNGLENABLEGLUTPROC*)
-        (glut_handle + 0x0002A3D8); // glEnable
-    divagl_glFinishGLUT = (PFNGLFINISHGLUTPROC*)
-        (glut_handle + 0x0002A358); // glFinish
-    divagl_glGetErrorGLUT = (PFNGLGETERRORGLUTPROC*)
-        (glut_handle + 0x0002A418); // glGetError
-    divagl_glGetIntegervGLUT = (PFNGLGETINTEGERVGLUTPROC*)
-        (glut_handle + 0x0002A450); // glGetIntegerv
-    divagl_glGetStringGLUT = (PFNGLGETSTRINGGLUTPROC*)
-        (glut_handle + 0x0002A360); // glGetString
-    divagl_glPixelStoreiGLUT = (PFNGLPIXELSTOREIGLUTPROC*)
-        (glut_handle + 0x0002A350); // glPixelStorei
-    divagl_glReadBufferGLUT = (PFNGLREADBUFFERGLUTPROC*)
-        (glut_handle + 0x0002A378); // glReadBuffer
-    divagl_glViewportGLUT = (PFNGLVIEWPORTGLUTPROC*)
-        (glut_handle + 0x0002A438); // glViewport
-    divagl_wglCreateContextGLUT = (PFNWGLCREATECONTEXTGLUTPROC*)
-        (glut_handle + 0x0002A440); // wglCreateContext
-    divagl_wglDeleteContextGLUT = (PFNWGLDELETECONTEXTGLUTPROC*)
-        (glut_handle + 0x0002A368); // wglDeleteContext
-    divagl_wglGetCurrentContextGLUT = (PFNWGLGETCURRENTCONTEXTGLUTPROC*)
-        (glut_handle + 0x0002A420); // wglGetCurrentContext
-    divagl_wglGetCurrentDCGLUT = (PFNWGLGETCURRENTDCGLUTPROC*)
-        (glut_handle + 0x0002A428); // wglGetCurrentDC
-    divagl_wglGetProcAddressGLUT = (PFNWGLGETPROCADDRESSGLUTPROC*)
-        (glut_handle + 0x0002A448); // wglGetProcAddress
-    divagl_wglMakeCurrentGLUT = (PFNWGLMAKECURRENTGLUTPROC*)
-        (glut_handle + 0x0002A430); // wglMakeCurrent
-
-#ifdef DEBUG
-    print_debug_error("GLUT DLL include table patched", 0);
-#endif
-
-    for (int i = 0; i < 44; i++)
-        if (wrap_addr[i].func != *(size_t*)wrap_addr[i].address) {
-            wrap_addr[i].orig_func = *(size_t*)wrap_addr[i].address;
-            WRITE_MEMORY(wrap_addr[i].address, uint64_t, wrap_addr[i].func);
-        }
-
-#ifdef DEBUG
-    print_debug_error("wglGetProcAddresses table patched", 0);
-#endif
-
+    divagl_glBeginGLUT = (PFNGLBEGINGLUTPROC*)(glut_handle + 0x000000000002A380);
+    divagl_glBitmapGLUT = (PFNGLBITMAPGLUTPROC*)(glut_handle + 0x000000000002A348);
+    divagl_glDrawBufferGLUT = (PFNGLDRAWBUFFERGLUTPROC*)(glut_handle + 0x000000000002A370);
+    divagl_glEnableGLUT = (PFNGLENABLEGLUTPROC*)(glut_handle + 0x000000000002A3D8);
+    divagl_glEndGLUT = (PFNGLENDGLUTPROC*)(glut_handle + 0x000000000002A388);
+    divagl_glEvalMesh2GLUT = (PFNGLEVALMESH2GLUTPROC*)(glut_handle + 0x000000000002A3E0);
+    divagl_glFinishGLUT = (PFNGLFINISHGLUTPROC*)(glut_handle + 0x000000000002A358);
+    divagl_glGetErrorGLUT = (PFNGLGETERRORGLUTPROC*)(glut_handle + 0x000000000002A418);
+    divagl_glGetIntegervGLUT = (PFNGLGETINTEGERVGLUTPROC*)(glut_handle + 0x000000000002A450);
+    divagl_glGetStringGLUT = (PFNGLGETSTRINGGLUTPROC*)(glut_handle + 0x000000000002A360);
+    divagl_glMap2fGLUT = (PFNGLMAP2FGLUTPROC*)(glut_handle + 0x000000000002A3E8);
+    divagl_glMapGrid2fGLUT = (PFNGLMAPGRID2FGLUTPROC*)(glut_handle + 0x000000000002A3F0);
+    divagl_glNormal3fGLUT = (PFNGLNORMAL3FGLUTPROC*)(glut_handle + 0x000000000002A390);
+    divagl_glNormal3fvGLUT = (PFNGLNORMAL3FVGLUTPROC*)(glut_handle + 0x000000000002A398);
+    divagl_glPixelStoreiGLUT = (PFNGLPIXELSTOREIGLUTPROC*)(glut_handle + 0x000000000002A350);
+    divagl_glPolygonModeGLUT = (PFNGLPOLYGONMODEGLUTPROC*)(glut_handle + 0x000000000002A3A0);
+    divagl_glPopAttribGLUT = (PFNGLPOPATTRIBGLUTPROC*)(glut_handle + 0x000000000002A3A8);
+    divagl_glPopMatrixGLUT = (PFNGLPOPMATRIXGLUTPROC*)(glut_handle + 0x000000000002A3F8);
+    divagl_glPushAttribGLUT = (PFNGLPUSHATTRIBGLUTPROC*)(glut_handle + 0x000000000002A3B0);
+    divagl_glPushMatrixGLUT = (PFNGLPUSHMATRIXGLUTPROC*)(glut_handle + 0x000000000002A400);
+    divagl_glReadBufferGLUT = (PFNGLREADBUFFERGLUTPROC*)(glut_handle + 0x000000000002A378);
+    divagl_glRotatefGLUT = (PFNGLROTATEFGLUTPROC*)(glut_handle + 0x000000000002A408);
+    divagl_glScalefGLUT = (PFNGLSCALEFGLUTPROC*)(glut_handle + 0x000000000002A410);
+    divagl_glTranslatefGLUT = (PFNGLTRANSLATEFGLUTPROC*)(glut_handle + 0x000000000002A3C8);
+    divagl_glVertex2fGLUT = (PFNGLVERTEX2FGLUTPROC*)(glut_handle + 0x000000000002A3D0);
+    divagl_glVertex3fGLUT = (PFNGLVERTEX3FGLUTPROC*)(glut_handle + 0x000000000002A3B8);
+    divagl_glVertex3fvGLUT = (PFNGLVERTEX3FVGLUTPROC*)(glut_handle + 0x000000000002A3C0);
+    divagl_glViewportGLUT = (PFNGLVIEWPORTGLUTPROC*)(glut_handle + 0x000000000002A438);
+    divagl_wglCreateContextGLUT = (PFNWGLCREATECONTEXTGLUTPROC*)(glut_handle + 0x000000000002A440);
+    divagl_wglDeleteContextGLUT = (PFNWGLDELETECONTEXTGLUTPROC*)(glut_handle + 0x000000000002A368);
+    divagl_wglGetCurrentContextGLUT = (PFNWGLGETCURRENTCONTEXTGLUTPROC*)(glut_handle + 0x000000000002A420);
+    divagl_wglGetCurrentDCGLUT = (PFNWGLGETCURRENTDCGLUTPROC*)(glut_handle + 0x000000000002A428);
+    divagl_wglGetProcAddressGLUT = (PFNWGLGETPROCADDRESSGLUTPROC*)(glut_handle + 0x000000000002A448);
+    divagl_wglMakeCurrentGLUT = (PFNWGLMAKECURRENTGLUTPROC*)(glut_handle + 0x000000000002A430);
 }
 
 HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
@@ -2767,7 +2570,6 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
     glDeleteTextures = glDeleteTexturesDLL;
     glGenTextures = glGenTexturesDLL;
 
-    REPLACE_FUNC(glGetBooleanvDLL);
     REPLACE_FUNC(glTexImage1DDLL);
     REPLACE_FUNC(glTexImage2DDLL);
 
@@ -2812,6 +2614,7 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
     if (DIVA_GL_VERSION_4_5) {
         glCreateBuffers = (PFNGLCREATEBUFFERSPROC)wglGetProcAddressDLL("glCreateBuffers");
         glNamedBufferStorage = (PFNGLNAMEDBUFFERSTORAGEPROC)wglGetProcAddressDLL("glNamedBufferStorage");
+        glNamedBufferData = (PFNGLNAMEDBUFFERDATAPROC)wglGetProcAddressDLL("glNamedBufferData");
         glNamedBufferSubData = (PFNGLNAMEDBUFFERSUBDATAPROC)wglGetProcAddressDLL("glNamedBufferSubData");
         glMapNamedBuffer = (PFNGLMAPNAMEDBUFFERPROC)wglGetProcAddressDLL("glMapNamedBuffer");
         glMapNamedBufferRange = (PFNGLMAPNAMEDBUFFERRANGEPROC)wglGetProcAddressDLL("glMapNamedBufferRange");
@@ -2819,526 +2622,18 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
         glTextureSubImage2D = (PFNGLTEXTURESUBIMAGE2DPROC)wglGetProcAddressDLL("glTextureSubImage2D");
         glGenerateTextureMipmap = (PFNGLGENERATETEXTUREMIPMAPPROC)wglGetProcAddressDLL("glGenerateTextureMipmap");
         glBindTextureUnit = (PFNGLBINDTEXTUREUNITPROC)wglGetProcAddressDLL("glBindTextureUnit");
+
+        glNamedBufferDataEXT = glNamedBufferData;
+        glNamedBufferSubDataEXT = glNamedBufferSubData;
+        glMapNamedBufferEXT = glMapNamedBuffer;
+        glUnmapNamedBufferEXT = glUnmapNamedBuffer;
     }
 
 #undef REPLACE_FUNC
 }
 
 void wrap_patch() {
-    // glShadeModel(GL_SMOOTH);
-    //WRITE_NOP_11(0x00000001401948CA);
-
-    // glClampColorARB(GL_CLAMP_VERTEX_COLOR_ARB, GL_ZERO);
-    // glClampColorARB(GL_CLAMP_FRAGMENT_COLOR_ARB, GL_FIXED_ONLY_ARB);
-    // glClampColorARB(GL_CLAMP_READ_COLOR_ARB, GL_FIXED_ONLY_ARB);
-    //WRITE_JUMP(0x0000000140194932, 0x000000014019495B);
-
     INSTALL_HOOK(wglGetProcAddresses);
-}
-
-void GLAPIENTRY glAlphaFuncDLL(GLenum func, GLfloat ref) {
-    ((PFNGLALPHAFUNCDLLPROC)wrap_addr_dll[GLALPHAFUNCDLL].orig_func)(func, ref);
-}
-
-void GLAPIENTRY glBeginDLL(GLenum mode) {
-    ((PFNGLBEGINDLLPROC)wrap_addr_dll[GLBEGINDLL].orig_func)(mode);
-}
-
-void GLAPIENTRY glColor3fDLL(GLfloat red, GLfloat green, GLfloat blue) {
-    ((PFNGLCOLOR3FDLLPROC)wrap_addr_dll[GLCOLOR3FDLL].orig_func)(red, green, blue);
-}
-
-void GLAPIENTRY glColor4fDLL(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
-    ((PFNGLCOLOR4FDLLPROC)wrap_addr_dll[GLCOLOR4FDLL].orig_func)(red, green, blue, alpha);
-}
-
-void GLAPIENTRY glColor4ubDLL(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha) {
-    ((PFNGLCOLOR4UBDLLPROC)wrap_addr_dll[GLCOLOR4UBDLL].orig_func)(red, green, blue, alpha);
-}
-
-void GLAPIENTRY glColor4ubvDLL(GLubyte const * v) {
-    ((PFNGLCOLOR4UBVDLLPROC)wrap_addr_dll[GLCOLOR4UBVDLL].orig_func)(v);
-}
-
-void GLAPIENTRY glColorPointerDLL(GLint size, GLenum type, GLsizei stride, const void * pointer) {
-    ((PFNGLCOLORPOINTERDLLPROC)wrap_addr_dll[GLCOLORPOINTERDLL].orig_func)(size, type, stride, pointer);
-}
-
-void GLAPIENTRY glDisableClientStateDLL(GLenum array) {
-    ((PFNGLDISABLECLIENTSTATEDLLPROC)wrap_addr_dll[GLDISABLECLIENTSTATEDLL].orig_func)(array);
-}
-
-void GLAPIENTRY glEnableClientStateDLL(GLenum array) {
-    ((PFNGLENABLECLIENTSTATEDLLPROC)wrap_addr_dll[GLENABLECLIENTSTATEDLL].orig_func)(array);
-}
-
-void GLAPIENTRY glEndDLL() {
-    ((PFNGLENDDLLPROC)wrap_addr_dll[GLENDDLL].orig_func)();
-}
-
-void GLAPIENTRY glFogfDLL(GLenum pname, GLfloat param) {
-    ((PFNGLFOGFDLLPROC)wrap_addr_dll[GLFOGFDLL].orig_func)(pname, param);
-}
-
-void GLAPIENTRY glFogfvDLL(GLenum pname, GLfloat const * params) {
-    ((PFNGLFOGFVDLLPROC)wrap_addr_dll[GLFOGFVDLL].orig_func)(pname, params);
-}
-
-void GLAPIENTRY glFogiDLL(GLenum pname, GLint param) {
-    ((PFNGLFOGIDLLPROC)wrap_addr_dll[GLFOGIDLL].orig_func)(pname, param);
-}
-
-void GLAPIENTRY glFrustumDLL(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar) {
-    mat4 mat;
-    mat4_frustrum((float_t)left, (float_t)right, (float_t)bottom, (float_t)top, (float_t)zNear, (float_t)zFar, &mat);
-    mat4_transpose(&mat, &mat);
-    glMultTransposeMatrixf((const GLfloat*)&mat);
-    //((PFNGLFRUSTUMDLLPROC)wrap_addr_dll[GLFRUSTUMDLL].orig_func)(left, right, bottom, top, zNear, zFar);
-}
-
-void GLAPIENTRY glGetMaterialfvDLL(GLenum face, GLenum pname, GLfloat * params) {
-    ((PFNGLGETMATERIALFVDLLPROC)wrap_addr_dll[GLGETMATERIALFVDLL].orig_func)(face, pname, params);
-}
-
-void GLAPIENTRY glGetTexLevelParameterivDLL(GLenum target, GLint level, GLenum pname, GLint * params) {
-    ((PFNGLGETTEXLEVELPARAMETERIVDLLPROC)wrap_addr_dll[GLGETTEXLEVELPARAMETERIVDLL].orig_func)(target, level, pname, params);
-}
-
-void GLAPIENTRY glGetTexParameterivDLL(GLenum target, GLenum pname, GLint * params) {
-    ((PFNGLGETTEXPARAMETERIVDLLPROC)wrap_addr_dll[GLGETTEXPARAMETERIVDLL].orig_func)(target, pname, params);
-}
-
-void GLAPIENTRY glLightfvDLL(GLenum light, GLenum pname, GLfloat const * params) {
-    ((PFNGLLIGHTFVDLLPROC)wrap_addr_dll[GLLIGHTFVDLL].orig_func)(light, pname, params);
-}
-
-void GLAPIENTRY glLightModelfvDLL(GLenum pname, GLfloat const * params) {
-    ((PFNGLLIGHTMODELFVDLLPROC)wrap_addr_dll[GLLIGHTMODELFVDLL].orig_func)(pname, params);
-}
-
-void GLAPIENTRY glLineWidthDLL(GLfloat width) {
-    ((PFNGLLINEWIDTHDLLPROC)wrap_addr_dll[GLLINEWIDTHDLL].orig_func)(width);
-}
-
-void GLAPIENTRY glLoadIdentityDLL() {
-    ((PFNGLLOADIDENTITYDLLPROC)wrap_addr_dll[GLLOADIDENTITYDLL].orig_func)();
-}
-
-void GLAPIENTRY glLoadMatrixfDLL(GLfloat const * m) {
-    ((PFNGLLOADMATRIXFDLLPROC)wrap_addr_dll[GLLOADMATRIXFDLL].orig_func)(m);
-}
-
-void GLAPIENTRY glMaterialfDLL(GLenum face, GLenum pname, GLfloat param) {
-    ((PFNGLMATERIALFDLLPROC)wrap_addr_dll[GLMATERIALFDLL].orig_func)(face, pname, param);
-}
-
-void GLAPIENTRY glMaterialfvDLL(GLenum face, GLenum pname, GLfloat const * params) {
-    ((PFNGLMATERIALFVDLLPROC)wrap_addr_dll[GLMATERIALFVDLL].orig_func)(face, pname, params);
-}
-
-void GLAPIENTRY glMatrixModeDLL(GLenum mode) {
-    ((PFNGLMATRIXMODEDLLPROC)wrap_addr_dll[GLMATRIXMODEDLL].orig_func)(mode);
-}
-
-void GLAPIENTRY glMultMatrixdDLL(GLdouble const * m) {
-    ((PFNGLMULTMATRIXDDLLPROC)wrap_addr_dll[GLMULTMATRIXDDLL].orig_func)(m);
-}
-
-void GLAPIENTRY glNormal3fDLL(GLfloat nx, GLfloat ny, GLfloat nz) {
-    ((PFNGLNORMAL3FDLLPROC)wrap_addr_dll[GLNORMAL3FDLL].orig_func)(nx, ny, nz);
-}
-
-void GLAPIENTRY glNormalPointerDLL(GLenum type, GLsizei stride, const void * pointer) {
-    ((PFNGLNORMALPOINTERDLLPROC)wrap_addr_dll[GLNORMALPOINTERDLL].orig_func)(type, stride, pointer);
-}
-
-void GLAPIENTRY glOrthoDLL(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar) {
-    mat4 mat;
-    mat4_ortho((float_t)left, (float_t)right, (float_t)bottom, (float_t)top, (float_t)zNear, (float_t)zFar, &mat);
-    mat4_transpose(&mat, &mat);
-    glMultTransposeMatrixf((const GLfloat*)&mat);
-    //((PFNGLORTHODLLPROC)wrap_addr_dll[GLORTHODLL].orig_func)(left, right, bottom, top, zNear, zFar);
-}
-
-void GLAPIENTRY glPointSizeDLL(GLfloat size) {
-    ((PFNGLPOINTSIZEDLLPROC)wrap_addr_dll[GLPOINTSIZEDLL].orig_func)(size);
-}
-
-void GLAPIENTRY glPopAttribDLL() {
-    ((PFNGLPOPATTRIBDLLPROC)wrap_addr_dll[GLPOPATTRIBDLL].orig_func)();
-}
-
-void GLAPIENTRY glPopClientAttribDLL() {
-    ((PFNGLPOPCLIENTATTRIBDLLPROC)wrap_addr_dll[GLPOPCLIENTATTRIBDLL].orig_func)();
-}
-
-void GLAPIENTRY glPopMatrixDLL() {
-    ((PFNGLPOPMATRIXDLLPROC)wrap_addr_dll[GLPOPMATRIXDLL].orig_func)();
-}
-
-void GLAPIENTRY glPushAttribDLL(GLbitfield mask) {
-    ((PFNGLPUSHATTRIBDLLPROC)wrap_addr_dll[GLPUSHATTRIBDLL].orig_func)(mask);
-}
-
-void GLAPIENTRY glPushClientAttribDLL(GLbitfield mask) {
-    ((PFNGLPUSHCLIENTATTRIBDLLPROC)wrap_addr_dll[GLPUSHCLIENTATTRIBDLL].orig_func)(mask);
-}
-
-void GLAPIENTRY glPushMatrixDLL() {
-    ((PFNGLPUSHMATRIXDLLPROC)wrap_addr_dll[GLPUSHMATRIXDLL].orig_func)();
-}
-
-void GLAPIENTRY glRotatefDLL(GLfloat angle, GLfloat x, GLfloat y, GLfloat z) {
-    float_t c = cosf(angle * DEG_TO_RAD_FLOAT);
-    float_t s = sinf(angle * DEG_TO_RAD_FLOAT);
-    float_t t = 1.0f - c;
-
-    mat4 mat;
-    mat.row0 = { t * x * x + c, t * x * y + z * s, t * x * z - y * s, 0.0f };
-    mat.row1 = { t * y * x - z * s, t * y * y + c, t * y * z + x * s, 0.0f };
-    mat.row2 = { t * z * x + y * s, t * z * y - x * s, t * z * z + c, 0.0f };
-    mat.row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
-    mat4_transpose(&mat, &mat);
-    glMultTransposeMatrixf((const GLfloat*)&mat);
-    //((PFNGLROTATEFDLLPROC)wrap_addr_dll[GLROTATEFDLL].orig_func)(angle, x, y, z);
-}
-
-void GLAPIENTRY glScalefDLL(GLfloat x, GLfloat y, GLfloat z) {
-    mat4 mat;
-    mat4_scale(x, y, z, &mat);
-    mat4_transpose(&mat, &mat);
-    glMultTransposeMatrixf((const GLfloat*)&mat);
-    //((PFNGLSCALEFDLLPROC)wrap_addr_dll[GLSCALEFDLL].orig_func)(x, y, z);
-}
-
-void GLAPIENTRY glShadeModelDLL(GLenum mode) {
-    ((PFNGLSHADEMODELDLLPROC)wrap_addr_dll[GLSHADEMODELDLL].orig_func)(mode);
-}
-
-void GLAPIENTRY glTexCoord2fDLL(GLfloat s, GLfloat t) {
-    ((PFNGLTEXCOORD2FDLLPROC)wrap_addr_dll[GLTEXCOORD2FDLL].orig_func)(s, t);
-}
-
-void GLAPIENTRY glTexCoordPointerDLL(GLint size, GLenum type, GLsizei stride, const void * pointer) {
-    ((PFNGLTEXCOORDPOINTERDLLPROC)wrap_addr_dll[GLTEXCOORDPOINTERDLL].orig_func)(size, type, stride, pointer);
-}
-
-void GLAPIENTRY glTexEnvfDLL(GLenum target, GLenum pname, GLfloat param) {
-    ((PFNGLTEXENVFDLLPROC)wrap_addr_dll[GLTEXENVFDLL].orig_func)(target, pname, param);
-}
-
-void GLAPIENTRY glTexEnviDLL(GLenum target, GLenum pname, GLint param) {
-    ((PFNGLTEXENVIDLLPROC)wrap_addr_dll[GLTEXENVIDLL].orig_func)(target, pname, param);
-}
-
-void GLAPIENTRY glTranslatefDLL(GLfloat x, GLfloat y, GLfloat z) {
-    mat4 mat;
-    mat4_translate(x, y, z, &mat);
-    mat4_transpose(&mat, &mat);
-    glMultTransposeMatrixf((const GLfloat*)&mat);
-    //((PFNGLTRANSLATEFDLLPROC)wrap_addr_dll[GLTRANSLATEFDLL].orig_func)(x, y, z);
-}
-
-void GLAPIENTRY glVertex3fDLL(GLfloat x, GLfloat y, GLfloat z) {
-    ((PFNGLVERTEX3FDLLPROC)wrap_addr_dll[GLVERTEX3FDLL].orig_func)(x, y, z);
-}
-
-void GLAPIENTRY glVertex3fvDLL(GLfloat const * v) {
-    ((PFNGLVERTEX3FVDLLPROC)wrap_addr_dll[GLVERTEX3FVDLL].orig_func)(v);
-}
-
-void GLAPIENTRY glVertexPointerDLL(GLint size, GLenum type, GLsizei stride, const void * pointer) {
-    ((PFNGLVERTEXPOINTERDLLPROC)wrap_addr_dll[GLVERTEXPOINTERDLL].orig_func)(size, type, stride, pointer);
-}
-
-void GLAPIENTRY glBindBufferARB(GLenum target, GLuint buffer) {
-    ((PFNGLBINDBUFFERARBPROC)wrap_addr[GLBINDBUFFERARB].orig_func)(target, buffer);
-}
-
-void GLAPIENTRY glBindBufferBaseNV(GLenum target, GLuint index, GLuint buffer) {
-    ((PFNGLBINDBUFFERBASENVPROC)wrap_addr[GLBINDBUFFERBASENV].orig_func)(target, index, buffer);
-}
-
-void GLAPIENTRY glBindFramebufferEXT(GLenum target, GLuint framebuffer) {
-    ((PFNGLBINDFRAMEBUFFEREXTPROC)wrap_addr[GLBINDFRAMEBUFFEREXT].orig_func)(target, framebuffer);
-}
-
-void GLAPIENTRY glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint texture) {
-    ((PFNGLBINDMULTITEXTUREEXTPROC)wrap_addr[GLBINDMULTITEXTUREEXT].orig_func)(texunit, target, texture);
-}
-
-void GLAPIENTRY glBindRenderbufferEXT(GLenum target, GLuint renderbuffer) {
-    ((PFNGLBINDRENDERBUFFEREXTPROC)wrap_addr[GLBINDRENDERBUFFEREXT].orig_func)(target, renderbuffer);
-}
-
-void GLAPIENTRY glBufferDataARB(GLenum target, GLsizeiptrARB size, const void * data, GLenum usage) {
-    ((PFNGLBUFFERDATAARBPROC)wrap_addr[GLBUFFERDATAARB].orig_func)(target, size, data, usage);
-}
-
-void GLAPIENTRY glClampColorARB(GLenum target, GLenum clamp) {
-    ((PFNGLCLAMPCOLORARBPROC)wrap_addr[GLCLAMPCOLORARB].orig_func)(target, clamp);
-}
-
-void GLAPIENTRY glClientActiveTexture(GLenum texture) {
-    ((PFNGLCLIENTACTIVETEXTUREPROC)wrap_addr[GLCLIENTACTIVETEXTURE].orig_func)(texture);
-}
-
-void GLAPIENTRY glCopyMultiTexSubImage2DEXT(GLenum texunit, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height) {
-    ((PFNGLCOPYMULTITEXSUBIMAGE2DEXTPROC)wrap_addr[GLCOPYMULTITEXSUBIMAGE2DEXT].orig_func)(texunit, target, level, xoffset, yoffset, x, y, width, height);
-}
-
-void GLAPIENTRY glDeleteBuffersARB(GLsizei n, GLuint const * buffers) {
-    ((PFNGLDELETEBUFFERSARBPROC)wrap_addr[GLDELETEBUFFERSARB].orig_func)(n, buffers);
-}
-
-void GLAPIENTRY glDeleteFramebuffersEXT(GLsizei n, GLuint const * framebuffers) {
-    ((PFNGLDELETEFRAMEBUFFERSEXTPROC)wrap_addr[GLDELETEFRAMEBUFFERSEXT].orig_func)(n, framebuffers);
-}
-
-void GLAPIENTRY glDeleteRenderbuffersEXT(GLsizei n, GLuint const * renderbuffers) {
-    ((PFNGLDELETERENDERBUFFERSEXTPROC)wrap_addr[GLDELETERENDERBUFFERSEXT].orig_func)(n, renderbuffers);
-}
-
-void GLAPIENTRY glDisableVertexAttribArrayARB(GLuint index) {
-    ((PFNGLDISABLEVERTEXATTRIBARRAYARBPROC)wrap_addr[GLDISABLEVERTEXATTRIBARRAYARB].orig_func)(index);
-}
-
-void GLAPIENTRY glEnableVertexAttribArrayARB(GLuint index) {
-    ((PFNGLENABLEVERTEXATTRIBARRAYARBPROC)wrap_addr[GLENABLEVERTEXATTRIBARRAYARB].orig_func)(index);
-}
-
-void GLAPIENTRY glFramebufferRenderbufferEXT(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer) {
-    ((PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)wrap_addr[GLFRAMEBUFFERRENDERBUFFEREXT].orig_func)(target, attachment, renderbuffertarget, renderbuffer);
-}
-
-void GLAPIENTRY glFramebufferTexture2DEXT(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level) {
-    ((PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)wrap_addr[GLFRAMEBUFFERTEXTURE2DEXT].orig_func)(target, attachment, textarget, texture, level);
-}
-
-void GLAPIENTRY glGenFramebuffersEXT(GLsizei n, GLuint * framebuffers) {
-    ((PFNGLGENFRAMEBUFFERSEXTPROC)wrap_addr[GLGENFRAMEBUFFERSEXT].orig_func)(n, framebuffers);
-}
-
-void GLAPIENTRY glGenRenderbuffersEXT(GLsizei n, GLuint * renderbuffers) {
-    ((PFNGLGENRENDERBUFFERSEXTPROC)wrap_addr[GLGENRENDERBUFFERSEXT].orig_func)(n, renderbuffers);
-}
-
-void GLAPIENTRY glGetProgramEnvParameterfvARB(GLenum target, GLuint index, GLfloat * params) {
-    ((PFNGLGETPROGRAMENVPARAMETERFVARBPROC)wrap_addr[GLGETPROGRAMENVPARAMETERFVARB].orig_func)(target, index, params);
-}
-
-void GLAPIENTRY glGetProgramivARB(GLenum target, GLenum pname, GLint * params) {
-    switch (pname) {
-    case GL_VERTEX_PROGRAM_ARB:
-    case GL_FRAGMENT_PROGRAM_ARB:
-        if (params)
-            *params = 0;
-        return;
-    }
-    ((PFNGLGETPROGRAMIVARBPROC)wrap_addr[GLGETPROGRAMIVARB].orig_func)(target, pname, params);
-}
-
-void GLAPIENTRY glGetTextureImageEXT(GLuint texture, GLenum target, GLint level, GLenum format, GLenum type, void * pixels) {
-    ((PFNGLGETTEXTUREIMAGEEXTPROC)wrap_addr[GLGETTEXTUREIMAGEEXT].orig_func)(texture, target, level, format, type, pixels);
-}
-
-GLboolean GLAPIENTRY glIsBufferARB(GLuint buffer) {
-    return ((PFNGLISBUFFERARBPROC)wrap_addr[GLISBUFFERARB].orig_func)(buffer);
-}
-
-void GLAPIENTRY glLoadTransposeMatrixf(GLfloat const * m) {
-    ((PFNGLLOADTRANSPOSEMATRIXFPROC)wrap_addr[GLLOADTRANSPOSEMATRIXF].orig_func)(m);
-}
-
-void * GLAPIENTRY glMapNamedBufferEXT(GLuint buffer, GLenum access) {
-    return ((PFNGLMAPNAMEDBUFFEREXTPROC)wrap_addr[GLMAPNAMEDBUFFEREXT].orig_func)(buffer, access);
-}
-
-void GLAPIENTRY glMultiTexCoord2f(GLenum target, GLfloat s, GLfloat t) {
-    ((PFNGLMULTITEXCOORD2FPROC)wrap_addr[GLMULTITEXCOORD2F].orig_func)(target, s, t);
-}
-
-void GLAPIENTRY glMultiTexCoord2fv(GLenum target, GLfloat const * v) {
-    ((PFNGLMULTITEXCOORD2FVPROC)wrap_addr[GLMULTITEXCOORD2FV].orig_func)(target, v);
-}
-
-void GLAPIENTRY glMultTransposeMatrixf(GLfloat const * m) {
-    ((PFNGLMULTTRANSPOSEMATRIXFPROC)wrap_addr[GLMULTTRANSPOSEMATRIXF].orig_func)(m);
-}
-
-void GLAPIENTRY glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const void * data, GLenum usage) {
-    ((PFNGLNAMEDBUFFERDATAEXTPROC)wrap_addr[GLNAMEDBUFFERDATAEXT].orig_func)(buffer, size, data, usage);
-}
-
-void GLAPIENTRY glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size, const void * data) {
-    ((PFNGLNAMEDBUFFERSUBDATAEXTPROC)wrap_addr[GLNAMEDBUFFERSUBDATAEXT].orig_func)(buffer, offset, size, data);
-}
-
-void GLAPIENTRY glPointParameterf(GLenum pname, GLfloat param) {
-    ((PFNGLPOINTPARAMETERFPROC)wrap_addr[GLPOINTPARAMETERF].orig_func)(pname, param);
-}
-
-void GLAPIENTRY glPointParameterfv(GLenum pname, GLfloat const * params) {
-    ((PFNGLPOINTPARAMETERFVPROC)wrap_addr[GLPOINTPARAMETERFV].orig_func)(pname, params);
-}
-
-void GLAPIENTRY glPointParameteri(GLenum pname, GLint param) {
-    ((PFNGLPOINTPARAMETERIPROC)wrap_addr[GLPOINTPARAMETERI].orig_func)(pname, param);
-}
-
-void GLAPIENTRY glPrimitiveRestartIndexNV(GLuint index) {
-    glPrimitiveRestartIndex(index);
-    //((PFNGLPRIMITIVERESTARTINDEXNVPROC)wrap_addr[GLPRIMITIVERESTARTINDEXNV].orig_func)(index);
-}
-
-void GLAPIENTRY glProgramBufferParametersfvNV(GLenum target, GLuint bindingIndex, GLuint wordIndex, GLsizei count, GLfloat const * params) {
-    ((PFNGLPROGRAMBUFFERPARAMETERSFVNVPROC)wrap_addr[GLPROGRAMBUFFERPARAMETERSFVNV].orig_func)(target, bindingIndex, wordIndex, count, params);
-}
-
-void GLAPIENTRY glProgramEnvParameter4fARB(GLenum target, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w) {
-    ((PFNGLPROGRAMENVPARAMETER4FARBPROC)wrap_addr[GLPROGRAMENVPARAMETER4FARB].orig_func)(target, index, x, y, z, w);
-}
-
-void GLAPIENTRY glProgramEnvParameter4fvARB(GLenum target, GLuint index, GLfloat const * params) {
-    ((PFNGLPROGRAMENVPARAMETER4FVARBPROC)wrap_addr[GLPROGRAMENVPARAMETER4FVARB].orig_func)(target, index, params);
-}
-
-void GLAPIENTRY glProgramEnvParameters4fvEXT(GLenum target, GLuint index, GLsizei count, GLfloat const * params) {
-    ((PFNGLPROGRAMENVPARAMETERS4FVEXTPROC)wrap_addr[GLPROGRAMENVPARAMETERS4FVEXT].orig_func)(target, index, count, params);
-}
-
-void GLAPIENTRY glProgramLocalParameter4fARB(GLenum target, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w) {
-    ((PFNGLPROGRAMLOCALPARAMETER4FARBPROC)wrap_addr[GLPROGRAMLOCALPARAMETER4FARB].orig_func)(target, index, x, y, z, w);
-}
-
-void GLAPIENTRY glProgramLocalParameter4fvARB(GLenum target, GLuint index, GLfloat const * params) {
-    ((PFNGLPROGRAMLOCALPARAMETER4FVARBPROC)wrap_addr[GLPROGRAMLOCALPARAMETER4FVARB].orig_func)(target, index, params);
-}
-
-void GLAPIENTRY glProgramLocalParameters4fvEXT(GLenum target, GLuint index, GLsizei count, GLfloat const * params) {
-    ((PFNGLPROGRAMLOCALPARAMETERS4FVEXTPROC)wrap_addr[GLPROGRAMLOCALPARAMETERS4FVEXT].orig_func)(target, index, count, params);
-}
-
-void GLAPIENTRY glRenderbufferStorageEXT(GLenum target, GLenum internalformat, GLsizei width, GLsizei height) {
-    ((PFNGLRENDERBUFFERSTORAGEEXTPROC)wrap_addr[GLRENDERBUFFERSTORAGEEXT].orig_func)(target, internalformat, width, height);
-}
-
-void GLAPIENTRY glRenderbufferStorageMultisampleCoverageNV(GLenum target, GLsizei coverageSamples, GLsizei colorSamples, GLenum internalformat, GLsizei width, GLsizei height) {
-    ((PFNGLRENDERBUFFERSTORAGEMULTISAMPLECOVERAGENVPROC)wrap_addr[GLRENDERBUFFERSTORAGEMULTISAMPLECOVERAGENV].orig_func)(target, coverageSamples, colorSamples, internalformat, width, height);
-}
-
-GLboolean GLAPIENTRY glUnmapNamedBufferEXT(GLuint buffer) {
-    return ((PFNGLUNMAPNAMEDBUFFEREXTPROC)wrap_addr[GLUNMAPNAMEDBUFFEREXT].orig_func)(buffer);
-}
-
-void GLAPIENTRY glVertexAttribPointerARB(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void * pointer) {
-    ((PFNGLVERTEXATTRIBPOINTERARBPROC)wrap_addr[GLVERTEXATTRIBPOINTERARB].orig_func)(index, size, type, normalized, stride, pointer);
-}
-
-void GLAPIENTRY glBeginGLUT(GLenum mode) {
-    ((PFNGLBEGINGLUTPROC)wrap_addr_glut[GLBEGINGLUT].orig_func)(mode);
-}
-
-void GLAPIENTRY glBitmapGLUT(GLsizei width, GLsizei height, GLfloat xorig, GLfloat yorig, GLfloat xmove, GLfloat ymove, GLubyte const * bitmap) {
-    ((PFNGLBITMAPGLUTPROC)wrap_addr_glut[GLBITMAPGLUT].orig_func)(width, height, xorig, yorig, xmove, ymove, bitmap);
-}
-
-void GLAPIENTRY glEndGLUT() {
-    ((PFNGLENDGLUTPROC)wrap_addr_glut[GLENDGLUT].orig_func)();
-}
-
-void GLAPIENTRY glEvalMesh2GLUT(GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2) {
-    ((PFNGLEVALMESH2GLUTPROC)wrap_addr_glut[GLEVALMESH2GLUT].orig_func)(mode, i1, i2, j1, j2);
-}
-
-void GLAPIENTRY glMap2fGLUT(GLenum target, GLfloat u1, GLfloat u2, GLint ustride, GLint uorder, GLfloat v1, GLfloat v2, GLint vstride, GLint vorder, GLfloat const * points) {
-    ((PFNGLMAP2FGLUTPROC)wrap_addr_glut[GLMAP2FGLUT].orig_func)(target, u1, u2, ustride, uorder, v1, v2, vstride, vorder, points);
-}
-
-void GLAPIENTRY glMapGrid2fGLUT(GLint un, GLfloat u1, GLfloat u2, GLint vn, GLfloat v1, GLfloat v2) {
-    ((PFNGLMAPGRID2FGLUTPROC)wrap_addr_glut[GLMAPGRID2FGLUT].orig_func)(un, u1, u2, vn, v1, v2);
-}
-
-void GLAPIENTRY glNormal3fGLUT(GLfloat nx, GLfloat ny, GLfloat nz) {
-    ((PFNGLNORMAL3FGLUTPROC)wrap_addr_glut[GLNORMAL3FGLUT].orig_func)(nx, ny, nz);
-}
-
-void GLAPIENTRY glNormal3fvGLUT(GLfloat const * v) {
-    ((PFNGLNORMAL3FVGLUTPROC)wrap_addr_glut[GLNORMAL3FVGLUT].orig_func)(v);
-}
-
-void GLAPIENTRY glPolygonModeGLUT(GLenum face, GLenum mode) {
-    ((PFNGLPOLYGONMODEGLUTPROC)wrap_addr_glut[GLPOLYGONMODEGLUT].orig_func)(face, mode);
-}
-
-void GLAPIENTRY glPopAttribGLUT() {
-    ((PFNGLPOPATTRIBGLUTPROC)wrap_addr_glut[GLPOPATTRIBGLUT].orig_func)();
-}
-
-void GLAPIENTRY glPopMatrixGLUT() {
-    ((PFNGLPOPMATRIXGLUTPROC)wrap_addr_glut[GLPOPMATRIXGLUT].orig_func)();
-}
-
-void GLAPIENTRY glPushAttribGLUT(GLbitfield mask) {
-    ((PFNGLPUSHATTRIBGLUTPROC)wrap_addr_glut[GLPUSHATTRIBGLUT].orig_func)(mask);
-}
-
-void GLAPIENTRY glPushMatrixGLUT() {
-    ((PFNGLPUSHMATRIXGLUTPROC)wrap_addr_glut[GLPUSHMATRIXGLUT].orig_func)();
-}
-
-void GLAPIENTRY glRotatefGLUT(GLfloat angle, GLfloat x, GLfloat y, GLfloat z) {
-    float_t c = cosf(angle * DEG_TO_RAD_FLOAT);
-    float_t s = sinf(angle * DEG_TO_RAD_FLOAT);
-    float_t t = 1.0f - c;
-
-    mat4 mat;
-    mat.row0 = { t * x * x + c, t * x * y + z * s, t * x * z - y * s, 0.0f };
-    mat.row1 = { t * y * x - z * s, t * y * y + c, t * y * z + x * s, 0.0f };
-    mat.row2 = { t * z * x + y * s, t * z * y - x * s, t * z * z + c, 0.0f };
-    mat.row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
-    mat4_transpose(&mat, &mat);
-    glMultTransposeMatrixf((const GLfloat*)&mat);
-    //((PFNGLROTATEFGLUTPROC)wrap_addr_glut[GLROTATEFGLUT].orig_func)(angle, x, y, z);
-}
-
-void GLAPIENTRY glScalefGLUT(GLfloat x, GLfloat y, GLfloat z) {
-    mat4 mat;
-    mat4_scale(x, y, z, &mat);
-    mat4_transpose(&mat, &mat);
-    glMultTransposeMatrixf((const GLfloat*)&mat);
-    //((PFNGLSCALEFGLUTPROC)wrap_addr_glut[GLSCALEFGLUT].orig_func)(x, y, z);
-}
-
-void GLAPIENTRY glTranslatefGLUT(GLfloat x, GLfloat y, GLfloat z) {
-    mat4 mat;
-    mat4_translate(x, y, z, &mat);
-    mat4_transpose(&mat, &mat);
-    glMultTransposeMatrixf((const GLfloat*)&mat);
-    //((PFNGLTRANSLATEFGLUTPROC)wrap_addr_glut[GLTRANSLATEFGLUT].orig_func)(x, y, z);
-}
-
-void GLAPIENTRY glVertex2fGLUT(GLfloat x, GLfloat y) {
-    ((PFNGLVERTEX2FGLUTPROC)wrap_addr_glut[GLVERTEX2FGLUT].orig_func)(x, y);
-}
-
-void GLAPIENTRY glVertex3fGLUT(GLfloat x, GLfloat y, GLfloat z) {
-    ((PFNGLVERTEX3FGLUTPROC)wrap_addr_glut[GLVERTEX3FGLUT].orig_func)(x, y, z);
-}
-
-void GLAPIENTRY glVertex3fvGLUT(GLfloat const * v) {
-    ((PFNGLVERTEX3FVGLUTPROC)wrap_addr_glut[GLVERTEX3FVGLUT].orig_func)(v);
-}
-
-static void GLAPIENTRY divagl_glGetBooleanvDLL_impl(GLenum pname, GLboolean* data) {
-    switch (pname) {
-    case GL_VERTEX_PROGRAM_ARB:
-    case GL_FRAGMENT_PROGRAM_ARB:
-        if (data)
-            *data = GL_TRUE;
-        return;
-    }
-    divagl_glGetBooleanvDLL_orig(pname, data);
 }
 
 static void GLAPIENTRY divagl_glTexImage1DDLL_impl(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const void* pixels) {

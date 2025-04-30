@@ -195,15 +195,23 @@ namespace spr {
             while (vbo_vertex_count < vertex_buffer.size())
                 vbo_vertex_count *= 2;
 
-            vbo.Destroy();
-
             gl_state.bind_vertex_array(vao);
+            if (DIVA_GL_VERSION_4_4) {
+                vbo.Destroy();
+                vbo.Create(gl_state, buffer_size * vbo_vertex_count);
+                gl_state.bind_array_buffer(vbo, true);
 
-            vbo.Create(gl_state, buffer_size * vbo_vertex_count);
-            gl_state.bind_array_buffer(vbo, true);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
+                    * vertex_buffer.size()), vertex_buffer.data());
+            }
+            else {
+                gl_state.bind_array_buffer(vbo, true);
 
-            glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
-                * vertex_buffer.size()), vertex_buffer.data());
+                glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(buffer_size
+                    * vbo_vertex_count), 0, GL_DYNAMIC_DRAW);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
+                    * vertex_buffer.size()), vertex_buffer.data());
+            }
 
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
@@ -225,15 +233,23 @@ namespace spr {
             while (ebo_index_count < index_buffer.size())
                 ebo_index_count *= 2;
 
-            ebo.Destroy();
-
             gl_state.bind_vertex_array(vao);
+            if (DIVA_GL_VERSION_4_4) {
+                ebo.Destroy();
+                ebo.Create(gl_state, sizeof(uint32_t) * ebo_index_count);
+                gl_state.bind_element_array_buffer(ebo, true);
 
-            ebo.Create(gl_state, sizeof(uint32_t) * ebo_index_count);
-            gl_state.bind_element_array_buffer(ebo, true);
+                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (GLsizeiptr)(sizeof(uint32_t)
+                    * index_buffer.size()), index_buffer.data());
+            }
+            else {
+                gl_state.bind_array_buffer(vbo, true);
 
-            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (GLsizeiptr)(sizeof(uint32_t)
-                * index_buffer.size()), index_buffer.data());
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)(sizeof(uint32_t)
+                    * ebo_index_count), 0, GL_DYNAMIC_DRAW);
+                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (GLsizeiptr)(sizeof(uint32_t)
+                    * index_buffer.size()), index_buffer.data());
+            }
 
             gl_state.bind_vertex_array(0);
             gl_state.bind_element_array_buffer(0);
@@ -751,15 +767,16 @@ namespace spr {
                     spr_vtx[3].pos = vtx[3];
                     spr_vtx[3].color = color;
 
-                    draw_param.attrib.m.primitive = GL_LINE_LOOP;
+                    draw_param.attrib.m.primitive = GL_LINES;
                     draw_param.first = (GLint)vertex_buffer.size();
-                    draw_param.count = 4;
+                    draw_param.count = 5;
 
-                    vertex_buffer.reserve(4);
+                    vertex_buffer.reserve(5);
                     vertex_buffer.push_back(spr_vtx[0]);
                     vertex_buffer.push_back(spr_vtx[1]);
                     vertex_buffer.push_back(spr_vtx[2]);
                     vertex_buffer.push_back(spr_vtx[3]);
+                    vertex_buffer.push_back(spr_vtx[0]);
                 } break;
                 case SPR_KIND_ARROW_B: {
                     sprite_draw_vertex spr_vtx[2] = {};
@@ -1059,6 +1076,15 @@ namespace spr {
                     && draw_param_2.textures[1] == draw_param_1.textures[1]
                     && draw_param_2.end + 1 == draw_param_1.start) {
                     draw_param_2.end = draw_param_1.end;
+                    draw_param_2.count += draw_param_1.count;
+                    draw_param_buffer.pop_back();
+                }
+                else if (draw_param_1.attrib.m.primitive == GL_LINES
+                    && draw_param_2.attrib.w == draw_param_1.attrib.w
+                    && draw_param_2.shader == draw_param_1.shader
+                    && draw_param_2.textures[0] == draw_param_1.textures[0]
+                    && draw_param_2.textures[1] == draw_param_1.textures[1]
+                    && draw_param_2.first + draw_param_2.count == draw_param_1.first) {
                     draw_param_2.count += draw_param_1.count;
                     draw_param_buffer.pop_back();
                 }

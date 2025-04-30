@@ -7,6 +7,7 @@
 #include "../KKdLib/default.hpp"
 #include "hook.hpp"
 #include "print.hpp"
+#include "static_var.hpp"
 #include "wrap.hpp"
 #include <intrin.h>
 #include <knownfolders.h>
@@ -19,9 +20,6 @@ size_t opengl32_handle;
 size_t dll_handle;
 bool cpu_caps_aes_ni;
 bool cpu_caps_f16c;
-bool config_reflect_full = true;
-int32_t config_reflect_res_scale = 100;
-bool config_shared_storage_uniform_buffer = false;
 
 static std::wstring GetDirPath();
 
@@ -55,10 +53,11 @@ void FASTCALL divagl_main() {
 bool APIENTRY DllMain(HMODULE handle, DWORD ul_reason_for_call, LPVOID lpReserved) {
     switch (ul_reason_for_call) {
     case DLL_PROCESS_ATTACH:
-        config_reflect_full = GetPrivateProfileIntW(L"general", L"reflect_full", 0, CONFIG_FILE) > 0 ? true : false;
-        config_reflect_res_scale = GetPrivateProfileIntW(L"general", L"reflect_res_scale", 1, CONFIG_FILE);
-        config_reflect_res_scale = config_reflect_res_scale ? clamp_def(config_reflect_res_scale, 25, 100) : 100;
-        config_shared_storage_uniform_buffer = GetPrivateProfileIntW(L"experimentals",
+        sv_reflect_full = GetPrivateProfileIntW(L"general", L"reflect_full", 0, CONFIG_FILE) > 0 ? true : false;
+        sv_reflect_res_scale = GetPrivateProfileIntW(L"general", L"reflect_res_scale", 1, CONFIG_FILE);
+        sv_reflect_res_scale = sv_reflect_res_scale ? clamp_def(sv_reflect_res_scale, 25, 100) : 100;
+
+        sv_shared_storage_uniform_buffer = GetPrivateProfileIntW(L"experimentals",
             L"shared_storage_uniform_buffer", 0, CONFIG_FILE) > 0 ? true : false;
 
         dll_handle = (size_t)handle;
@@ -131,7 +130,7 @@ PluginConfig::PluginConfigOption config[] = {
             L"experimentals",
             CONFIG_FILE,
             L"Shared Storage/Uniform Buffer",
-            L"May be seful for running AFT via Mesa or on Apple devices\nor when driver doesn't support OpenGL 4.3.",
+            L"May be useful for running AFT via Mesa or on Apple devices\nor when driver doesn't support OpenGL 4.3.",
             false,
             false,
         }

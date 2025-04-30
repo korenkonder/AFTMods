@@ -578,12 +578,6 @@ HOOK(void, FASTCALL, sub_140526FD0, 0x0000000140526FD0,
     item_cos_data->texture_change.insert({ item_no, tex_chg_vec });
 }
 
-HOOK(void, FASTCALL, rob_chara_item_equip_object_disp, 0x00000001405F2700, rob_chara_item_equip_object* itm_eq_obj) {
-    rob_chara_item_equip_mat = &itm_eq_obj->item_equip->mat;
-    originalrob_chara_item_equip_object_disp(itm_eq_obj);
-    rob_chara_item_equip_mat = 0;
-}
-
 HOOK(void, FASTCALL, sub_1405335C0, 0x0000001405335C0, struc_223* a1) {
     originalsub_1405335C0(a1);
     rob_chara* rob_chr = (rob_chara*)((size_t)a1 - 0x19C8);
@@ -716,6 +710,12 @@ HOOK(void, FASTCALL, rob_chara_set_hand_adjust, 0x000000014053C070, rob_chara* r
     }
 }
 
+HOOK(void, FASTCALL, rob_chara_item_equip_object_disp, 0x00000001405F2700, rob_chara_item_equip_object* itm_eq_obj) {
+    rob_chara_item_equip_mat = &itm_eq_obj->item_equip->mat;
+    originalrob_chara_item_equip_object_disp(itm_eq_obj);
+    rob_chara_item_equip_mat = 0;
+}
+
 void rob_patch() {
     INSTALL_HOOK(RobCloth__UpdateVertexBuffer);
     INSTALL_HOOK(rob_chara_set_data_adjust_mat);
@@ -724,11 +724,11 @@ void rob_patch() {
     INSTALL_HOOK(rob_chara_item_equip_disp);
     INSTALL_HOOK(rob_chara_set_chara_size);
     INSTALL_HOOK(sub_140526FD0);
-    INSTALL_HOOK(rob_chara_item_equip_object_disp);
     INSTALL_HOOK(sub_1405335C0);
     INSTALL_HOOK(mothead_func_32);
     INSTALL_HOOK(sub_14053ACA0);
     INSTALL_HOOK(rob_chara_set_hand_adjust);
+    INSTALL_HOOK(rob_chara_item_equip_object_disp);
 }
 
 void rob_chara_age_age_object::disp(size_t chara_index,

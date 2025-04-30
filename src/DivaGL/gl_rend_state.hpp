@@ -110,6 +110,8 @@ struct p_gl_rend_state {
     void set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass);
     void set_viewport(const gl_rend_state_rect& rect);
     void set_viewport(GLint x, GLint y, GLsizei width, GLsizei height);
+    void tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+        GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
     void update();
     void use_program(GLuint program);
 

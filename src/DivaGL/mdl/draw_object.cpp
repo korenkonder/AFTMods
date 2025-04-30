@@ -36,8 +36,6 @@ static void draw_object_vertex_attrib_set_cheap(
 
 static bool(FASTCALL* use_shader_get)() = (bool(FASTCALL*)())0x0000000140440E30;
 
-extern bool config_shared_storage_uniform_buffer;
-
 namespace mdl {
     void draw(render_data_context& rend_data_ctx, obj_primitive_type primitive_type, uint32_t count,
         uint16_t start, uint16_t end, obj_index_format index_format, size_t indices) {

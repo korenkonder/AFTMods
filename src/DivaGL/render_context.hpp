@@ -36,6 +36,8 @@ struct draw_state_stats {
     int32_t draw_triangle_count;
     int32_t field_1C;
 
+    draw_state_stats();
+
     void reset();
 };
 

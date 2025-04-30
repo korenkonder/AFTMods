@@ -21,6 +21,7 @@
 #include "shader_ft.hpp"
 #include "sprite.hpp"
 #include "stage_param.hpp"
+#include "static_var.hpp"
 #include "texture.hpp"
 #include <Helpers.h>
 
@@ -1273,8 +1274,7 @@ HOOK(void, FASTCALL, render_manager_init_data, 0x0000000140502A2A, int32_t ssaa,
     void(FASTCALL * sub_1403B6CC0)() = (void(FASTCALL*)())0x00000001403B6CC0;
     sub_1403B6CC0();
 
-    extern bool config_reflect_full;
-    if (reflect_full_ptr && config_reflect_full)
+    if (reflect_full_ptr && sv_reflect_full)
         reflect_full_ptr->init();
 
     glGetErrorDLL();
@@ -1325,8 +1325,7 @@ void reflect_full_struct::free() {
 void reflect_full_struct::init() {
     rndr::Render* render = render_manager.render;
 
-    extern int32_t config_reflect_res_scale;
-    const float_t res_scale = clamp_def((float_t)((double_t)config_reflect_res_scale / 100.0), 0.25f, 1.0f);
+    const float_t res_scale = clamp_def((float_t)((double_t)sv_reflect_res_scale / 100.0), 0.25f, 1.0f);
 
     int32_t render_width = (int32_t)prj::roundf((float_t)render->render_width[0] * res_scale);
     render_width = min_def(max_def(render_width, 128), render->render_width[0]);

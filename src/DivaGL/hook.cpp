@@ -13,7 +13,6 @@
 #include "auth_3d.hpp"
 #include "camera.hpp"
 #include "effect.hpp"
-#include "gl_state.hpp"
 #include "light_param.hpp"
 #include "object.hpp"
 #include "print.hpp"
@@ -121,6 +120,22 @@ HOOK(void, FASTCALL, display_callback, 0x000000140194CD0) {
     originaldisplay_callback();
     render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
     rend_data_ctx.state.update();
+}
+
+HOOK(void, FASTCALL, draw_state_stats_update, 0x0000000140441410) {
+    draw_state.stats_prev.reset();
+
+    for (draw_state_struct::render_data& i : rctx->draw_state_rend_data) {
+        draw_state.stats_prev.sub_mesh_count += i.stats.sub_mesh_count;
+        draw_state.stats_prev.sub_mesh_no_mat_count += i.stats.sub_mesh_no_mat_count;
+        draw_state.stats_prev.sub_mesh_cheap_count += i.stats.sub_mesh_cheap_count;
+        draw_state.stats_prev.field_C += i.stats.field_C;
+        draw_state.stats_prev.field_10 += i.stats.field_10;
+        draw_state.stats_prev.draw_count += i.stats.draw_count;
+        draw_state.stats_prev.draw_triangle_count += i.stats.draw_triangle_count;
+        draw_state.stats_prev.field_1C += i.stats.field_1C;
+        i.stats.reset();
+    }
 }
 
 HOOK(void, FASTCALL, rndr__Render__update_res, 0x00000001404A9480, rndr::Render* rend, bool set, int32_t base_downsample) {
@@ -336,6 +351,8 @@ void hook_funcs() {
     INSTALL_HOOK(data_free);
 
     INSTALL_HOOK(display_callback);
+
+    INSTALL_HOOK(draw_state_stats_update);
 
     INSTALL_HOOK(rndr__Render__update_res);
     INSTALL_HOOK(rndr__Render__take_ss);

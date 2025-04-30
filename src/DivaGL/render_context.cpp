@@ -17,7 +17,10 @@ sss_data& _sss_data = *(sss_data*)0x000000014CC924E0;
 
 render_context* rctx;
 
-extern bool config_shared_storage_uniform_buffer;
+draw_state_stats::draw_state_stats() : sub_mesh_count(), sub_mesh_no_mat_count(),
+sub_mesh_cheap_count(), field_C(), field_10(), draw_count(), draw_triangle_count(), field_1C() {
+
+}
 
 void draw_state_stats::reset() {
     sub_mesh_count = 0;
@@ -305,7 +308,7 @@ void render_data::set_skinning_data(p_gl_rend_state& p_gl_rend_st, const mat4* m
         }
     }
 
-    if (config_shared_storage_uniform_buffer) {
+    if (sv_shared_storage_uniform_buffer) {
         GLuint buffer = 0;
         size_t offset = 0;
         size_t size = 0;
@@ -400,7 +403,7 @@ void render_data::set_state(p_gl_rend_state& p_gl_rend_st) {
     p_gl_rend_st.bind_uniform_buffer_base(1, buffer_scene);
     p_gl_rend_st.bind_uniform_buffer_base(2, buffer_batch);
 
-    if (shader_flags.arr[U_SKINNING] && !config_shared_storage_uniform_buffer)
+    if (shader_flags.arr[U_SKINNING] && !sv_shared_storage_uniform_buffer)
         if (DIVA_GL_VERSION_4_3)
             p_gl_rend_st.bind_shader_storage_buffer_base(0, buffer_skinning);
         else
@@ -990,7 +993,7 @@ samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height(
 }
 
 render_context::~render_context() {
-    if (config_shared_storage_uniform_buffer) {
+    if (sv_shared_storage_uniform_buffer) {
         shared_uniform_buffer_entries.clear();
 
         for (render_context::shared_uniform_buffer& i : shared_uniform_buffers)
@@ -1051,6 +1054,8 @@ render_context::~render_context() {
 }
 
 void render_context::ctrl(bool change_res) {
+    gl_state.get();
+
     RECT rect;
     extern size_t diva_handle;
     GetClientRect((HWND)diva_handle, &rect);
@@ -1234,7 +1239,7 @@ bool render_context::get_shared_storage_uniform_buffer_data(size_t index,
 }
 
 void render_context::pre_proc() {
-    if (config_shared_storage_uniform_buffer) {
+    if (sv_shared_storage_uniform_buffer) {
         auto add_obj_list = [](render_context* rctx, const mdl::ObjSubMeshArgs* args) {
             if (!args->mat_count || !args->mats)
                 return;
@@ -1331,7 +1336,7 @@ void render_context::pre_proc() {
 }
 
 void render_context::post_proc() {
-    if (config_shared_storage_uniform_buffer) {
+    if (sv_shared_storage_uniform_buffer) {
         if (DIVA_GL_VERSION_4_3) {
             for (render_context::shared_storage_buffer& i : shared_storage_buffers)
                 i.offset = 0;
