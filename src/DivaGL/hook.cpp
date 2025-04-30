@@ -20,6 +20,7 @@
 #include "resource.h"
 #include "render_manager.hpp"
 #include "render_texture.hpp"
+#include "screen_shot.hpp"
 #include "shader_ft.hpp"
 #include "sprite.hpp"
 #include "stage.hpp"
@@ -77,6 +78,7 @@ HOOK(int32_t, FASTCALL, data_init, 0x0000000140192FF0) {
     render_manager_patch();
     render_texture_patch();
     rob_patch();
+    screen_shot_patch();
     shadow_patch();
     sprite_patch();
     stage_patch();
@@ -119,10 +121,6 @@ HOOK(void, FASTCALL, display_callback, 0x000000140194CD0) {
     originaldisplay_callback();
     render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
     rend_data_ctx.state.update();
-}
-
-HOOK(void, FASTCALL, gl_rend_state__get, 0x0000000140442DF0) {
-
 }
 
 HOOK(void, FASTCALL, rndr__Render__update_res, 0x00000001404A9480, rndr::Render* rend, bool set, int32_t base_downsample) {
@@ -303,14 +301,6 @@ HOOK(int32_t, FASTCALL, shader_get_index_by_name, 0x00000001405E4ED0, const char
     return shaders_ft.get_index_by_name(name);
 }
 
-HOOK(void, FASTCALL, env_set_blend_color, 0x00000001405E5600, float_t r, float_t g, float_t b, float_t a) {
-
-}
-
-HOOK(void, FASTCALL, env_set_offset_color, 0x00000001405E5630, float_t r, float_t g, float_t b, float_t a) {
-
-}
-
 HOOK(void, FASTCALL, set_render_defaults, 0x00000001401948B0) {
     glClearDepthDLL(1.0);
     glClearStencilDLL(0);
@@ -347,8 +337,6 @@ void hook_funcs() {
 
     INSTALL_HOOK(display_callback);
 
-    INSTALL_HOOK(gl_rend_state__get);
-
     INSTALL_HOOK(rndr__Render__update_res);
     INSTALL_HOOK(rndr__Render__take_ss);
     INSTALL_HOOK(rndr__Render__init_post_process_buffers);
@@ -369,9 +357,6 @@ void hook_funcs() {
     INSTALL_HOOK(shader_load_all_shaders);
     INSTALL_HOOK(shader_get_index_by_name);
 
-    INSTALL_HOOK(env_set_blend_color);
-    INSTALL_HOOK(env_set_offset_color);
-
     INSTALL_HOOK(set_render_defaults);
 
     INSTALL_HOOK(gl_check_framebuffer_status);
@@ -391,6 +376,11 @@ void hook_funcs() {
     extern size_t glut_handle;
     *(uint64_t*)&buf[0x02] = (uint64_t)&glut_create_context;
     WRITE_MEMORY_STRING(glut_handle + 0x0000A970, buf, 0x0C);
+
+    WRITE_RETURN(0x0000000140442DF0); // gl_rend_state::get
+
+    WRITE_RETURN(0x00000001405E5600); // env_set_blend_color
+    WRITE_RETURN(0x00000001405E5630); // env_set_offset_color
 }
 
 static HGLRC FASTCALL glut_create_context(int64_t a1, int64_t a2, int64_t a3, int64_t a4, int32_t a5) {

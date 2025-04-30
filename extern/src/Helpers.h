@@ -165,5 +165,10 @@ const HMODULE MODULE_HANDLE = GetModuleHandle(nullptr);
         VirtualProtect((void*)(location), (size_t)(count), oldProtect, &oldProtect); \
     }
 
+#define WRITE_RETURN(location) \
+    { \
+        WRITE_MEMORY(location, uint8_t, 0xC3); \
+    }
+
 #define COUNTOFARR(arr) \
     sizeof(arr) / sizeof(arr[0])

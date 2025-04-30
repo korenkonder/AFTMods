@@ -8,6 +8,7 @@
 #include "gl_state.hpp"
 #include "render_context.hpp"
 #include "shader_ft.hpp"
+#include "sprite.hpp"
 #include "texture.hpp"
 #include <Helpers.h>
 
@@ -75,6 +76,128 @@ HOOK(bool, FASTCALL, sub_1401898E0, 0x00000001401898E0, __int64 a1, texture* tex
     return true;
 }
 
+HOOK(void*, FASTCALL, ScreenShotData__read_data, 0x0000000140557A70, ScreenShotData* data) {
+    const int32_t pixels = data->width * data->height;
+    if (pixels <= 0)
+        return 0;
+
+    const int32_t size = (data->format == 2 ? 4 : 3) * pixels;
+    void* _data = malloc(size);
+    if (!_data)
+        return 0;
+
+    uint8_t* d = (uint8_t*)_data;
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, data->buffer);
+    const uint8_t* s = (const uint8_t*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+    switch (data->format) {
+    case 0:
+    case 4:
+        for (uint32_t i = pixels; i; i--) {
+            d[0] = s[2];
+            d[1] = s[1];
+            d[2] = s[0];
+            d += 3;
+            s += 4;
+        }
+        break;
+    case 1:
+    case 3:
+        for (uint32_t i = pixels; i; i--) {
+            d[0] = s[0];
+            d[1] = s[1];
+            d[2] = s[2];
+            d += 3;
+            s += 4;
+        }
+        break;
+    case 2:
+        for (uint32_t i = pixels; i; i--) {
+            d[0] = s[0];
+            d[1] = s[1];
+            d[2] = s[2];
+            d[3] = s[3];
+            d += 4;
+            s += 4;
+        }
+        break;
+    default:
+        free(_data);
+        _data = 0;
+        break;
+    }
+    glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    return _data;
+}
+
+HOOK(void, FASTCALL, ScreenShotData__get_data, 0x0000000140557BE0, ScreenShotData* data) {
+    if (!data->screen_shot_4x) {
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, data->buffer);
+        glReadPixelsDLL(0, 0, data->width, data->height, GL_BGRA, GL_UNSIGNED_BYTE, 0);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        gl_get_error_print();
+        return;
+    }
+
+    static void* (FASTCALL * sprite_manager_sub_14063C9C0)(resolution_mode & mode, rectangle & rect, int32_t index)
+        = (void* (FASTCALL*)(resolution_mode & mode, rectangle & rect, int32_t index))0x000000014063C9C0;
+    static void* (FASTCALL * sprite_manager_sub_14063F140)(int32_t index, resolution_mode mode, const rectangle & rect)
+        = (void* (FASTCALL*)(int32_t index, resolution_mode mode, const rectangle & rect))0x000000014063F140;
+
+    render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
+
+    rndr::Render* rend = render_get();
+    rend->taa_buffer[rend->taa_texture].Bind(rend_data_ctx.state, 0);
+
+    std::pair<resolution_mode, rectangle> v20[2] = {};
+    for (int32_t i = 0; i < 2; i++) {
+        sprite_manager_sub_14063C9C0(v20[i].first, v20[i].second, i);
+
+        std::pair<resolution_mode, rectangle> v19;
+        v19.first = v20[i].first;
+        v19.second.pos = v20[i].second.pos * 2.0f;
+        v19.second.size = v20[i].second.size * 2.0f;
+        sprite_manager_sub_14063F140(i, v19.first, v19.second);
+    }
+
+    sprite_manager_set_view_projection(0);
+    rend_data_ctx.state.disable_depth_test();
+    rend_data_ctx.state.enable_blend();
+    rend_data_ctx.state.disable_cull_face();
+    sprite_manager_draw(rend_data_ctx, 0, 0, rend->temp_buffer.color_texture);
+    sprite_manager_draw(rend_data_ctx, 3, 0, rend->temp_buffer.color_texture);
+
+    vec2 v17 = 0.0f;
+    resolution_mode_scale_pos(v17, v20[1].first,
+        v20[1].second.pos, res_window_get()->resolution_mode);
+    v17 *= 2.0f;
+
+    vec2 v18 = 0.0;
+    resolution_mode_scale_pos(v18, v20[1].first,
+        v20[1].second.pos + v20[1].second.size, res_window_get()->resolution_mode);
+    v18 *= 2.0f;
+
+    rend_data_ctx.state.set_viewport((int32_t)v17.x, (int32_t)v17.y,
+        (int32_t)(v18.x - v17.x), (int32_t)(v18.y - v17.y));
+
+    rend_data_ctx.state.enable_cull_face();
+    rend_data_ctx.state.disable_blend();
+    rend_data_ctx.state.enable_depth_test();
+    rend_data_ctx.state.bind_framebuffer(0);
+
+    for (int32_t i = 0; i < 2; i++)
+        sprite_manager_sub_14063F140(i, v20[i].first, v20[i].second);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, data->buffer);
+    texture* taa_tex = rend->taa_tex[rend->taa_texture];
+    rend_data_ctx.state.bind_texture_2d(taa_tex ? taa_tex->glid : 0);
+
+    glGetTexImageDLL(GL_TEXTURE_2D, 0, GL_BGRA, GL_UNSIGNED_BYTE, 0i64);
+    rend_data_ctx.state.bind_texture_2d(0);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    gl_get_error_print();
+}
+
 HOOK(void, FASTCALL, ScreenShotImpl__copy, 0x0000000140557F50, ScreenShotImpl* impl) {
     render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
     rend_data_ctx.state.active_bind_texture_2d(0, impl->tex->glid);
@@ -116,18 +239,10 @@ HOOK(void, FASTCALL, ScreenShotImpl__copy, 0x0000000140557F50, ScreenShotImpl* i
     rend_data_ctx.state.enable_depth_test();
 }
 
-HOOK(void, FASTCALL, ScreenShotData__get_data, 0x0000000140557BE0, ScreenShotData* data) {
-    if (!data->screen_shot_4x) {
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, data->buffer);
-        glReadPixelsDLL(0, 0, data->width, data->height, GL_BGRA, GL_UNSIGNED_BYTE, 0);
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-        glGetErrorDLL();
-    }
-}
-
 void screen_shot_patch() {
     INSTALL_HOOK(sub_1401898E0);
 
-    INSTALL_HOOK(ScreenShotImpl__copy);
+    INSTALL_HOOK(ScreenShotData__read_data);
     INSTALL_HOOK(ScreenShotData__get_data);
+    INSTALL_HOOK(ScreenShotImpl__copy);
 }
