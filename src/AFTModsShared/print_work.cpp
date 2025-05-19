@@ -165,7 +165,8 @@ void PrintWork::DrawTextMesh(app::text_flags flags, sprite_text_mesh& mesh) {
             i.color.r = 0x40;
             i.color.g = 0x40;
             i.color.b = 0x40;
-            i.pos += 2.0f;
+            i.pos.x += 2.0f;
+            i.pos.y += 2.0f;
         }
         args.SetVertexArray(mesh.vertices.data(), mesh.vertices.size());
         args.id.index = mesh.sprite_id;

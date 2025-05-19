@@ -56,15 +56,27 @@ namespace spr {
         struct UV {
             float_t u;
             float_t v;
+
+            inline UV() : u(), v() {
+
+            }
         };
 
-        TexCoord::UV uv[4];
+        UV uv[4];
+
+        inline TexCoord() {
+
+        }
     };
 
     struct TexParam {
-        texture* texture;
+        const texture* texture;
         TexCoord texcoord;
         int32_t pad[2];
+
+        inline TexParam() : texture(), pad() {
+
+        }
     };
 
     struct SpriteManager {
@@ -261,11 +273,6 @@ namespace spr {
     void SpriteManager::Draw(render_data_context& rend_data_ctx,
         int32_t index, bool font, texture* overlay_tex) {
         draw_sprite_begin(rend_data_ctx);
-
-        size_t count = 0;
-        for (auto& i : reqlist[index])
-            for (auto& j : i)
-                count += j.size();
 
         ::resolution_mode mode = res_window_get()->resolution_mode;
         if (index == 2 && resolution_mode != RESOLUTION_MODE_MAX)
@@ -649,8 +656,7 @@ namespace spr {
             if (args.kind == SPR_KIND_LINE)
                 continue;
 
-            // BGRA to RGBA
-            const color4u8 color = { args.color.r, args.color.g, args.color.b, args.color.a };
+            const color4u8 color = args.color;
 
             if (font)
                 draw_sprite_scale(&args);
@@ -767,7 +773,7 @@ namespace spr {
                     spr_vtx[3].pos = vtx[3];
                     spr_vtx[3].color = color;
 
-                    draw_param.attrib.m.primitive = GL_LINES;
+                    draw_param.attrib.m.primitive = GL_LINE_STRIP;
                     draw_param.first = (GLint)vertex_buffer.size();
                     draw_param.count = 5;
 
@@ -859,11 +865,11 @@ namespace spr {
                     vertex_buffer.reserve(args.num_vertex);
 
                     sprite_draw_vertex spr_vtx = {};
-                    spr_vtx.color = color;
 
                     SpriteVertex* vtx = args.GetVertexArray();
                     for (size_t i = args.num_vertex; i; i--, vtx++) {
                         spr_vtx.pos = vtx->pos;
+                        spr_vtx.color = vtx->color;
                         vertex_buffer.push_back(spr_vtx);
                     }
                 } break;
@@ -1165,9 +1171,11 @@ namespace spr {
 
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, draw_param.shader);
         if (draw_param.attrib.m.primitive != GL_TRIANGLES)
-            rend_data_ctx.state.draw_arrays(draw_param.attrib.m.primitive, draw_param.first, draw_param.count);
+            rend_data_ctx.state.draw_arrays(
+                draw_param.attrib.m.primitive, draw_param.first, draw_param.count);
         else
-            rend_data_ctx.state.draw_range_elements(draw_param.attrib.m.primitive, draw_param.start, draw_param.end,
+            rend_data_ctx.state.draw_range_elements(
+                draw_param.attrib.m.primitive, draw_param.start, draw_param.end,
                 draw_param.count, GL_UNSIGNED_INT, (void*)draw_param.offset);
     }
 
@@ -1179,8 +1187,6 @@ namespace spr {
         rend_data_ctx.state.bind_sampler(1, 0);
         rend_data_ctx.state.bind_sampler(7, 0);
         rend_data_ctx.state.set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
-        rend_data_ctx.state.bind_vertex_array(0);
-        rend_data_ctx.state.bind_uniform_buffer_base(0, 0);
     }
 
     static void draw_sprite_copy_overlay_texture(
@@ -1241,7 +1247,8 @@ namespace spr {
         const int32_t height = y_max - y_min + 1;
         if (width * height > 0) {
             rend_data_ctx.state.active_texture(7);
-            rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D, 0, x_min, y_min, x_min, y_min, width, height);
+            rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D,
+                0, x_min, y_min, x_min, y_min, width, height);
         }
     }
 
