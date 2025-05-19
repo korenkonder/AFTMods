@@ -16,9 +16,16 @@ void fbo_blit(p_gl_rend_state& p_gl_rend_st, GLuint src_fbo, GLuint dst_fbo,
 }
 
 void gl_get_error_all_print() {
+    const int32_t max_count = 0x100;
+    int32_t count = 0;
     GLenum error;
-    while (error = glGetErrorDLL())
+    while (error = glGetErrorDLL() && count < max_count) {
         printf_debug("GL Error: 0x%04X\n", error);
+        count++;
+    }
+
+    if (count == max_count)
+        printf_debug("GL returned more than %d consecutive errors!\n", max_count);
 }
 
 GLenum gl_get_error_print() {
