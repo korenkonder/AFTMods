@@ -308,7 +308,16 @@ void render_data::set_skinning_data(p_gl_rend_state& p_gl_rend_st, const mat4* m
         }
     }
 
-    if (sv_shared_storage_uniform_buffer) {
+    if (sv_texture_skinning_buffer) {
+        GLuint texture = 0;
+        vec2i offset = 0;
+        if (rctx->get_texture_skinning_buffer_data((size_t)mats, texture, offset)) {
+            vec2i_to_vec2(offset, *(vec2*)&buffer_batch_data.g_bump_depth.z);
+            enum_or(flags, RENDER_DATA_BATCH_UPDATE);
+            p_gl_rend_st.active_bind_texture_2d(21, texture);
+        }
+    }
+    else if (sv_shared_storage_uniform_buffer) {
         GLuint buffer = 0;
         size_t offset = 0;
         size_t size = 0;
@@ -403,7 +412,7 @@ void render_data::set_state(p_gl_rend_state& p_gl_rend_st) {
     p_gl_rend_st.bind_uniform_buffer_base(1, buffer_scene);
     p_gl_rend_st.bind_uniform_buffer_base(2, buffer_batch);
 
-    if (shader_flags.arr[U_SKINNING] && !sv_shared_storage_uniform_buffer)
+    if (shader_flags.arr[U_SKINNING] && !sv_shared_storage_uniform_buffer && !sv_texture_skinning_buffer)
         if (DIVA_GL_VERSION_4_3)
             p_gl_rend_st.bind_shader_storage_buffer_base(0, buffer_skinning);
         else
@@ -508,7 +517,10 @@ void render_data_context::set_batch_material_parameter(const vec4* specular, con
     const vec4& intensity, const float_t reflect_uv_scale, const float_t refract_uv_scale) {
     if (specular)
         data.buffer_batch_data.g_material_state_specular = *specular;
-    data.buffer_batch_data.g_bump_depth = bump_depth;
+    if (sv_texture_skinning_buffer)
+        *(vec2*)&data.buffer_batch_data.g_bump_depth.x = *(vec2*)&bump_depth;
+    else
+        data.buffer_batch_data.g_bump_depth = bump_depth;
     data.buffer_batch_data.g_intensity = intensity;
     data.buffer_batch_data.g_reflect_uv_scale.x = reflect_uv_scale;
     data.buffer_batch_data.g_reflect_uv_scale.y = reflect_uv_scale;
@@ -802,6 +814,62 @@ size_t render_context::shared_uniform_buffer::fill_data(const void* data, size_t
     return offset;
 }
 
+bool render_context::texture_skinning_buffer::can_fill_data(int32_t width) {
+    return (x + width) <= this->width || (y + 1) < height;
+}
+
+void render_context::texture_skinning_buffer::create(int32_t width, int32_t height) {
+    if (texture)
+        return;
+
+    glGenTextures(1, &texture);
+    gl_state.bind_texture_2d(texture);
+    glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    static const vec4 border_color = 0.0f;
+    glTexParameterfvDLL(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+    glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameterfDLL(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f);
+    glTexImage2DDLL(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, 0);
+    gl_state.bind_texture_2d(0);
+    data = _operator_new(sizeof(vec4) * width * height);
+    memset(data, 0, sizeof(vec4) * width * height);
+    x = 0;
+    y = 0;
+    this->width = width;
+    this->height = height;
+}
+
+void render_context::texture_skinning_buffer::destroy() {
+    if (texture) {
+        glDeleteTexturesDLL(1, & texture);
+        texture = 0;
+    }
+
+    if (data) {
+        _operator_delete(data);
+        data = 0;
+    }
+}
+
+vec2i render_context::texture_skinning_buffer::fill_data(const void* data, int32_t width) {
+    if (x + width > this->width) {
+        x = 0;
+        y++;
+    }
+
+    int32_t x = this->x;
+    int32_t y = this->y;
+    memcpy((void*)((size_t)this->data + (sizeof(vec4) * this->width * y
+        + sizeof(vec4) * x)), data, sizeof(vec4) * width);
+    this->x = x + width;
+    return { x, y };
+}
+
 render_context::render_context() : box_vao(), lens_ghost_vao(), common_vao(), reflect_buffer(),
 render_buffer(), screen_buffer(), shadow_buffer(), empty_texture_2d(), empty_texture_cube_map(),
 samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height() {
@@ -993,6 +1061,14 @@ samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height(
 }
 
 render_context::~render_context() {
+    if (sv_texture_skinning_buffer) {
+        texture_skinning_buffer_entries.clear();
+
+        for (render_context::texture_skinning_buffer& i : texture_skinning_buffers)
+            i.destroy();
+        texture_skinning_buffers.clear();
+    }
+
     if (sv_shared_storage_uniform_buffer) {
         shared_uniform_buffer_entries.clear();
 
@@ -1214,6 +1290,24 @@ void render_context::add_shared_storage_uniform_buffer_data(size_t index,
     }
 }
 
+void render_context::add_texture_skinning_buffer_data(size_t index, const void* data, int32_t width) {
+    render_context::texture_skinning_buffer* buffer = 0;
+    for (render_context::texture_skinning_buffer& i : texture_skinning_buffers)
+        if (i.can_fill_data(width)) {
+            buffer = &i;
+            break;
+        }
+
+    if (!buffer) {
+        texture_skinning_buffers.push_back({});
+        buffer = &texture_skinning_buffers.back();
+        buffer->create(1024, 128);
+    }
+
+    vec2i offset = buffer->fill_data(data, width);
+    texture_skinning_buffer_entries.insert({ index, { buffer->texture, offset } });
+}
+
 bool render_context::get_shared_storage_uniform_buffer_data(size_t index,
     GLuint& buffer, size_t& offset, size_t& size, bool storage) {
     if (storage) {
@@ -1238,21 +1332,38 @@ bool render_context::get_shared_storage_uniform_buffer_data(size_t index,
     }
 }
 
+bool render_context::get_texture_skinning_buffer_data(size_t index, GLuint& texture, vec2i& offset) {
+    auto elem = texture_skinning_buffer_entries.find(index);
+    if (elem == texture_skinning_buffer_entries.end())
+        return false;
+
+    texture = elem->second.texture;
+    offset = elem->second.offset;
+    return true;
+}
+
 void render_context::pre_proc() {
-    if (sv_shared_storage_uniform_buffer) {
+    if (sv_texture_skinning_buffer || sv_shared_storage_uniform_buffer) {
         auto add_obj_list = [](render_context* rctx, const mdl::ObjSubMeshArgs* args) {
             if (!args->mat_count || !args->mats)
                 return;
 
-            if (DIVA_GL_VERSION_4_3) {
-                if (rctx->shared_storage_buffer_entries.find((size_t)args->mats)
-                    != rctx->shared_storage_buffer_entries.end())
+            if (sv_texture_skinning_buffer) {
+                if (rctx->texture_skinning_buffer_entries.find((size_t)args->mats)
+                    != rctx->texture_skinning_buffer_entries.end())
                     return;
             }
             else {
-                if (rctx->shared_uniform_buffer_entries.find((size_t)args->mats)
-                    != rctx->shared_uniform_buffer_entries.end())
-                    return;
+                if (DIVA_GL_VERSION_4_3) {
+                    if (rctx->shared_storage_buffer_entries.find((size_t)args->mats)
+                        != rctx->shared_storage_buffer_entries.end())
+                        return;
+                }
+                else {
+                    if (rctx->shared_uniform_buffer_entries.find((size_t)args->mats)
+                        != rctx->shared_uniform_buffer_entries.end())
+                        return;
+                }
             }
 
             const int32_t mat_count = min_def(args->mat_count, 256);
@@ -1268,10 +1379,15 @@ void render_context::pre_proc() {
                 g_joint_transform[2] = mat.row2;
             }
 
-            const size_t buffer_size = sizeof(vec4) * 3 * 256;
-            const size_t size = sizeof(vec4) * 3 * mat_count;
-            rctx->add_shared_storage_uniform_buffer_data((size_t)args->mats,
-                g_joint_transforms, size, buffer_size, !!DIVA_GL_VERSION_4_3);
+            if (sv_texture_skinning_buffer)
+                rctx->add_texture_skinning_buffer_data((size_t)args->mats,
+                    g_joint_transforms, 3 * mat_count);
+            else {
+                const size_t buffer_size = sizeof(vec4) * 3 * 256;
+                const size_t size = sizeof(vec4) * 3 * mat_count;
+                rctx->add_shared_storage_uniform_buffer_data((size_t)args->mats,
+                    g_joint_transforms, size, buffer_size, !!DIVA_GL_VERSION_4_3);
+            }
         };
 
         for (int32_t type = 0; type < mdl::OBJ_TYPE_MAX; type++)
@@ -1332,6 +1448,19 @@ void render_context::pre_proc() {
                 memset((void*)((size_t)i.data + i.offset), 0, align);
             i.buffer.WriteMemory(gl_state, 0, size, i.data);
         }
+
+        for (render_context::texture_skinning_buffer& i : texture_skinning_buffers) {
+            if (!i.x && !i.y)
+                continue;
+
+            const int32_t align_x = i.width - i.x;
+            if (align_x)
+                memset((void*)((size_t)i.data + (sizeof(vec4) * i.width * i.y
+                    + sizeof(vec4) * i.x)), 0, sizeof(vec4) * align_x);
+            gl_state.bind_texture_2d(i.texture);
+            glTexSubImage2DDLL(GL_TEXTURE_2D, 0, 0, 0, i.width, i.y + 1, GL_RGBA, GL_FLOAT, i.data);
+        }
+        gl_state.bind_texture_2d(0);
     }
 }
 
@@ -1348,6 +1477,15 @@ void render_context::post_proc() {
             i.offset = 0;
 
         shared_uniform_buffer_entries.clear();
+    }
+
+    if (sv_texture_skinning_buffer) {
+        for (render_context::texture_skinning_buffer& i : texture_skinning_buffers) {
+            i.x = 0;
+            i.y = 0;
+        }
+
+        texture_skinning_buffer_entries.clear();
     }
 }
 

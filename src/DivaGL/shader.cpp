@@ -12,6 +12,7 @@
 #include "gl_rend_state.hpp"
 #include "print.hpp"
 #include "shared.hpp"
+#include "static_var.hpp"
 #include "wrap.hpp"
 #include <shlobj_core.h>
 
@@ -77,6 +78,45 @@ static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::str
         size_t result_pos = temp.size() - 1;
         while ((result_pos = temp.rfind("result_", result_pos)) != -1)
             temp.replace(result_pos, 7, "frg_", 4);
+    }
+
+    if (sv_texture_skinning_buffer) {
+        size_t buffer_skinning_pos = temp.find(
+            "layout(std430, set = 2, binding = 0) readonly buffer Skinning");
+        if (buffer_skinning_pos != -1) {
+            size_t apply_skinning_pos = temp.find("vec4 apply_skinning(in const vec3 a_data,"
+                " in const ivec4 mtxidx, in const vec4 weight)", buffer_skinning_pos);
+            if (apply_skinning_pos != -1) {
+                const char replacement[] =
+                    "#define skinning_offset ivec2(g_bump_depth.zw)\n"
+                    "uniform sampler2D g_skinning;\n"
+                    "\n"
+                    "vec3 apply_skinning(in const vec4 data, in const int mtxidx_comp) {\n"
+                    "    const ivec3 mtxidx_row = ivec3(mtxidx_comp * 3) + ivec3(0, 1, 2);\n"
+                    "\n"
+                    "    return vec3(\n"
+                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.x, 0) + skinning_offset, 0)),\n"
+                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.y, 0) + skinning_offset, 0)),\n"
+                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.z, 0) + skinning_offset, 0))\n"
+                    "    );\n"
+                    "}\n"
+                    "\n"
+                    "vec3 apply_skinning_rotation(in const vec3 data, in const int mtxidx_comp) {\n"
+                    "    const ivec3 mtxidx_row = ivec3(mtxidx_comp * 3) + ivec3(0, 1, 2);\n"
+                    "\n"
+                    "    return vec3(\n"
+                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.x, 0) + skinning_offset, 0).xyz),\n"
+                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.y, 0) + skinning_offset, 0).xyz),\n"
+                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.z, 0) + skinning_offset, 0).xyz)\n"
+                    "    );\n"
+                    " }\n"
+                    "\n";
+                temp.replace(buffer_skinning_pos, apply_skinning_pos - buffer_skinning_pos,
+                    replacement, sizeof(replacement) - 1);
+
+                samplers.push_back({ 21, "g_skinning" });
+            }
+        }
     }
 
     size_t binding_pos = 0;

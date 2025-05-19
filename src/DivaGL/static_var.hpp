@@ -18,3 +18,5 @@ extern bool sv_reflect_full;
 extern int32_t sv_reflect_res_scale;
 
 extern bool sv_shared_storage_uniform_buffer;
+
+extern bool sv_texture_skinning_buffer;

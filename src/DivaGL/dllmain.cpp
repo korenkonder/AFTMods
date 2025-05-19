@@ -60,6 +60,9 @@ bool APIENTRY DllMain(HMODULE handle, DWORD ul_reason_for_call, LPVOID lpReserve
         sv_shared_storage_uniform_buffer = GetPrivateProfileIntW(L"experimentals",
             L"shared_storage_uniform_buffer", 0, CONFIG_FILE) > 0 ? true : false;
 
+        sv_texture_skinning_buffer = GetPrivateProfileIntW(L"experimentals",
+            L"texture_skinning_buffer", 0, CONFIG_FILE) > 0 ? true : false;
+
         dll_handle = (size_t)handle;
         printf_divagl("Current version - v0.7.3.0 (Build date: " __DATE__ ")");
         printf_divagl("Attach");
@@ -131,6 +134,18 @@ PluginConfig::PluginConfigOption config[] = {
             CONFIG_FILE,
             L"Shared Storage/Uniform Buffer",
             L"May be useful for running AFT via Mesa or on Apple devices\nor when driver doesn't support OpenGL 4.3.",
+            false,
+            false,
+        }
+    },
+    {
+        PluginConfig::CONFIG_BOOLEAN,
+        new PluginConfig::PluginConfigBooleanData {
+            L"texture_skinning_buffer",
+            L"experimentals",
+            CONFIG_FILE,
+            L"Texture Skinning Buffer",
+            L"If Shared Storage/Uniform Buffer isn't working for you.\nWorks only when driver doesn't support OpenGL 4.3.",
             false,
             false,
         }

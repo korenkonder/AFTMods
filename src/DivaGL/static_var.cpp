@@ -16,3 +16,5 @@ bool sv_reflect_full = true;
 int32_t sv_reflect_res_scale = 100;
 
 bool sv_shared_storage_uniform_buffer = false;
+
+bool sv_texture_skinning_buffer = false;

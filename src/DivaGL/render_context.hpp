@@ -508,6 +508,25 @@ struct render_context {
         size_t size;
     };
 
+    struct texture_skinning_buffer {
+        void* data;
+        int32_t x;
+        int32_t y;
+        int32_t width;
+        int32_t height;
+        GLuint texture;
+
+        bool can_fill_data(int32_t width);
+        void create(int32_t width, int32_t height);
+        void destroy();
+        vec2i fill_data(const void* data, int32_t width);
+    };
+
+    struct texture_skinning_buffer_entry {
+        GLuint texture;
+        vec2i offset;
+    };
+
     GLuint box_vao;
     GL::ArrayBuffer box_vbo;
 
@@ -563,6 +582,8 @@ struct render_context {
     std::unordered_map<size_t, shared_buffer_entry> shared_storage_buffer_entries;
     prj::vector<render_context::shared_uniform_buffer> shared_uniform_buffers;
     std::unordered_map<size_t, shared_buffer_entry> shared_uniform_buffer_entries;
+    prj::vector<render_context::texture_skinning_buffer> texture_skinning_buffers;
+    std::unordered_map<size_t, texture_skinning_buffer_entry> texture_skinning_buffer_entries;
 
     render_context();
     ~render_context();
@@ -573,8 +594,10 @@ struct render_context {
 
     void add_shared_storage_uniform_buffer_data(size_t index,
         const void* data, size_t size, size_t max_size, bool storage = false);
+    void add_texture_skinning_buffer_data(size_t index, const void* data, int32_t width);
     bool get_shared_storage_uniform_buffer_data(size_t index,
         GLuint& buffer, size_t& offset, size_t& size, bool storage = false);
+    bool get_texture_skinning_buffer_data(size_t index, GLuint& texture, vec2i& offset);
     void post_proc();
     void pre_proc();
 };

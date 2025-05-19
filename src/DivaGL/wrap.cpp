@@ -2560,6 +2560,15 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
         DIVA_GL_VERSION_4_4 = (major == 4 && minor >= 4) || major > 4;
         DIVA_GL_VERSION_4_5 = (major == 4 && minor >= 5) || major > 4;
         DIVA_GL_VERSION_4_6 = (major == 4 && minor >= 6) || major > 4;
+
+        extern bool sv_shared_storage_uniform_buffer;
+        if (sv_shared_storage_uniform_buffer)
+            printf_divagl("Enabled Shared Storage/Uniform Buffer");
+
+        extern bool sv_texture_skinning_buffer;
+        sv_texture_skinning_buffer &= !DIVA_GL_VERSION_4_3;
+        if (sv_texture_skinning_buffer)
+            printf_divagl("Enabled Texture Skinning Buffer");
     }
 
 #define REPLACE_FUNC(name) \
