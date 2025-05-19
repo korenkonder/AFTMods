@@ -2631,11 +2631,6 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
         glTextureSubImage2D = (PFNGLTEXTURESUBIMAGE2DPROC)wglGetProcAddressDLL("glTextureSubImage2D");
         glGenerateTextureMipmap = (PFNGLGENERATETEXTUREMIPMAPPROC)wglGetProcAddressDLL("glGenerateTextureMipmap");
         glBindTextureUnit = (PFNGLBINDTEXTUREUNITPROC)wglGetProcAddressDLL("glBindTextureUnit");
-
-        glNamedBufferDataEXT = glNamedBufferData;
-        glNamedBufferSubDataEXT = glNamedBufferSubData;
-        glMapNamedBufferEXT = glMapNamedBuffer;
-        glUnmapNamedBufferEXT = glUnmapNamedBuffer;
     }
 
 #undef REPLACE_FUNC
