@@ -975,7 +975,6 @@ HOOK(obj_set*, FASTCALL, obj_set_parse_file, 0x000000014045CBC0,
                                         for (int32_t n = 0; n < 20; n++)
                                             mesh->vertex_array_ptr[n] = 0;
                                         mesh->attrib = {};
-                                        mesh->vertex_flags = 0;
                                         break;
                                     }
 
@@ -1086,6 +1085,11 @@ HOOK(bool, FASTCALL, _objset_info_storage_load_obj_set_check_not_read, 0x0000000
     return ret;
 }
 
+HOOK(int32_t, FASTCALL, obj_mesh_vertex_buffer__load_data, 0x0000000140461650,
+    obj_mesh_vertex_buffer_divagl* objvb, uint32_t size, void* data, uint32_t count) {
+    return objvb->load_data(size, data, count, true);
+}
+
 HOOK(void, FASTCALL, obj_mesh_vertex_buffer__unload, 0x0000000140461870, obj_mesh_vertex_buffer_divagl* objvb) {
     objvb->unload();
 }
@@ -1104,6 +1108,7 @@ void object_patch() {
     INSTALL_HOOK(objset_info_storage_get_obj_mesh_vertex_buffer);
     INSTALL_HOOK(obj_set_parse_file);
     INSTALL_HOOK(_objset_info_storage_load_obj_set_check_not_read);
+    INSTALL_HOOK(obj_mesh_vertex_buffer__load_data);
     INSTALL_HOOK(obj_mesh_vertex_buffer__unload);
 }
 

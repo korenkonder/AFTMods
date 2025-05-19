@@ -377,8 +377,7 @@ struct obj_mesh {
         void* vertex_array_ptr[20];
     };
     obj_mesh_attrib attrib;
-    uint32_t vertex_flags;
-    uint32_t reserved[6];
+    uint32_t reserved[7];
     char name[0x40];
 };
 

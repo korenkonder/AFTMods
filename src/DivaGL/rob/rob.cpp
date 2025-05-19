@@ -44,6 +44,9 @@ struct rob_chara_age_age_object {
 
     void disp(size_t chara_index,
         bool npr, bool reflect, const vec3& a5, bool chara_color);
+    ::obj* get_obj_set_obj();
+    bool get_objset_info_obj_index(uint32_t obj_info);
+    void load(uint32_t obj_info, int32_t count);
 };
 
 static_assert(sizeof(rob_chara_age_age_object) == 0xC40, "\"rob_chara_age_age_object\" struct should have a size of 0xC40");
@@ -710,6 +713,11 @@ HOOK(void, FASTCALL, rob_chara_set_hand_adjust, 0x000000014053C070, rob_chara* r
     }
 }
 
+HOOK(void, FASTCALL, rob_chara_age_age_object__load, 0x0000000140542790,
+    rob_chara_age_age_object* rob_age_age_obj, uint32_t obj_info, int32_t count) {
+    rob_age_age_obj->load(obj_info, count);
+}
+
 HOOK(void, FASTCALL, rob_chara_item_equip_object_disp, 0x00000001405F2700, rob_chara_item_equip_object* itm_eq_obj) {
     rob_chara_item_equip_mat = &itm_eq_obj->item_equip->mat;
     originalrob_chara_item_equip_object_disp(itm_eq_obj);
@@ -728,6 +736,7 @@ void rob_patch() {
     INSTALL_HOOK(mothead_func_32);
     INSTALL_HOOK(sub_14053ACA0);
     INSTALL_HOOK(rob_chara_set_hand_adjust);
+    INSTALL_HOOK(rob_chara_age_age_object__load);
     INSTALL_HOOK(rob_chara_item_equip_object_disp);
 }
 
@@ -781,6 +790,161 @@ void rob_chara_age_age_object::disp(size_t chara_index,
     disp_manager->entry_obj_by_obj(mat4_identity, &obj,
         rob_chara_age_age_object__get_obj_set_texture(this),
         &obj_vert_buf, &obj_index_buf, 0, 1.0f);
+}
+
+::obj* rob_chara_age_age_object::get_obj_set_obj() {
+    static ::obj* (FASTCALL * rob_chara_age_age_object__get_obj_set_obj)(rob_chara_age_age_object * rob_age_age_obj)
+        = (::obj * (FASTCALL*)(rob_chara_age_age_object * rob_age_age_obj))0x000000014045A1F0;
+    return rob_chara_age_age_object__get_obj_set_obj(this);
+}
+
+bool rob_chara_age_age_object::get_objset_info_obj_index(uint32_t obj_info) {
+    static bool(FASTCALL * rob_chara_age_age_object__get_objset_info_obj_index)(rob_chara_age_age_object * rob_age_age_obj, uint32_t obj_info)
+        = (bool(FASTCALL*)(rob_chara_age_age_object * rob_age_age_obj, uint32_t obj_info))0x0000000140459860;
+    return rob_chara_age_age_object__get_objset_info_obj_index(this, obj_info);
+}
+
+void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
+    static void(FASTCALL * rob_chara_age_age_object__reset)(rob_chara_age_age_object * rob_age_age_obj)
+        = (void(FASTCALL*)(rob_chara_age_age_object * rob_age_age_obj))0x0000000140541C70;
+    rob_chara_age_age_object__reset(this);
+
+    this->count = count;
+    num_vertex = 0;
+    disp_count = 0;
+
+    if (!get_objset_info_obj_index(obj_info)) {
+        obj_index = -1;
+        objset_info = 0;
+        return;
+    }
+    else {
+        ::obj* o = get_obj_set_obj();
+        if (o->num_mesh != 1 || (o->mesh_array[0].num_submesh != 1)
+            || o->mesh_array[0].submesh_array->index_format != OBJ_INDEX_U16) {
+            obj_index = -1;
+            objset_info = 0;
+            return;
+        }
+    }
+
+    if (!objset_info)
+        return;
+
+
+    ::obj* o = get_obj_set_obj();
+    obj_mesh* m = &o->mesh_array[0];
+    obj_sub_mesh* sm = &m->submesh_array[0];
+
+    int32_t num_vertex = m->num_vertex;
+    this->num_vertex = num_vertex;
+
+    int32_t num_index = sm->num_index;
+    this->num_index = num_index;
+
+    uint32_t vertex_array_size = sizeof(rob_chara_age_age_object_vertex) * num_vertex;
+    this->vertex_array_size = vertex_array_size;
+
+    uint32_t vertex_data_size = vertex_array_size * count;
+    this->vertex_data_size = vertex_data_size;
+
+    rob_chara_age_age_object_vertex* vtx_data = (rob_chara_age_age_object_vertex*)_operator_new(vertex_data_size);
+    this->vertex_data = vtx_data;
+
+    vec3* vertex_array_position = m->vertex_array.position;
+    vec3* vertex_array_normal = m->vertex_array.normal;
+    vec4* vertex_array_tangent = m->vertex_array.tangent;
+    vec2* vertex_array_texcoord0 = m->vertex_array.texcoord0;
+    for (int32_t i = count; i > 0; i--)
+        for (int32_t j = num_vertex, k = 0; j; j--, k++, vtx_data++) {
+            vtx_data->position = vertex_array_position[k];
+            vtx_data->normal = vertex_array_normal[k];
+            vtx_data->tangent = vertex_array_tangent[k];
+            vtx_data->texcoord = vertex_array_texcoord0[k];
+        }
+
+    static int32_t(FASTCALL * obj_mesh_vertex_buffer__load_data)(obj_mesh_vertex_buffer * objvb, uint32_t data_size, void* data, uint32_t count)
+        = (int32_t(FASTCALL*)(obj_mesh_vertex_buffer * objvb, uint32_t data_size, void* data, uint32_t count))0x0000000140461650;
+
+    obj_mesh_vertex_buffer__load_data(&obj_vert_buf, vertex_data_size, vertex_data, 2);
+    this->num_index = num_index + 1;
+    int32_t num_idx_data = (int32_t)(count * (num_index + 1));
+
+    uint16_t* idx_data = (uint16_t*)_operator_new(sizeof(uint16_t) * num_idx_data);
+    uint16_t* index_array = (uint16_t*)sm->index_array;
+    uint32_t index_offset = 0;
+    uint32_t l = 0;
+    for (int32_t i = count; i > 0; i--) {
+        for (int32_t j = num_index, k = 0; j; j--, k++)
+            if (index_array[k] == 0xFFFF)
+                idx_data[l++] = 0xFFFF;
+            else
+                idx_data[l++] = (uint16_t)(index_offset + index_array[k]);
+        idx_data[l++] = 0xFFFF;
+        index_offset += num_vertex;
+    }
+
+    {
+        GL::ElementArrayBuffer ebo;
+        ebo.Create(gl_state, sizeof(uint16_t) * num_idx_data, idx_data);
+        obj_index_buf.buffer = ebo;
+    }
+    _operator_delete(idx_data);
+
+    material[0] = o->material_array[0];
+    material[1] = o->material_array[0];
+    material[1].material.attrib.m.alpha_texture = 0;
+    material[1].material.attrib.m.alpha_material = 0;
+
+    obj.version = o->version;
+    obj.flags = o->flags;
+    obj.bounding_sphere = o->bounding_sphere;
+    obj.num_mesh = 1;
+    obj.mesh_array = &mesh;
+    obj.num_material = 2;
+    obj.material_array = material;
+    memmove(obj.reserved, o->reserved, sizeof(uint32_t) * 10);
+
+    mesh.flags = m->flags;
+    mesh.bounding_sphere = m->bounding_sphere;
+    mesh.num_submesh = 1;
+    mesh.submesh_array = &sub_mesh;
+    mesh.vertex_format = (obj_vertex_format)(OBJ_VERTEX_POSITION | OBJ_VERTEX_NORMAL
+        | OBJ_VERTEX_TANGENT | OBJ_VERTEX_TEXCOORD0 | OBJ_VERTEX_TEXCOORD1);
+    mesh.size_vertex = sizeof(rob_chara_age_age_object_vertex);
+    mesh.num_vertex = m->num_vertex;
+
+    for (void*& i : mesh.vertex_array_ptr)
+        i = 0;
+    mesh.vertex_array.position = (vec3*)vertex_data;
+    mesh.vertex_array.normal = (vec3*)vertex_data;
+    mesh.vertex_array.tangent = (vec4*)vertex_data;
+    mesh.vertex_array.texcoord0 = (vec2*)vertex_data;
+    mesh.vertex_array.texcoord1 = (vec2*)vertex_data;
+
+    mesh.attrib = m->attrib;
+    memmove(mesh.reserved, m->reserved, sizeof(uint32_t) * 7);
+    memmove(mesh.name, m->name, 0x40);
+
+    sub_mesh.flags = sm->flags;
+    sub_mesh.material_index = 0;
+    sub_mesh.bounding_sphere = sm->bounding_sphere;
+    memmove(sub_mesh.uv_index, sm->uv_index, sizeof(uint8_t) * 8);
+    sub_mesh.bone_index_array = 0;
+    sub_mesh.num_bone_index = 0;
+    sub_mesh.bones_per_vertex = 0;
+    sub_mesh.primitive_type = sm->primitive_type;
+    sub_mesh.index_format = sm->index_format;
+    sub_mesh.index_array = sm->index_array;
+    sub_mesh.num_index = num_idx_data;
+    sub_mesh.attrib = sm->attrib;
+    memmove(sub_mesh.reserved, sm->reserved, sizeof(uint32_t) * 4);
+    sub_mesh.axis_aligned_bounding_box = &axis_aligned_bounding_box;
+    sub_mesh.first_index = 0;
+    sub_mesh.last_index = num_vertex * count;
+    sub_mesh.index_offset = 0;
+
+    axis_aligned_bounding_box = *sm->axis_aligned_bounding_box;
 }
 
 void rob_chara_age_age::disp(size_t chara_id,
