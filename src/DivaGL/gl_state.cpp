@@ -4,6 +4,7 @@
 */
 
 #include "gl_state.hpp"
+#include "shared.hpp"
 
 gl_state_struct gl_state;
 
@@ -96,6 +97,8 @@ bool gl_state_struct::check_texture_binding_cube_map() {
 }
 
 void gl_state_struct::get() {
+    gl_get_error_all_print();
+
     glGetIntegervDLL(GL_TEXTURE_BINDING_2D, (GLint*)&texture_binding_2d);
     glGetIntegervDLL(GL_TEXTURE_BINDING_CUBE_MAP, (GLint*)&texture_binding_cube_map);
 
@@ -106,5 +109,6 @@ void gl_state_struct::get() {
     glGetIntegervDLL(GL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&element_array_buffer_binding);
 
     glGetIntegervDLL(GL_UNIFORM_BUFFER_BINDING, (GLint*)&uniform_buffer_binding);
-    glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&shader_storage_buffer_binding);
+    if (DIVA_GL_VERSION_4_3)
+        glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&shader_storage_buffer_binding);
 }

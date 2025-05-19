@@ -704,7 +704,7 @@ inline void gl_rend_state::bind_uniform_buffer_range(GLuint index,
 }
 
 inline void gl_rend_state::bind_shader_storage_buffer(GLuint buffer) {
-    if (shader_storage_buffer_binding != buffer) {
+    if (DIVA_GL_VERSION_4_3 && shader_storage_buffer_binding != buffer) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
         shader_storage_buffer_binding = buffer;
     }
@@ -1017,6 +1017,8 @@ inline void gl_rend_state::generate_texture_mipmap(GLuint texture) {
 }
 
 void gl_rend_state::get() {
+    gl_get_error_all_print();
+
     glGetIntegervDLL(GL_CURRENT_PROGRAM, (GLint*)&program);
 
     GLenum active_texture = GL_TEXTURE0;
@@ -1071,14 +1073,16 @@ void gl_rend_state::get() {
         glGetInteger64i_v(GL_UNIFORM_BUFFER_SIZE, i, (GLint64*)&uniform_buffer_sizes[i]);
     }
 
-    shader_storage_buffer_start_index = 14;
-    shader_storage_buffer_end_index = -1;
+    if (DIVA_GL_VERSION_4_3) {
+        shader_storage_buffer_start_index = 14;
+        shader_storage_buffer_end_index = -1;
 
-    glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&shader_storage_buffer_binding);
-    for (GLuint i = 0; i < 14; i++) {
-        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&shader_storage_buffer_bindings[i]);
-        glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_START, i, (GLint64*)&shader_storage_buffer_offsets[i]);
-        glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_SIZE, i, (GLint64*)&shader_storage_buffer_sizes[i]);
+        glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&shader_storage_buffer_binding);
+        for (GLuint i = 0; i < 14; i++) {
+            glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&shader_storage_buffer_bindings[i]);
+            glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_START, i, (GLint64*)&shader_storage_buffer_offsets[i]);
+            glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_SIZE, i, (GLint64*)&shader_storage_buffer_sizes[i]);
+        }
     }
 
     glGetBooleanvDLL(GL_COLOR_WRITEMASK, color_mask);
@@ -1146,11 +1150,12 @@ void gl_rend_state::get() {
         curr_uniform_buffer_sizes[i] = uniform_buffer_sizes[i];
     }
 
-    for (GLuint i = 0; i < 14; i++) {
-        curr_shader_storage_buffer_bindings[i] = shader_storage_buffer_bindings[i];
-        curr_shader_storage_buffer_offsets[i] = shader_storage_buffer_offsets[i];
-        curr_shader_storage_buffer_sizes[i] = shader_storage_buffer_sizes[i];
-    }
+    if (DIVA_GL_VERSION_4_3)
+        for (GLuint i = 0; i < 14; i++) {
+            curr_shader_storage_buffer_bindings[i] = shader_storage_buffer_bindings[i];
+            curr_shader_storage_buffer_offsets[i] = shader_storage_buffer_offsets[i];
+            curr_shader_storage_buffer_sizes[i] = shader_storage_buffer_sizes[i];
+        }
 
     memcpy(curr_color_mask, color_mask, sizeof(GLboolean) * 4);
 
@@ -1517,7 +1522,7 @@ inline void gl_rend_state::update_read_framebuffer() {
             glBindFramebuffer(GL_READ_FRAMEBUFFER, read_framebuffer_binding);
             if (read_framebuffer_binding) {
                 GLenum status = glCheckFramebufferStatus(GL_READ_FRAMEBUFFER);
-                if (status != GL_FRAMEBUFFER_COMPLETE)
+                if (status != GL_FRAMEBUFFER_COMPLETE && status != GL_NO_ERROR)
                     printf_debug("GL Error: Bind Read Framebuffer Status - 0x%04X\n", status);
                 gl_get_error_print();
             }
@@ -1533,7 +1538,7 @@ inline void gl_rend_state::update_draw_framebuffer() {
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_framebuffer_binding);
             if (draw_framebuffer_binding) {
                 GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
-                if (status != GL_FRAMEBUFFER_COMPLETE)
+                if (status != GL_FRAMEBUFFER_COMPLETE && status != GL_NO_ERROR)
                     printf_debug("GL Error: Bind Draw Framebuffer Status - 0x%04X\n", status);
                 gl_get_error_print();
             }
@@ -1580,7 +1585,7 @@ inline void gl_rend_state::update_uniform_buffer() {
 }
 
 inline void gl_rend_state::update_shader_storage_buffer() {
-    if (update_flags & GL_REND_STATE_UPDATE_SHADER_STORAGE_BUFFER) {
+    if (DIVA_GL_VERSION_4_3 && (update_flags & GL_REND_STATE_UPDATE_SHADER_STORAGE_BUFFER)) {
         for (int32_t index = shader_storage_buffer_start_index;
             index <= shader_storage_buffer_end_index; index++) {
             if (curr_shader_storage_buffer_bindings[index] == shader_storage_buffer_bindings[index]
