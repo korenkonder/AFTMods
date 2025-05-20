@@ -577,16 +577,16 @@ namespace rndr {
         exposure_texture.Free();
 
         if (exposure_tex) {
-            glDeleteTextures(1, &exposure_tex);
+            glDeleteTexturesDLL(1, &exposure_tex);
             exposure_tex = 0;
         }
 
         if (tonemap_lut_texture) {
-            glDeleteTextures(1, &tonemap_lut_texture);
+            glDeleteTexturesDLL(1, &tonemap_lut_texture);
             tonemap_lut_texture = 0;
         }
         if (mlaa_area_texture) {
-            glDeleteTextures(1, &mlaa_area_texture);
+            glDeleteTexturesDLL(1, &mlaa_area_texture);
             mlaa_area_texture = 0;
         }
 
@@ -718,7 +718,7 @@ namespace rndr {
         exposure_history = texture_load_tex_2d(texture_id(0x25, texture_counter++),
             GL_RGBA16F, 32, 2, 0, 0, 0);
 
-        glGenTextures(1, &exposure_tex);
+        glGenTexturesDLL(1, &exposure_tex);
         gl_state.bind_texture_2d(exposure_tex);
         glTexImage2DDLL(GL_TEXTURE_2D, 0, GL_RGBA32F, 2, 2, 0, GL_RGBA, GL_FLOAT, 0);
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -729,7 +729,7 @@ namespace rndr {
 
         exposure_texture.SetColorDepthTextures(exposure_tex);
 
-        glGenTextures(1, &tonemap_lut_texture);
+        glGenTexturesDLL(1, &tonemap_lut_texture);
         gl_state.bind_texture_2d(tonemap_lut_texture);
         glTexImage2DDLL(GL_TEXTURE_2D, 0, GL_RG16F, 16 * TONE_MAP_SAT_GAMMA_SAMPLES, 1, 0, GL_RG, GL_HALF_FLOAT, 0);
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -1668,7 +1668,7 @@ namespace rndr {
             for (int32_t cross1 = 0; cross1 < 5; cross1++)
                 calculate_mlaa_area_texture_data(data, cross1, cross2);
 
-        glGenTextures(1, &mlaa_area_texture);
+        glGenTexturesDLL(1, &mlaa_area_texture);
         gl_state.bind_texture_2d(mlaa_area_texture);
         glPixelStoreiDLL(GL_UNPACK_ALIGNMENT, 1);
         glTexImage2DDLL(GL_TEXTURE_2D, 0, GL_RG8, MLAA_SIDE_LEN, MLAA_SIDE_LEN, 0, GL_RG, GL_UNSIGNED_BYTE, data);

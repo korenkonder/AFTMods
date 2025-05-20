@@ -822,7 +822,7 @@ void render_context::texture_skinning_buffer::create(int32_t width, int32_t heig
     if (texture)
         return;
 
-    glGenTextures(1, &texture);
+    glGenTexturesDLL(1, &texture);
     gl_state.bind_texture_2d(texture);
     glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

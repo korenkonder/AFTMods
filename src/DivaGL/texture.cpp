@@ -299,7 +299,7 @@ HOOK(void, FASTCALL, texture_release, 0x000000014069DA70, texture* tex) {
     }
 
     if (tex->glid) {
-        glDeleteTextures(1, &tex->glid);
+        glDeleteTexturesDLL(1, &tex->glid);
         tex->glid = 0;
     }
 
@@ -496,7 +496,7 @@ static texture* texture_load_tex(texture_id id, GLenum target,
     if (tex->ref_count > 1)
         return tex;
 
-    glGenTextures(1, &tex->glid);
+    glGenTexturesDLL(1, &tex->glid);
     texture_bind(target, tex->glid);
     texture_set_params(target, max_mipmap_level, use_high_anisotropy);
 

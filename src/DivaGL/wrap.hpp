@@ -250,8 +250,8 @@ typedef void (GLAPIENTRY * PFNGLDELETERENDERBUFFERSPROC) (GLsizei n, GLuint cons
 typedef void (GLAPIENTRY * PFNGLDELETERENDERBUFFERSEXTPROC) (GLsizei n, GLuint const * renderbuffers);
 typedef void (GLAPIENTRY * PFNGLDELETESAMPLERSPROC) (GLsizei count, GLuint const * samplers);
 typedef void (GLAPIENTRY * PFNGLDELETESHADERPROC) (GLuint shader);
-typedef void (GLAPIENTRY * PFNGLDELETETEXTURESPROC) (GLsizei n, GLuint const * textures);
 typedef void (GLAPIENTRY * PFNGLDELETETEXTURESEXTPROC) (GLsizei n, GLuint const * textures);
+typedef void (GLAPIENTRY * PFNGLDELETETEXTURESNVDXINTEROPPROC) (GLsizei n, GLuint const * textures);
 typedef void (GLAPIENTRY * PFNGLDELETEVERTEXARRAYSPROC) (GLsizei n, GLuint const * arrays);
 typedef void (GLAPIENTRY * PFNGLDEPTHBOUNDSDNVPROC) (GLdouble zmin, GLdouble zmax);
 typedef void (GLAPIENTRY * PFNGLDEPTHBOUNDSEXTPROC) (GLclampd zmin, GLclampd zmax);
@@ -340,8 +340,8 @@ typedef void (GLAPIENTRY * PFNGLGENQUERIESARBPROC) (GLsizei n, GLuint * ids);
 typedef void (GLAPIENTRY * PFNGLGENRENDERBUFFERSPROC) (GLsizei n, GLuint * renderbuffers);
 typedef void (GLAPIENTRY * PFNGLGENRENDERBUFFERSEXTPROC) (GLsizei n, GLuint * renderbuffers);
 typedef void (GLAPIENTRY * PFNGLGENSAMPLERSPROC) (GLsizei count, GLuint * samplers);
-typedef void (GLAPIENTRY * PFNGLGENTEXTURESPROC) (GLsizei n, GLuint * textures);
 typedef void (GLAPIENTRY * PFNGLGENTEXTURESEXTPROC) (GLsizei n, GLuint * textures);
+typedef void (GLAPIENTRY * PFNGLGENTEXTURESNVDXINTEROPPROC) (GLsizei n, GLuint * textures);
 typedef void (GLAPIENTRY * PFNGLGENVERTEXARRAYSPROC) (GLsizei n, GLuint * arrays);
 typedef void (GLAPIENTRY * PFNGLGETACTIVEATTRIBPROC) (GLuint program, GLuint index, GLsizei bufSize, GLsizei * length, GLint * size, GLenum * type, GLchar * name);
 typedef void (GLAPIENTRY * PFNGLGETACTIVEATTRIBARBPROC) (GLhandleARB programObj, GLuint index, GLsizei maxLength, GLsizei * length, GLint * size, GLenum * type, GLcharARB * name);
@@ -1176,14 +1176,14 @@ typedef BOOL (GLAPIENTRY * PFNWGLDXSETRESOURCESHAREHANDLENVPROC) (void * dxObjec
 typedef BOOL (GLAPIENTRY * PFNWGLDXUNLOCKOBJECTSNVPROC) (HANDLE hDevice, GLint count, HANDLE * hObjects);
 typedef BOOL (GLAPIENTRY * PFNWGLDXUNREGISTEROBJECTNVPROC) (HANDLE hDevice, HANDLE hObject);
 typedef void (GLAPIENTRY * PFNWGLFREEMEMORYNVPROC) (void * pointer);
-typedef HGLRC (GLAPIENTRY * PFNWGLGETCURRENTCONTEXTPROC) ();
+typedef HGLRC (GLAPIENTRY * PFNWGLGETCURRENTCONTEXTNVDXINTEROPPROC) ();
 typedef HDC (GLAPIENTRY * PFNWGLGETCURRENTREADDCARBPROC) ();
 typedef const char * (GLAPIENTRY * PFNWGLGETEXTENSIONSSTRINGARBPROC) (HDC hdc);
 typedef const char * (GLAPIENTRY * PFNWGLGETEXTENSIONSSTRINGEXTPROC) ();
 typedef HDC (GLAPIENTRY * PFNWGLGETPBUFFERDCARBPROC) (HPBUFFERARB hPbuffer);
 typedef BOOL (GLAPIENTRY * PFNWGLGETPIXELFORMATATTRIBFVARBPROC) (HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int * piAttributes, FLOAT * pfValues);
 typedef BOOL (GLAPIENTRY * PFNWGLGETPIXELFORMATATTRIBIVARBPROC) (HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int * piAttributes, int * piValues);
-typedef PROC (GLAPIENTRY * PFNWGLGETPROCADDRESSPROC) (LPCSTR lpszProc);
+typedef PROC (GLAPIENTRY * PFNWGLGETPROCADDRESSNVDXINTEROPPROC) (LPCSTR lpszProc);
 typedef int (GLAPIENTRY * PFNWGLGETSWAPINTERVALEXTPROC) ();
 typedef BOOL (GLAPIENTRY * PFNWGLGETVIDEODEVICENVPROC) (HDC hDC, int numDevices, HPVIDEODEV * hVideoDevice);
 typedef BOOL (GLAPIENTRY * PFNWGLGETVIDEOINFONVPROC) (HPVIDEODEV hpVideoDevice, unsigned long * pulCounterOutputPbuffer, unsigned long * pulCounterOutputVideo);
@@ -1508,8 +1508,8 @@ extern PFNGLDELETERENDERBUFFERSPROC* divagl_glDeleteRenderbuffers;
 extern PFNGLDELETERENDERBUFFERSEXTPROC* divagl_glDeleteRenderbuffersEXT;
 extern PFNGLDELETESAMPLERSPROC* divagl_glDeleteSamplers;
 extern PFNGLDELETESHADERPROC* divagl_glDeleteShader;
-extern PFNGLDELETETEXTURESPROC* divagl_glDeleteTextures;
 extern PFNGLDELETETEXTURESEXTPROC* divagl_glDeleteTexturesEXT;
+extern PFNGLDELETETEXTURESNVDXINTEROPPROC* divagl_glDeleteTexturesNVDXInterop;
 extern PFNGLDELETEVERTEXARRAYSPROC* divagl_glDeleteVertexArrays;
 extern PFNGLDEPTHBOUNDSDNVPROC* divagl_glDepthBoundsdNV;
 extern PFNGLDEPTHBOUNDSEXTPROC* divagl_glDepthBoundsEXT;
@@ -1598,8 +1598,8 @@ extern PFNGLGENQUERIESARBPROC* divagl_glGenQueriesARB;
 extern PFNGLGENRENDERBUFFERSPROC* divagl_glGenRenderbuffers;
 extern PFNGLGENRENDERBUFFERSEXTPROC* divagl_glGenRenderbuffersEXT;
 extern PFNGLGENSAMPLERSPROC* divagl_glGenSamplers;
-extern PFNGLGENTEXTURESPROC* divagl_glGenTextures;
 extern PFNGLGENTEXTURESEXTPROC* divagl_glGenTexturesEXT;
+extern PFNGLGENTEXTURESNVDXINTEROPPROC* divagl_glGenTexturesNVDXInterop;
 extern PFNGLGENVERTEXARRAYSPROC* divagl_glGenVertexArrays;
 extern PFNGLGETACTIVEATTRIBPROC* divagl_glGetActiveAttrib;
 extern PFNGLGETACTIVEATTRIBARBPROC* divagl_glGetActiveAttribARB;
@@ -2434,14 +2434,14 @@ extern PFNWGLDXSETRESOURCESHAREHANDLENVPROC* divagl_wglDXSetResourceShareHandleN
 extern PFNWGLDXUNLOCKOBJECTSNVPROC* divagl_wglDXUnlockObjectsNV;
 extern PFNWGLDXUNREGISTEROBJECTNVPROC* divagl_wglDXUnregisterObjectNV;
 extern PFNWGLFREEMEMORYNVPROC* divagl_wglFreeMemoryNV;
-extern PFNWGLGETCURRENTCONTEXTPROC* divagl_wglGetCurrentContext;
+extern PFNWGLGETCURRENTCONTEXTNVDXINTEROPPROC* divagl_wglGetCurrentContextNVDXInterop;
 extern PFNWGLGETCURRENTREADDCARBPROC* divagl_wglGetCurrentReadDCARB;
 extern PFNWGLGETEXTENSIONSSTRINGARBPROC* divagl_wglGetExtensionsStringARB;
 extern PFNWGLGETEXTENSIONSSTRINGEXTPROC* divagl_wglGetExtensionsStringEXT;
 extern PFNWGLGETPBUFFERDCARBPROC* divagl_wglGetPbufferDCARB;
 extern PFNWGLGETPIXELFORMATATTRIBFVARBPROC* divagl_wglGetPixelFormatAttribfvARB;
 extern PFNWGLGETPIXELFORMATATTRIBIVARBPROC* divagl_wglGetPixelFormatAttribivARB;
-extern PFNWGLGETPROCADDRESSPROC* divagl_wglGetProcAddress;
+extern PFNWGLGETPROCADDRESSNVDXINTEROPPROC* divagl_wglGetProcAddressNVDXInterop;
 extern PFNWGLGETSWAPINTERVALEXTPROC* divagl_wglGetSwapIntervalEXT;
 extern PFNWGLGETVIDEODEVICENVPROC* divagl_wglGetVideoDeviceNV;
 extern PFNWGLGETVIDEOINFONVPROC* divagl_wglGetVideoInfoNV;
@@ -2766,7 +2766,7 @@ extern PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit;
 #define glDeleteRenderbuffersEXT (*divagl_glDeleteRenderbuffersEXT)
 #define glDeleteSamplers (*divagl_glDeleteSamplers)
 #define glDeleteShader (*divagl_glDeleteShader)
-#define glDeleteTextures (*divagl_glDeleteTextures)
+#define glDeleteTexturesNVDXInterop (*divagl_glDeleteTexturesNVDXInterop)
 #define glDeleteTexturesEXT (*divagl_glDeleteTexturesEXT)
 #define glDeleteVertexArrays (*divagl_glDeleteVertexArrays)
 #define glDepthBoundsdNV (*divagl_glDepthBoundsdNV)
@@ -2856,7 +2856,7 @@ extern PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit;
 #define glGenRenderbuffers (*divagl_glGenRenderbuffers)
 #define glGenRenderbuffersEXT (*divagl_glGenRenderbuffersEXT)
 #define glGenSamplers (*divagl_glGenSamplers)
-#define glGenTextures (*divagl_glGenTextures)
+#define glGenTexturesNVDXInterop (*divagl_glGenTexturesNVDXInterop)
 #define glGenTexturesEXT (*divagl_glGenTexturesEXT)
 #define glGenVertexArrays (*divagl_glGenVertexArrays)
 #define glGetActiveAttrib (*divagl_glGetActiveAttrib)
@@ -3692,14 +3692,14 @@ extern PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit;
 #define wglDXUnlockObjectsNV (*divagl_wglDXUnlockObjectsNV)
 #define wglDXUnregisterObjectNV (*divagl_wglDXUnregisterObjectNV)
 #define wglFreeMemoryNV (*divagl_wglFreeMemoryNV)
-#define wglGetCurrentContext (*divagl_wglGetCurrentContext)
+#define wglGetCurrentContextNVDXInterop (*divagl_wglGetCurrentContextNVDXInterop)
 #define wglGetCurrentReadDCARB (*divagl_wglGetCurrentReadDCARB)
 #define wglGetExtensionsStringARB (*divagl_wglGetExtensionsStringARB)
 #define wglGetExtensionsStringEXT (*divagl_wglGetExtensionsStringEXT)
 #define wglGetPbufferDCARB (*divagl_wglGetPbufferDCARB)
 #define wglGetPixelFormatAttribfvARB (*divagl_wglGetPixelFormatAttribfvARB)
 #define wglGetPixelFormatAttribivARB (*divagl_wglGetPixelFormatAttribivARB)
-#define wglGetProcAddress (*divagl_wglGetProcAddress)
+#define wglGetProcAddressNVDXInterop (*divagl_wglGetProcAddressNVDXInterop)
 #define wglGetSwapIntervalEXT (*divagl_wglGetSwapIntervalEXT)
 #define wglGetVideoDeviceNV (*divagl_wglGetVideoDeviceNV)
 #define wglGetVideoInfoNV (*divagl_wglGetVideoInfoNV)

@@ -98,7 +98,7 @@ namespace renderer {
 
     void DOF3::resize(int32_t width, int32_t height) {
         if (textures[0]) {
-            glDeleteTextures(6, textures);
+            glDeleteTexturesDLL(6, textures);
             textures[0] = 0;
         }
 
@@ -123,7 +123,7 @@ namespace renderer {
         }
 
         if (textures[0]) {
-            glDeleteTextures(6, textures);
+            glDeleteTexturesDLL(6, textures);
             textures[0] = 0;
         }
     }
@@ -303,7 +303,7 @@ namespace renderer {
         int32_t w2 = max_def(width / 2, 1);
         int32_t h2 = max_def(height / 2, 1);
 
-        glGenTextures(6, textures);
+        glGenTexturesDLL(6, textures);
         gl_state.bind_texture_2d(textures[0]);
         glTexImage2DDLL(GL_TEXTURE_2D, 0, GL_RG16F, w20, h20, 0, GL_RG, GL_HALF_FLOAT, 0);
         fbo[0].init(w20, h20, &textures[0], 1, 0);

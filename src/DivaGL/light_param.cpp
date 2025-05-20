@@ -229,11 +229,11 @@ HOOK(void, FASTCALL, light_param_data__set_ibl, 0x00000001403E7210,
 }
 
 HOOK(void, FASTCALL, light_param_data_storage__gen_textures, 0x00000001403E8C50, light_param_data_storage* storage) {
-    glGenTextures(5, storage->textures);
+    glGenTexturesDLL(5, storage->textures);
 }
 
 HOOK(void, FASTCALL, light_param_data_storage__delete_textures, 0x00000001403E8D80, light_param_data_storage* storage) {
-    glDeleteTextures(5, storage->textures);
+    glDeleteTexturesDLL(5, storage->textures);
 }
 
 void light_param_patch() {
