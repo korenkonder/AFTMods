@@ -23,7 +23,7 @@ namespace GL {
                 glBufferStorage(GL_UNIFORM_BUFFER, (GLsizeiptr)size,
                     0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
             else
-                glBufferData(GL_UNIFORM_BUFFER, (GLsizeiptr)size, 0, GL_DYNAMIC_DRAW);
+                glBufferData(GL_UNIFORM_BUFFER, (GLsizeiptr)size, 0, GL_STREAM_DRAW);
         }
     }
 
@@ -44,7 +44,7 @@ namespace GL {
                     dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
             else
                 glBufferData(GL_UNIFORM_BUFFER, (GLsizeiptr)size, data,
-                    dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+                    dynamic ? GL_STREAM_DRAW : GL_STATIC_DRAW);
         }
     }
 
