@@ -183,6 +183,7 @@ HOOK(void, FASTCALL, rndr__Render__movie_texture_free, 0x00000001404B18F0,
 
 HOOK(void, FASTCALL, rndr__RenderManager__rndpass_pre_proc, 0x0000000140502C90) {
     render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
+    rend_data_ctx.state.get();
     rend_data_ctx.state.begin_event("rndpass_pre_proc");
     render_manager.render->pre_proc(rend_data_ctx);
     Glitter::glt_particle_manager->CalcDisp();
