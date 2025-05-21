@@ -494,7 +494,7 @@ HOOK(void, FASTCALL, rob_chara_item_equip_disp, 0x0000000140512950,
     else {
         for (int32_t i = ITEM_ATAMA; i < ITEM_MAX; i++) {
             mdl::ObjFlags chara_flags = (mdl::ObjFlags)0;
-            if (!rob_item_equip->field_18[i]) {
+            if (!(rob_item_equip->field_18[i] & 0x02)) {
                 if (chara_reflect)
                     enum_or(chara_flags, mdl::OBJ_CHARA_REFLECT);
                 if (chara_refract)
