@@ -40,7 +40,7 @@ namespace Glitter {
             }
 
             ebo.Create(gl_state, sizeof(uint32_t) * count, ebo_data);
-            gl_state.bind_array_buffer(ebo, true);
+            gl_state.bind_element_array_buffer(ebo, true);
             _operator_delete(ebo_data);
         }
 
