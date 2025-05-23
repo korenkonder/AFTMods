@@ -60,6 +60,9 @@ bool APIENTRY DllMain(HMODULE handle, DWORD ul_reason_for_call, LPVOID lpReserve
         sv_shared_storage_uniform_buffer = GetPrivateProfileIntW(L"experimentals",
             L"shared_storage_uniform_buffer", 0, CONFIG_FILE) > 0 ? true : false;
 
+        sv_task_movie_player_no_interop = GetPrivateProfileIntW(L"experimentals",
+            L"task_movie_player_no_interop", 0, CONFIG_FILE) > 0 ? true : false;
+
         sv_texture_skinning_buffer = GetPrivateProfileIntW(L"experimentals",
             L"texture_skinning_buffer", 0, CONFIG_FILE) > 0 ? true : false;
 
@@ -134,6 +137,18 @@ PluginConfig::PluginConfigOption config[] = {
             CONFIG_FILE,
             L"Shared Storage/Uniform Buffer",
             L"May be useful for running AFT via Mesa or on Apple devices\nor when driver doesn't support OpenGL 4.3.",
+            false,
+            false,
+        }
+    },
+    {
+        PluginConfig::CONFIG_BOOLEAN,
+        new PluginConfig::PluginConfigBooleanData {
+            L"task_movie_player_no_interop",
+            L"experimentals",
+            CONFIG_FILE,
+            L"TaskMovie Player No Interop",
+            L"Should enable video playback if WGL_NV_DX_interop2 isn't supported.",
             false,
             false,
         }

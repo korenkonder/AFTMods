@@ -17,4 +17,6 @@ int32_t sv_reflect_res_scale = 100;
 
 bool sv_shared_storage_uniform_buffer = false;
 
+bool sv_task_movie_player_no_interop = false;
+
 bool sv_texture_skinning_buffer = false;
