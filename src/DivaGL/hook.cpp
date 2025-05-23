@@ -24,6 +24,7 @@
 #include "sprite.hpp"
 #include "stage.hpp"
 #include "static_var.hpp"
+#include "task_movie.hpp"
 #include "texture.hpp"
 #include <Helpers.h>
 
@@ -81,6 +82,7 @@ HOOK(int32_t, FASTCALL, data_init, 0x0000000140192FF0) {
     shadow_patch();
     sprite_patch();
     stage_patch();
+    task_movie_patch();
     texture_patch();
     Glitter::Patch();
 

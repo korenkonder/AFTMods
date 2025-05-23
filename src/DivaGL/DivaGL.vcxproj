@@ -184,6 +184,7 @@
     <ClCompile Include="stage.cpp" />
     <ClCompile Include="stage_param.cpp" />
     <ClCompile Include="static_var.cpp" />
+    <ClCompile Include="task_movie.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="wrap.cpp" />
   </ItemGroup>
@@ -201,6 +202,7 @@
     <ClInclude Include="graphics\color_change_dw.hpp" />
     <ClInclude Include="mdl\disp_manager.hpp" />
     <ClInclude Include="mdl\draw_object.hpp" />
+    <ClInclude Include="movie_play_lib\movie_play_lib.hpp" />
     <ClInclude Include="pv_game\dsc.hpp" />
     <ClInclude Include="pv_game\firstread.hpp" />
     <ClInclude Include="pv_game\pvpp.hpp" />
@@ -234,6 +236,7 @@
     <ClInclude Include="stage.hpp" />
     <ClInclude Include="stage_param.hpp" />
     <ClInclude Include="static_var.hpp" />
+    <ClInclude Include="task_movie.hpp" />
     <ClInclude Include="texture.hpp" />
     <ClInclude Include="wrap.hpp" />
   </ItemGroup>
