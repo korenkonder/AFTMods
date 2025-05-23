@@ -18,16 +18,20 @@ struct dof_common_shader_data {
         //  z=scale_from_pixel_to_sample, w=scale_from_sample_to_pixel
     vec4 g_depth_params2; //x=distance_to_focus_m, y=focus_range,
         // z=k/(fuzzing_range*fuzzing_range), w=max_coc_radius_in_pixel   //yzw=for_f2
+    vec4i g_dof_param; //x=tile_size, y=prefilter_tap_num, z=sample_division, w=upsample_tap_num
 };
-
-static_assert(sizeof(dof_common_shader_data) == 0x30, "\"dof_common_shader_data\" struct should have a size of 0x30");
 
 dof_debug* dof_debug_data = (dof_debug*)0x00000001411AB650;
 dof_pv* dof_pv_data = (dof_pv*)0x0000001411AB630;
 
+int32_t dof_param_tile_size = 20;
+int32_t dof_param_prefilter_tap_num = 8;
+int32_t dof_param_sample_division = 7;
+int32_t dof_param_upsample_tap_num = 8;
+
 namespace renderer {
     DOF3::DOF3(int32_t width, int32_t height)
-        : textures(), samplers(), vao(), program() {
+        : textures(), samplers(), vao() {
         this->width = width;
         this->height = height;
 
@@ -114,8 +118,9 @@ namespace renderer {
             vao = 0;
         }
 
+        for (int32_t i = 0; i < 7; i++)
+            texcoords_ubo[i].Destroy();
         common_ubo.Destroy();
-        texcoords_ubo.Destroy();
 
         if (samplers[0]) {
             glDeleteSamplers(2, samplers);
@@ -145,9 +150,13 @@ namespace renderer {
 
         common_ubo.Create(gl_state, sizeof(dof_common_shader_data));
 
-        vec2 data[50] = {};
-        renderer::DOF3::calculate_texcoords(data, 3.0f);
-        texcoords_ubo.Create(gl_state, sizeof(data), data);
+        renderer::DOF3::calculate_texcoords<1>(texcoords_ubo[0], 0.0f);
+        renderer::DOF3::calculate_texcoords<3>(texcoords_ubo[1], 0.0f);
+        renderer::DOF3::calculate_texcoords<3>(texcoords_ubo[2], 6.0f);
+        renderer::DOF3::calculate_texcoords<4>(texcoords_ubo[3], 5.0f);
+        renderer::DOF3::calculate_texcoords<5>(texcoords_ubo[4], 4.0f);
+        renderer::DOF3::calculate_texcoords<6>(texcoords_ubo[5], 3.5f);
+        renderer::DOF3::calculate_texcoords<7>(texcoords_ubo[6], 3.0f);
 
         glGenVertexArrays(1, &vao);
     }
@@ -171,7 +180,7 @@ namespace renderer {
         apply_main_filter(rend_data_ctx, true);
         upsample(rend_data_ctx, rt, buf_rt, color_texture, depth_texture, true);
 
-        rend_data_ctx.state.use_program(0);
+        shader::unbind(rend_data_ctx.state);
         for (int32_t i = 0; i < 8; i++) {
             rend_data_ctx.state.bind_sampler(i, 0);
             rend_data_ctx.state.active_bind_texture_2d(i, 0);
@@ -254,7 +263,7 @@ namespace renderer {
         rend_data_ctx.shader_flags.arr[U_DOF_STAGE] = 3;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_DOF);
         rend_data_ctx.state.bind_uniform_buffer_base(0, common_ubo);
-        rend_data_ctx.state.bind_uniform_buffer_base(1, texcoords_ubo);
+        rend_data_ctx.state.bind_uniform_buffer_base(1, texcoords_ubo[dof_param_sample_division - 1]);
         rend_data_ctx.state.active_bind_texture_2d(0, textures[3]);
         rend_data_ctx.state.bind_sampler(0, samplers[1]);
         rend_data_ctx.state.active_bind_texture_2d(1, textures[2]);
@@ -323,6 +332,8 @@ namespace renderer {
         gl_state.bind_texture_2d(textures[5]);
         glTexImage2DDLL(GL_TEXTURE_2D, 0, GL_R8, w2, h2, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
         fbo[3].init(w2, h2, &textures[4], 2, 0);
+
+        gl_state.bind_texture_2d(0);
     }
 
     void DOF3::update_data(render_data_context& rend_data_ctx,
@@ -346,51 +357,59 @@ namespace renderer {
         shader_data.g_depth_params2.y = focus_range;
         shader_data.g_depth_params2.z = -4.5f / (fuzzing_range * fuzzing_range);
         shader_data.g_depth_params2.w = ratio * 8.0f;
+        shader_data.g_dof_param.x = dof_param_tile_size;
+        shader_data.g_dof_param.y = dof_param_prefilter_tap_num;
+        shader_data.g_dof_param.z = dof_param_sample_division;
+        shader_data.g_dof_param.w = dof_param_upsample_tap_num;
         common_ubo.WriteMemory(rend_data_ctx.state, shader_data);
     }
 
-    void DOF3::calculate_texcoords(vec2* data, float_t size) {
-        size_t i;
-        size_t j;
-        float_t v6;
-        float_t v7;
-        float_t v8;
-        float_t v9;
-        float_t v11;
+    template <int32_t sample_division>
+    void DOF3::calculate_texcoords(GL::UniformBuffer& buffer, const float_t size) {
+        vec4 data[7 * 7] = {};
+        if (sample_division > 2 && size > 0.0f) {
+            constexpr float_t scale = (float_t)(sample_division - 1) / 2.0f;
+            constexpr float_t step = sample_division > 2 ? 1.0f / scale : 0.0f;
+            const float_t max_size = size * scale;
 
-        const float_t t = (float_t)(1.0 / 3.0);
-        size *= 3.0f;
-        for (i = 0; i < 7; i++) {
-            v6 = (float_t)i * t - 1.0f;
-            for (j = 0; j < 7; j++) {
-                v7 = (float_t)j * t - 1.0f;
-                if (-v6 >= v7) {
-                    if (v7 < v6) {
-                        v8 = -v7;
-                        v9 = (v6 / v7) + 4.0f;
+            for (int32_t i = 0, k = 0; i < sample_division; i++) {
+                float_t x_coord = (float_t)i * step - 1.0f;
+                for (int32_t j = 0; j < sample_division; j++, k++) {
+                    float_t y_coord = (float_t)j * step - 1.0f;
+
+                    float_t size;
+                    float_t angle_mult;
+                    if (-x_coord >= y_coord) {
+                        if (y_coord < x_coord) {
+                            size = -y_coord;
+                            angle_mult = (x_coord / y_coord) + 4.0f;
+                        }
+                        else if (x_coord == 0.0f) {
+                            size = 0.0f;
+                            angle_mult = 0.0f;
+                        }
+                        else {
+                            size = -x_coord;
+                            angle_mult = 6.0f - (y_coord / x_coord);
+                        }
                     }
-                    else if (v6 == 0.0f) {
-                        v8 = 0.0f;
-                        v9 = 0.0f;
+                    else if (x_coord < y_coord) {
+                        size = y_coord;
+                        angle_mult = x_coord / y_coord;
                     }
                     else {
-                        v8 = -v6;
-                        v9 = 6.0f - (v7 / v6);
+                        size = x_coord;
+                        angle_mult = 2.0f - (y_coord / x_coord);
                     }
-                }
-                else if (v6 < v7) {
-                    v8 = (float_t)j * t - 1.0f;
-                    v9 = v6 / v7;
-                }
-                else {
-                    v8 = (float_t)i * t - 1.0f;
-                    v9 = 2.0f - (v7 / v6);
-                }
-                v8 *= size;
-                v11 = v9 * (float_t)(M_PI * 0.25);
 
-                *data++ = vec2(cosf(v11), sinf(v11)) * v8;
+                    size *= max_size;
+                    float_t angle = angle_mult * (float_t)(M_PI * 0.25);
+
+                    data[k] = { cosf(angle) * size, sinf(angle) * size, 0.0f, 0.0f };
+                }
             }
         }
+
+        buffer.Create(gl_state, sizeof(data), data);
     }
 }
