@@ -219,6 +219,7 @@ struct gl_rend_state {
     void disable_scissor_test();
     void disable_stencil_test();
     void draw_arrays(GLenum mode, GLint first, GLsizei count);
+    void draw_arrays_instanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
     void draw_elements(GLenum mode,
         GLsizei count, GLenum type, const void* indices);
     void draw_range_elements(GLenum mode,
@@ -458,6 +459,10 @@ void p_gl_rend_state::disable_stencil_test() {
 
 void p_gl_rend_state::draw_arrays(GLenum mode, GLint first, GLsizei count) {
     ptr.draw_arrays(mode, first, count);
+}
+
+void p_gl_rend_state::draw_arrays_instanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount) {
+    ptr.draw_arrays_instanced(mode, first, count, instancecount);
 }
 
 void p_gl_rend_state::draw_elements(GLenum mode,
@@ -897,6 +902,11 @@ inline void gl_rend_state::disable_stencil_test() {
 inline void gl_rend_state::draw_arrays(GLenum mode, GLint first, GLsizei count) {
     update();
     glDrawArraysDLL(mode, first, count);
+}
+
+inline void gl_rend_state::draw_arrays_instanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount) {
+    update();
+    glDrawArraysInstanced(mode, first, count, instancecount);
 }
 
 inline void gl_rend_state::draw_elements(GLenum mode,

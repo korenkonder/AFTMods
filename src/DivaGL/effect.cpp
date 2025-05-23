@@ -432,129 +432,66 @@ struct EffectStorage {
     GL::ArrayBuffer vbo;
     GL::ShaderStorageBuffer ssbo;
 
-    EffectStorage() : vao() {
+    inline EffectStorage() : vao() {
 
     }
 
-    void Bind(p_gl_rend_state& p_gl_rend_st, int32_t index) {
+    void Create(gl_state_struct& gl_st, size_t size, size_t count,
+        const EffectStorageAttrib* attribs);
+    void Create(gl_state_struct& gl_st, size_t size, size_t count,
+        const EffectStorageAttrib* attribs, const void* data, bool dynamic = false);
+    void Destroy();
+
+    inline void Bind(p_gl_rend_state& p_gl_rend_st, int32_t index) {
         if (DIVA_GL_VERSION_4_3)
             p_gl_rend_st.bind_shader_storage_buffer_base(index, ssbo);
         else
             p_gl_rend_st.bind_vertex_array(vao);
     }
 
-    void Create(gl_state_struct& gl_st, size_t size, size_t count, const EffectStorageAttrib* attribs) {
-        if (DIVA_GL_VERSION_4_3) {
-            ssbo.Create(gl_st, size * count);
-            return;
-        }
-        else if (vao || !attribs)
-            return;
-
-        glGenVertexArrays(1, &vao);
-        gl_st.bind_vertex_array(vao, true);
-
-        vbo.Create(gl_st, size * count);
-        gl_st.bind_array_buffer(true);
-
-        const EffectStorageAttrib* attrib = attribs;
-        while (attrib->index != -1) {
-            glEnableVertexAttribArray(attrib->index);
-            glVertexAttribPointer((GLuint)attrib->index, (GLint)(attrib->size / sizeof(float_t)),
-                GL_FLOAT, GL_FALSE, (GLsizei)size, (void*)attrib->offset);
-            glVertexAttribDivisor(attrib->index, 1);
-            attrib++;
-        }
-
-        gl_st.bind_array_buffer(0);
-        gl_st.bind_vertex_array(0);
-    }
-
-    void Create(gl_state_struct& gl_st, size_t size, size_t count, const EffectStorageAttrib* attribs,
-        const void* data, bool dynamic = false) {
-        if (DIVA_GL_VERSION_4_3) {
-            ssbo.Create(gl_st, size * count, data, dynamic);
-            return;
-        }
-        else if (vao || !attribs)
-            return;
-
-        glGenVertexArrays(1, &vao);
-        gl_st.bind_vertex_array(vao, true);
-
-        vbo.Create(gl_st, size * count, data, true);
-        gl_st.bind_array_buffer(vbo, true);
-
-        const EffectStorageAttrib* attrib = attribs;
-        while (attrib->index != -1) {
-            glEnableVertexAttribArray(attrib->index);
-            glVertexAttribPointer((GLuint)attrib->index, (GLint)(attrib->size / sizeof(float_t)),
-                GL_FLOAT, GL_FALSE, (GLsizei)size, (void*)attrib->offset);
-            glVertexAttribDivisor(attrib->index, 1);
-            attrib++;
-        }
-
-        gl_st.bind_array_buffer(0);
-        gl_st.bind_vertex_array(0);
-    }
-
-    void Destroy() {
-        if (DIVA_GL_VERSION_4_3) {
-            ssbo.Destroy();
-            return;
-        }
-
-        if (vao) {
-            glDeleteVertexArrays(1, &vao);
-            vao = 0;
-        }
-
-        vbo.Destroy();
-    }
-
-    void Draw(GLenum mode, GLint first, GLsizei count) {
+    inline void Draw(p_gl_rend_state& p_gl_rend_st, GLenum mode, GLint first, GLsizei count) {
         if (DIVA_GL_VERSION_4_3)
-            glDrawArraysDLL(mode, first, count);
+            p_gl_rend_st.draw_arrays(mode, first, count);
         else
-            glDrawArraysInstanced(mode, first, 6, count / 6);
+            p_gl_rend_st.draw_arrays_instanced(mode, first, 6, count / 6);
     }
 
-    void* MapMemory(gl_state_struct& gl_st) {
+    inline void* MapMemory(gl_state_struct& gl_st) {
         if (DIVA_GL_VERSION_4_3)
             return ssbo.MapMemory(gl_st);
         else
             return vbo.MapMemory(gl_st);
     }
 
-    void* MapMemory(p_gl_rend_state& p_gl_rend_st) {
+    inline void* MapMemory(p_gl_rend_state& p_gl_rend_st) {
         if (DIVA_GL_VERSION_4_3)
             return ssbo.MapMemory(p_gl_rend_st);
         else
             return vbo.MapMemory(p_gl_rend_st);
     }
 
-    void UnmapMemory(gl_state_struct& gl_st) {
+    inline void UnmapMemory(gl_state_struct& gl_st) {
         if (DIVA_GL_VERSION_4_3)
             ssbo.UnmapMemory(gl_st);
         else
             vbo.UnmapMemory(gl_st);
     }
 
-    void UnmapMemory(p_gl_rend_state& p_gl_rend_st) {
+    inline void UnmapMemory(p_gl_rend_state& p_gl_rend_st) {
         if (DIVA_GL_VERSION_4_3)
             ssbo.UnmapMemory(p_gl_rend_st);
         else
             vbo.UnmapMemory(p_gl_rend_st);
     }
 
-    void WriteMemory(gl_state_struct& gl_st, size_t offset, size_t size, const void* data) {
+    inline void WriteMemory(gl_state_struct& gl_st, size_t offset, size_t size, const void* data) {
         if (DIVA_GL_VERSION_4_3)
             ssbo.WriteMemory(gl_st, offset, size, data);
         else
             vbo.WriteMemory(gl_st, offset, size, data);
     }
 
-    void WriteMemory(p_gl_rend_state& p_gl_rend_st, size_t offset, size_t size, const void* data) {
+    inline void WriteMemory(p_gl_rend_state& p_gl_rend_st, size_t offset, size_t size, const void* data) {
         if (DIVA_GL_VERSION_4_3)
             ssbo.WriteMemory(p_gl_rend_st, offset, size, data);
         else
@@ -779,7 +716,7 @@ void rain_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
         batch_shader_data.g_tangent = { tangent.x, tangent.y, tangent.z, tangent_sign };
         batch_shader_data.g_color = color;
         rain_particle_batch_ubo.WriteMemory(rend_data_ctx.state, batch_shader_data);
-        rain_storage.Draw(GL_TRIANGLES, first, count);
+        rain_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, first, count);
     }
     rend_data_ctx.state.bind_vertex_array(0);
     rend_data_ctx.state.active_bind_texture_2d(0, 0);
@@ -880,10 +817,10 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
     rend_data_ctx.state.bind_uniform_buffer_base(1, snow_particle_batch_ubo);
 
     snow_storage.Bind(rend_data_ctx.state, 0);
-    snow_storage.Draw(GL_TRIANGLES, 0, snow->num_snow * 6);
+    snow_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, 0, snow->num_snow * 6);
 
     snow_fallen_storage.Bind(rend_data_ctx.state, 0);
-    snow_fallen_storage.Draw(GL_TRIANGLES, 0, (GLsizei)(snow_ptcl_fallen_count * 6));
+    snow_fallen_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, 0, (GLsizei)(snow_ptcl_fallen_count * 6));
 
     rend_data_ctx.shader_flags.arr[U_SNOW_PARTICLE] = 1;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SNOW_PT);
@@ -913,7 +850,7 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
         snow_batch.start_vertex_location.x = first;
         snow_particle_batch_ubo.WriteMemory(rend_data_ctx.state, snow_batch);
 
-        snow_gpu_storage.Draw(GL_TRIANGLES, first, count);
+        snow_gpu_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, first, count);
         first += count;
     }
 
@@ -1459,12 +1396,6 @@ HOOK(void, FASTCALL, snow_particle_init, 0x000000014035DD30, bool change_stage) 
         { (uint32_t)-1 },
     };
 
-    static const EffectStorageAttrib gpu_attribs[] = {
-        { 0, sizeof(snow_particle_gpu_vertex_data::position), offsetof(snow_particle_gpu_vertex_data, position), },
-        { 1, sizeof(snow_particle_gpu_vertex_data::size    ), offsetof(snow_particle_gpu_vertex_data, size    ), },
-        { (uint32_t)-1 },
-    };
-
     if (change_stage) {
         snow_storage.Destroy();
         snow_storage.Create(gl_state, sizeof(snow_particle_vertex_data), snow->num_snow, attribs);
@@ -1486,6 +1417,11 @@ HOOK(void, FASTCALL, snow_particle_init, 0x000000014035DD30, bool change_stage) 
 
     vtx_data -= snow_ptcl_count;
 
+    static const EffectStorageAttrib gpu_attribs[] = {
+        { 0, sizeof(snow_particle_gpu_vertex_data::position), offsetof(snow_particle_gpu_vertex_data, position), },
+        { 1, sizeof(snow_particle_gpu_vertex_data::size    ), offsetof(snow_particle_gpu_vertex_data, size    ), },
+        { (uint32_t)-1 },
+    };
     snow_gpu_storage.Create(gl_state, sizeof(snow_particle_gpu_vertex_data), snow_ptcl_count, gpu_attribs, vtx_data);
 
     free_def(vtx_data);
@@ -2016,11 +1952,11 @@ void star_catalog::draw(render_data_context& rend_data_ctx, const cam_data& cam)
         stars_storage.Bind(rend_data_ctx.state, 0);
         if (i) {
             rend_data_ctx.state.active_bind_texture_2d(0, star_b_tex->glid);
-            stars_storage.Draw(GL_TRIANGLES, 0, star_b_count * 6);
+            stars_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, 0, star_b_count * 6);
         }
         else {
             rend_data_ctx.state.active_bind_texture_2d(0, star_tex->glid);
-            stars_storage.Draw(GL_TRIANGLES, 0, star_count * 6);
+            stars_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, 0, star_count * 6);
         }
     }
     rend_data_ctx.state.active_bind_texture_2d(0, 0);
@@ -2172,11 +2108,81 @@ void water_particle::draw(render_data_context& rend_data_ctx, const cam_data& ca
     texture* tex = texture_manager_get_texture(splash_tex_id);
     if (tex)
         rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
-    storage.Draw(GL_TRIANGLES, 0, count * 6);
+    storage.Draw(rend_data_ctx.state, GL_TRIANGLES, 0, count * 6);
     rend_data_ctx.state.bind_vertex_array(0);
 
     shader::unbind(rend_data_ctx.state);
     rend_data_ctx.state.enable_cull_face();
+}
+
+void EffectStorage::Create(gl_state_struct& gl_st, size_t size, size_t count,
+    const EffectStorageAttrib* attribs) {
+    if (DIVA_GL_VERSION_4_3) {
+        ssbo.Create(gl_st, size * count);
+        return;
+    }
+    else if (vao || !attribs)
+        return;
+
+    glGenVertexArrays(1, &vao);
+    gl_st.bind_vertex_array(vao, true);
+
+    vbo.Create(gl_st, size * count);
+    gl_st.bind_array_buffer(vbo, true);
+
+    const EffectStorageAttrib* attrib = attribs;
+    while (attrib->index != -1) {
+        glEnableVertexAttribArray(attrib->index);
+        glVertexAttribPointer((GLuint)attrib->index, (GLint)(attrib->size / sizeof(float_t)),
+            GL_FLOAT, GL_FALSE, (GLsizei)size, (void*)attrib->offset);
+        glVertexAttribDivisor(attrib->index, 1);
+        attrib++;
+    }
+
+    gl_st.bind_array_buffer(0);
+    gl_st.bind_vertex_array(0);
+}
+
+void EffectStorage::Create(gl_state_struct& gl_st, size_t size, size_t count,
+    const EffectStorageAttrib* attribs, const void* data, bool dynamic) {
+    if (DIVA_GL_VERSION_4_3) {
+        ssbo.Create(gl_st, size * count, data, dynamic);
+        return;
+    }
+    else if (vao || !attribs)
+        return;
+
+    glGenVertexArrays(1, &vao);
+    gl_st.bind_vertex_array(vao, true);
+
+    vbo.Create(gl_st, size * count, data, true);
+    gl_st.bind_array_buffer(vbo, true);
+
+    const EffectStorageAttrib* attrib = attribs;
+    while (attrib->index != -1) {
+        glEnableVertexAttribArray(attrib->index);
+        glVertexAttribPointer((GLuint)attrib->index, (GLint)(attrib->size / sizeof(float_t)),
+            GL_FLOAT, GL_FALSE, (GLsizei)size, (void*)attrib->offset);
+        glVertexAttribDivisor(attrib->index, 1);
+        attrib++;
+    }
+
+    gl_st.bind_array_buffer(0);
+    gl_st.bind_vertex_array(0);
+}
+
+void EffectStorage::Destroy() {
+    if (DIVA_GL_VERSION_4_3) {
+        ssbo.Destroy();
+        return;
+    }
+
+    if (vao) {
+        glDeleteVertexArrays(1, &vao);
+        vao = 0;
+    }
+
+    vbo.Destroy();
 }
 
 static void TaskEffectAuth3D__SetVisibility(size_t This, bool value) {
@@ -2220,7 +2226,7 @@ static void draw_fog_particle(render_data_context& rend_data_ctx,
         rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
     rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
     storage.Bind(rend_data_ctx.state, 0);
-    storage.Draw(GL_TRIANGLES, 0, data->num_vtx);
+    storage.Draw(rend_data_ctx.state, GL_TRIANGLES, 0, data->num_vtx);
     rend_data_ctx.state.bind_vertex_array(0);
     rend_data_ctx.state.disable_blend();
     shader::unbind(rend_data_ctx.state);
@@ -2276,7 +2282,7 @@ static void draw_ripple_particles(render_data_context& rend_data_ctx,
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_RIPEMIT);
     rend_data_ctx.state.bind_uniform_buffer_base(0, ripple_emit_scene_ubo);
     ripple_emit_storage.Bind(rend_data_ctx.state, 0);
-    ripple_emit_storage.Draw(GL_TRIANGLES, 0, data->count * 6);
+    ripple_emit_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, 0, data->count * 6);
 
     shader::unbind(rend_data_ctx.state);
 

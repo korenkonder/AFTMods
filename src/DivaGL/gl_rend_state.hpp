@@ -70,6 +70,7 @@ struct p_gl_rend_state {
     void disable_scissor_test();
     void disable_stencil_test();
     void draw_arrays(GLenum mode, GLint first, GLsizei count);
+    void draw_arrays_instanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
     void draw_elements(GLenum mode,
         GLsizei count, GLenum type, const void* indices);
     void draw_range_elements(GLenum mode,
