@@ -122,7 +122,7 @@ namespace spr {
         while (args->next)
             args = args->next;
         args->next = next;
-        next->kind = SPR_KIND_LINE;
+        next->kind = SPR_KIND_CHILD;
     }
 
     vec2 proj_sprite_3d_line(vec3 vec, bool offset) {
@@ -159,7 +159,7 @@ namespace spr {
         args.trans.y = p1.y;
         args.trans.z = 0.0f;
         args.layer = layer;
-        args.kind = SPR_KIND_LINES;
+        args.kind = SPR_KIND_LINE;
         args.resolution_mode_screen = mode;
         args.resolution_mode_sprite = mode;
         args.prio = prio;
@@ -169,10 +169,10 @@ namespace spr {
         spr::put_sprite(args);
     }
 
-    void put_sprite_line_list(vec2* points, size_t count, resolution_mode mode,
+    void put_sprite_poly_line(vec2* points, size_t count, resolution_mode mode,
         spr::SprPrio prio, color4u8 color, int32_t layer) {
         spr::SprArgs args;
-        args.kind = SPR_KIND_ARROW_AB;
+        args.kind = SPR_KIND_POLY_LINE;
         args.layer = layer;
         args.resolution_mode_screen = mode;
         args.resolution_mode_sprite = mode;
@@ -192,13 +192,13 @@ namespace spr {
         spr::put_sprite(args);
     }
 
-    void put_sprite_multi(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
+    void put_sprite_rect_draw(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
         spr::SprArgs args;
         args.trans.x = rect.pos.x;
         args.trans.y = rect.pos.y;
         args.trans.z = 0.0f;
         args.layer = layer;
-        args.kind = SPR_KIND_MULTI;
+        args.kind = SPR_KIND_RECT_DRAW;
         args.resolution_mode_screen = mode;
         args.resolution_mode_sprite = mode;
         args.prio = prio;
@@ -208,13 +208,13 @@ namespace spr {
         spr::put_sprite(args);
     }
 
-    void put_sprite_rect(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
+    void put_sprite_rect_fill(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
         spr::SprArgs args;
         args.trans.x = rect.pos.x;
         args.trans.y = rect.pos.y;
         args.trans.z = 0.0f;
         args.layer = layer;
-        args.kind = SPR_KIND_RECT;
+        args.kind = SPR_KIND_RECT_FILL;
         args.resolution_mode_screen = mode;
         args.resolution_mode_sprite = mode;
         args.prio = prio;
@@ -224,11 +224,11 @@ namespace spr {
         spr::put_sprite(args);
     }
 
-    void put_sprite_triangles(SpriteVertex* vert, size_t num, resolution_mode mode,
+    void put_sprite_strip(SpriteVertex* vert, size_t num, resolution_mode mode,
         SprPrio prio, int32_t spr_id, int32_t layer) {
         spr::SprArgs args;
         args.layer = layer;
-        args.kind = SPR_KIND_TRIANGLE;
+        args.kind = SPR_KIND_STRIP;
         args.resolution_mode_screen = mode;
         args.resolution_mode_sprite = mode;
         args.prio = prio;

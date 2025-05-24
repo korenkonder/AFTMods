@@ -1205,7 +1205,7 @@ void RobOsageTest::disp_line() {
             spr::put_sprite_3d_line(j[-1].pos, j[0].pos, line_color);
 
         for (const RobOsageNode* j = j_begin; j != j_end; j++)
-            spr::put_sprite_rect({ spr::proj_sprite_3d_line(j->pos, true) - 2.0f, 4.0f },
+            spr::put_sprite_rect_fill({ spr::proj_sprite_3d_line(j->pos, true) - 2.0f, 4.0f },
                 RESOLUTION_MODE_MAX, spr::SPR_PRIO_DEBUG, rect_color, 0);
 
         mat4_transpose(i->rob.end_node.bone_node_mat, &mat);
@@ -1293,7 +1293,7 @@ void RobOsageTest::disp_line_cls_param(const mat4& transform, const vec3& pos) {
     mat4_get_translation(&transform, &p_node);
     spr::put_sprite_3d_line(p, p_node, color_grey);
 
-    spr::put_sprite_rect({ spr::proj_sprite_3d_line(p, true) - 1.0f, 2.0f },
+    spr::put_sprite_rect_fill({ spr::proj_sprite_3d_line(p, true) - 1.0f, 2.0f },
         RESOLUTION_MODE_MAX, spr::SPR_PRIO_DEBUG, color_yellow, 0);
 }
 

@@ -141,11 +141,11 @@ void PrintWork::DrawLine(vec2 pos[2]) {
 }
 
 void PrintWork::DrawPolyLine(vec2* points, size_t count) {
-    spr::put_sprite_line_list(points, count, resolution_mode, prio, color, layer);
+    spr::put_sprite_poly_line(points, count, resolution_mode, prio, color, layer);
 }
 
 void PrintWork::DrawRectangle(rectangle rect) {
-    spr::put_sprite_multi(rect, resolution_mode, prio, color, layer);
+    spr::put_sprite_rect_draw(rect, resolution_mode, prio, color, layer);
 }
 
 void PrintWork::DrawTextMesh(app::text_flags flags, sprite_text_mesh& mesh) {
@@ -201,7 +201,7 @@ void PrintWork::FillRectangle(rectangle rect) {
         rect.size.y = clip_max_pos_y - rect.pos.y;
     }
 
-    spr::put_sprite_rect(rect, resolution_mode, prio, fill_color, layer);
+    spr::put_sprite_rect_fill(rect, resolution_mode, prio, fill_color, layer);
 }
 
 font_char PrintWork::GetCharData(wchar_t c) {

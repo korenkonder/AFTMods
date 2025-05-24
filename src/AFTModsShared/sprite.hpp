@@ -145,15 +145,14 @@ namespace spr {
 
     enum SprKind {
         SPR_KIND_NORMAL = 0,
+        SPR_KIND_CHILD,
         SPR_KIND_LINE,
+        SPR_KIND_RECT_FILL,
+        SPR_KIND_RECT_DRAW,
+        SPR_KIND_5,
         SPR_KIND_LINES,
-        SPR_KIND_RECT,
-        SPR_KIND_MULTI,
-        SPR_KIND_ARROW_A,
-        SPR_KIND_ARROW_B,
-        SPR_KIND_ARROW_AB,
-        SPR_KIND_TRIANGLE,
-        SPR_KIND_CIRCLE,
+        SPR_KIND_POLY_LINE,
+        SPR_KIND_STRIP,
     };
 
     enum SprPrio {
@@ -272,11 +271,11 @@ namespace spr {
 
     void put_sprite_3d_line(vec3 p1, vec3 p2, color4u8 color);
     void put_sprite_line(vec2 p1, vec2 p2, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
-    void put_sprite_line_list(vec2* points, size_t count, resolution_mode mode,
+    void put_sprite_poly_line(vec2* points, size_t count, resolution_mode mode,
         spr::SprPrio prio, color4u8 color, int32_t layer);
-    void put_sprite_multi(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
-    void put_sprite_rect(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
-    void put_sprite_triangles(SpriteVertex* vert, size_t num, resolution_mode mode,
+    void put_sprite_rect_draw(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
+    void put_sprite_rect_fill(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
+    void put_sprite_strip(SpriteVertex* vert, size_t num, resolution_mode mode,
         SprPrio prio, int32_t spr_id, int32_t layer);
 }
 
