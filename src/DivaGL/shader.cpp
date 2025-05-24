@@ -509,6 +509,8 @@ int32_t shader_set_data::get_index_by_name(const char* name) {
     return -1;
 }
 
+extern "C" __declspec(dllexport) LPCWSTR GetBuildDate(void);
+
 void shader_set_data::load(farc* f, bool ignore_cache,
     const char* name, const shader_table* shaders_table, const size_t size,
     const shader_bind_func* bind_func_table, const size_t bind_func_table_size,
@@ -537,6 +539,8 @@ void shader_set_data::load(farc* f, bool ignore_cache,
     swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"%ls.farc", temp_buf);
     if (!ignore_cache && path_check_file_exists(buf))
         shader_cache_farc.read(buf, true, false);
+
+    uint64_t build_date_hash = hash_utf16_xxh3_64bits(GetBuildDate());
 
     char vert_buf[MAX_PATH];
     char frag_buf[MAX_PATH];
@@ -641,8 +645,8 @@ void shader_set_data::load(farc* f, bool ignore_cache,
             strcat_s(vert_buf, sizeof(vert_buf), uniform_vert_flags_buf);
             strcat_s(frag_buf, sizeof(frag_buf), uniform_frag_flags_buf);
 
-            uint64_t vert_file_name_hash = hash_utf8_xxh3_64bits(vert_buf);
-            uint64_t frag_file_name_hash = hash_utf8_xxh3_64bits(frag_buf);
+            uint64_t vert_file_name_hash = hash_utf8_xxh3_64bits(vert_buf) ^ build_date_hash;
+            uint64_t frag_file_name_hash = hash_utf8_xxh3_64bits(frag_buf) ^ build_date_hash;
 
             strcpy_s(shader_cache_file_name, sizeof(shader_cache_file_name), sub_table->vp);
             if (str_utils_compare(sub_table->vp, sub_table->fp)) {
