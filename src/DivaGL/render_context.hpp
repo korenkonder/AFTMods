@@ -452,6 +452,7 @@ struct render_data_context {
     void set_batch_texcoord_transforms(const mat4 mats[2]);
     void set_batch_worlds(const mat4& mat);
     void set_glitter_render_data_state();
+    void set_npr(rndr::RenderManager* render_manager);
     void set_render_data_state();
     void set_scene_fog_params(const render_data_context::fog_params& value);
     void set_scene_framebuffer_size(const int32_t width, const int32_t height,

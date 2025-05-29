@@ -583,6 +583,7 @@ namespace rndr {
             }
 
             draw_pass_sss_filter(rend_data_ctx, sss);
+            rend_data_ctx.set_npr(this);
             reflect_draw = false;
             rend_data_ctx.state.end_event();
         }
@@ -669,6 +670,7 @@ namespace rndr {
         }
 
         draw_pass_sss_filter(rend_data_ctx, sss);
+        rend_data_ctx.set_npr(this);
         rend_data_ctx.state.bind_framebuffer(0);
         rend_data_ctx.state.end_event();
     }
@@ -917,6 +919,8 @@ namespace rndr {
         }
 
         sss_data_get()->set_texture(rend_data_ctx.state, 1);
+
+        rend_data_ctx.set_npr(this);
 
         rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[0]);
         rend_data_ctx.state.bind_sampler(15, rctx->render_samplers[0]);
@@ -2437,7 +2441,7 @@ static void lighting_set(render_data_context& rend_data_ctx, light_set_id set_id
 
     float_t* (FASTCALL * face_data_get)() = (float_t * (FASTCALL*)())0x00000001403D8310;
     float_t v27 = face_data_get()[0];
-    float_t v28 = (float_t)(1.0 - exp(v27 * -0.44999999)) * 2.0f;
+    float_t v28 = (1.0f - expf(v27 * -0.45f)) * 2.0f;
     v27 = max_def(v27, 0.0f);
     vec4 light_face_diff = { v28 * 0.1f, v27 * 0.06f, 1.0f, 1.0f };
 

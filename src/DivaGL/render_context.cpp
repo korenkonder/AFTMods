@@ -612,6 +612,12 @@ void render_data_context::set_glitter_render_data_state() {
     state.bind_uniform_buffer_base(1, data.buffer_scene);
 }
 
+void render_data_context::set_npr(rndr::RenderManager* render_manager) {
+    shader_flags.arr[U_NPR] = 0;
+    if (render_manager->npr_param == 1)
+        shader_flags.arr[U_NPR] = 1;
+}
+
 void render_data_context::set_render_data_state() {
     data.set_state(state);
 }
