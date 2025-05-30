@@ -63,6 +63,7 @@ namespace renderer {
             fbo_blit(rend_data_ctx.state, rctx->render_buffer.fbos[0], rt->fbos[0],
                 0, 0, fbo.width, fbo.height,
                 0, 0, fbo.width, fbo.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        rt->Bind(rend_data_ctx.state);
     }
 
     void Transparency::copy(render_data_context& rend_data_ctx, GLuint texture) {
