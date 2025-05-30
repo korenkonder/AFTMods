@@ -2188,12 +2188,21 @@ namespace mdl {
             if (reflect_draw)
                 rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             break;
+        case OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_GLITTER:
+        case OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_TRANSLUCENT:
+        case OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_OPAQUE:
+            if (reflect_draw)
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
+            break;
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_GLITTER:
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT:
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_OPAQUE:
             alpha_test = 1;
             min_alpha = 0.1f;
             alpha_threshold = 0.5f;
+
+            if (reflect_draw)
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_GLITTER:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT:
@@ -2203,6 +2212,9 @@ namespace mdl {
             alpha_test = 1;
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
+
+            if (reflect_draw)
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_USER:
             func = draw_sub_mesh_no_mat;
@@ -2269,23 +2281,35 @@ namespace mdl {
             break;
         case OBJ_TYPE_REFLECT_OPAQUE:
             if (reflect_draw)
-                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             break;
         case OBJ_TYPE_REFLECT_TRANSLUCENT:
             if (reflect_draw)
-                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             rend_data_ctx.state.set_depth_mask(GL_TRUE);
             break;
         case OBJ_TYPE_REFLECT_TRANSPARENT:
             if (reflect_draw)
-                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             break;
         case OBJ_TYPE_REFRACT_TRANSLUCENT:
             if (reflect_draw)
-                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             rend_data_ctx.state.set_depth_mask(GL_TRUE);
             break;
         case OBJ_TYPE_SSS:
+            if (reflect_draw)
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
+            break;
+        case OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_GLITTER:
+        case OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_TRANSLUCENT:
+        case OBJ_TYPE_OPAQUE_ALPHA_ORDER_POST_OPAQUE:
+            if (reflect_draw)
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
+            break;
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_GLITTER:
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT:
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_POST_OPAQUE:
             if (reflect_draw)
                 rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             break;
@@ -2293,6 +2317,9 @@ namespace mdl {
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_POST_OPAQUE:
             rend_data_ctx.state.set_depth_mask(GL_TRUE);
+
+            if (reflect_draw)
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             break;
         }
 
@@ -2305,7 +2332,7 @@ namespace mdl {
     }
 
     void DispManager::draw(render_data_context& rend_data_ctx, mdl::ObjTypeLocal type,
-        const cam_data& cam, int32_t depth_mask, bool reflect_texture_mask) {
+        const cam_data& cam, int32_t depth_mask, bool reflect_texture_mask, int32_t alpha) {
         if (type < 0 || type >= OBJ_TYPE_LOCAL_MAX || get_obj_count(type) < 1)
             return;
 
@@ -2338,27 +2365,76 @@ namespace mdl {
             min_alpha = 0.1f;
             alpha_threshold = 0.5f;
             break;
+        case OBJ_TYPE_LOCAL_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT:
+            alpha_test = 1;
+            min_alpha = 0.1f;
+            alpha_threshold = 0.5f;
+
+            if (reflect_draw)
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
+            break;
+        case OBJ_TYPE_LOCAL_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT:
+            rend_data_ctx.state.set_depth_mask(GL_FALSE);
+
+            alpha_test = 1;
+            min_alpha = 0.0f;
+            alpha_threshold = 0.0f;
+
+            if (reflect_draw)
+                rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
+            break;
         }
         rend_data_ctx.set_batch_alpha_threshold(alpha_threshold);
         rend_data_ctx.set_batch_min_alpha(min_alpha);
         rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = alpha_test;
 
-        for (ObjData*& i : get_obj_list(type)) {
-            switch (i->kind) {
-            case OBJ_KIND_NORMAL: {
-                draw_sub_mesh(rend_data_ctx, &i->args.sub_mesh, &i->mat, func, cam);
-            } break;
-            case OBJ_KIND_TRANSLUCENT: {
-                for (int32_t j = 0; j < i->args.translucent.count; j++)
-                    draw_sub_mesh(rend_data_ctx, i->args.translucent.sub_mesh[j], &i->mat, func, cam);
-            } break;
+        if (alpha < 0)
+            for (ObjData*& i : get_obj_list(type)) {
+                switch (i->kind) {
+                case OBJ_KIND_NORMAL: {
+                    draw_sub_mesh(rend_data_ctx, &i->args.sub_mesh, &i->mat, func, cam);
+                } break;
+                case OBJ_KIND_TRANSLUCENT: {
+                    for (int32_t j = 0; j < i->args.translucent.count; j++)
+                        draw_sub_mesh(rend_data_ctx, i->args.translucent.sub_mesh[j], &i->mat, func, cam);
+                } break;
+                }
             }
-        }
+        else
+            for (ObjData*& i : get_obj_list(type)) {
+                switch (i->kind) {
+                case OBJ_KIND_NORMAL: {
+                    int32_t a = (int32_t)(i->args.sub_mesh.blend_color.w * 255.0f);
+                    a = clamp_def(a, 0, 255);
+                    if (a == alpha)
+                        draw_sub_mesh(rend_data_ctx, &i->args.sub_mesh, &i->mat, func, cam);
+                } break;
+                case OBJ_KIND_TRANSLUCENT: {
+                    for (int32_t j = 0; j < i->args.translucent.count; j++) {
+                        ObjSubMeshArgs* args = i->args.translucent.sub_mesh[j];
+                        int32_t a = (int32_t)(args->blend_color.w * 255.0f);
+                        a = clamp_def(a, 0, 255);
+                        if (a == alpha)
+                            draw_sub_mesh(rend_data_ctx, args, &i->mat, func, cam);
+                    }
+                } break;
+                }
+            }
 
         switch (type) {
         case OBJ_TYPE_LOCAL_TRANSLUCENT:
             if (!depth_mask)
                 rend_data_ctx.state.set_depth_mask(GL_TRUE);
+            break;
+        case OBJ_TYPE_LOCAL_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT:
+            if (reflect_draw)
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
+            break;
+        case OBJ_TYPE_LOCAL_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT:
+            rend_data_ctx.state.set_depth_mask(GL_TRUE);
+
+            if (reflect_draw)
+                rend_data_ctx.state.set_cull_face_mode(GL_BACK);
             break;
         }
 
@@ -3168,7 +3244,7 @@ namespace mdl {
                     translucent_args.count++;
                 }
 
-            ObjData* data = alloc_obj_data(mdl::OBJ_KIND_TRANSLUCENT);
+            ObjData* data = alloc_obj_data(OBJ_KIND_TRANSLUCENT);
             if (data) {
                 data->init_translucent(mat, translucent_args);
                 DispManager::entry_list(OBJ_TYPE_TRANSLUCENT, data);
@@ -3229,9 +3305,50 @@ namespace mdl {
                     0, 0, 0, 0, 0, 0);
 
                 const obj_material_attrib_member attrib = material->material.attrib.m;
-                if (attrib.flag_28 || data->args.sub_mesh.blend_color.w >= 1.0f
-                    && (attrib.punch_through || !(attrib.alpha_texture | attrib.alpha_material))
-                    && !sub_mesh->attrib.m.translucent) {
+                if ((obj_flags & mdl::OBJ_ALPHA_ORDER) && data->args.sub_mesh.blend_color.w < 1.0f) {
+                    if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
+                        bool translucent = false;
+                        if (!attrib.flag_28 && (!attrib.punch_through
+                            && (attrib.alpha_texture || attrib.alpha_material)
+                            || sub_mesh->attrib.m.translucent))
+                            translucent = true;
+
+                        if (translucent) {
+                            if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_GLITTER);
+                            else if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT)
+                                entry_list(OBJ_TYPE_LOCAL_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, data);
+                            else;
+                        }
+                        else {
+                            if (!attrib.punch_through) {
+                                if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_GLITTER);
+                                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT)
+                                    entry_list(OBJ_TYPE_LOCAL_OPAQUE_ALPHA_ORDER_POST_TRANSLUCENT, data);
+                                else;
+                            }
+                            else {
+                                if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_GLITTER);
+                                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT)
+                                    entry_list(OBJ_TYPE_LOCAL_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT, data);
+                                else;
+                            }
+                        }
+                    }
+                }
+                else if (!attrib.flag_28 && (data->args.sub_mesh.blend_color.w < 1.0f
+                    || !attrib.punch_through && attrib.alpha_texture | attrib.alpha_material
+                    || sub_mesh->attrib.m.translucent)) {
+                    if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
+                        if (!attrib.translucent_priority)
+                            if (mesh->attrib.m.translucent_sort_by_radius
+                                || obj_flags & mdl::OBJ_TRANSLUCENT_SORT_BY_RADIUS);
+                            else
+                                entry_list(OBJ_TYPE_LOCAL_TRANSLUCENT, data);
+                        else if (translucent_priority_count < 40)
+                            translucent_priority[translucent_priority_count++] = &data->args.sub_mesh;
+                    }
+                }
+                else {
                     if (attrib.punch_through) {
                         if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
                             entry_list(OBJ_TYPE_LOCAL_TRANSPARENT, data);
@@ -3242,15 +3359,9 @@ namespace mdl {
                     }
                     continue;
                 }
-                else if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
-                    if (!attrib.translucent_priority)
-                        entry_list(OBJ_TYPE_LOCAL_TRANSLUCENT, data);
-                    else if (translucent_priority_count < 40)
-                        translucent_priority[translucent_priority_count++] = &data->args.sub_mesh;
-                }
             }
 
-            if (!translucent_priority_count)
+            if (translucent_priority_count <= 0)
                 continue;
 
             ObjTranslucentArgs translucent_args;
@@ -3268,8 +3379,12 @@ namespace mdl {
             ObjData* data = alloc_obj_data(OBJ_KIND_TRANSLUCENT);
             if (data) {
                 data->init_translucent(mat, translucent_args);
-
-                entry_list(OBJ_TYPE_TRANSLUCENT, data);
+                if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_GLITTER);
+                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_TRANSLUCENT)
+                    entry_list(OBJ_TYPE_LOCAL_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT, data);
+                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_POST_OPAQUE);
+                else
+                    entry_list(OBJ_TYPE_LOCAL_TRANSLUCENT, data);
             }
         }
 

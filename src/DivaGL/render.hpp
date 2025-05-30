@@ -200,8 +200,8 @@ namespace rndr {
         void set_screen_res(int32_t x_offset, int32_t y_offset, int32_t width, int32_t height);
         void take_ss(render_data_context& rend_data_ctx,
             texture* tex, bool vertical, float_t horizontal_offset);
-        void transparency_combine(render_data_context& rend_data_ctx, float_t alpha);
-        void transparency_copy(render_data_context& rend_data_ctx);
+        void transparency_combine(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha);
+        void transparency_copy(render_data_context& rend_data_ctx, RenderTexture* rt);
         void update_res(bool set, int32_t base_downsample);
 
     private:

@@ -83,6 +83,9 @@ namespace mdl {
         OBJ_TYPE_LOCAL_OPAQUE = 0,
         OBJ_TYPE_LOCAL_TRANSLUCENT,
         OBJ_TYPE_LOCAL_TRANSPARENT,
+        OBJ_TYPE_LOCAL_OPAQUE_ALPHA_ORDER_POST_TRANSLUCENT,
+        OBJ_TYPE_LOCAL_TRANSPARENT_ALPHA_ORDER_POST_TRANSLUCENT,
+        OBJ_TYPE_LOCAL_TRANSLUCENT_ALPHA_ORDER_POST_TRANSLUCENT,
         OBJ_TYPE_LOCAL_MAX
     };
 
@@ -400,7 +403,7 @@ namespace mdl {
         void draw(render_data_context& rend_data_ctx, ObjType type, const cam_data& cam,
             int32_t depth_mask = 0, bool reflect_texture_mask = true, int32_t alpha = -1);
         void draw(render_data_context& rend_data_ctx, ObjTypeLocal type, const cam_data& cam,
-            int32_t depth_mask = 0, bool reflect_texture_mask = true);
+            int32_t depth_mask = 0, bool reflect_texture_mask = true, int32_t alpha = -1);
         void draw(render_data_context& rend_data_ctx, ObjTypeReflect type, const cam_data& cam,
             int32_t depth_mask = 0, bool reflect_texture_mask = true);
         void entry_list(ObjType type, ObjData* data);
