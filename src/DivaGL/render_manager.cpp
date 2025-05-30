@@ -976,8 +976,8 @@ namespace rndr {
         rend_data_ctx.state.disable_depth_test();
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_ALPHA, cam);
-        Glitter::glt_particle_manager_x->DispScenes(rend_data_ctx, Glitter::DISP_ALPHA, cam);
+        Glitter::glt_particle_manager->DispScenes(rend_data_ctx, Glitter::DISP_PRE_TRANSLUCENT, cam);
+        Glitter::glt_particle_manager_x->DispScenes(rend_data_ctx, Glitter::DISP_PRE_TRANSLUCENT, cam);
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         /*if (npr_param == 1) {
@@ -999,7 +999,7 @@ namespace rndr {
         }
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // X
-        Glitter::glt_particle_manager_x->DispScenes(rend_data_ctx, Glitter::DISP_TYPE_2, cam);
+        Glitter::glt_particle_manager_x->DispScenes(rend_data_ctx, Glitter::DISP_POST_TRANSLUCENT, cam);
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
@@ -2142,7 +2142,7 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         rend_data_ctx.state.disable_depth_test();
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-        Glitter::glt_particle_manager_x->DispScenes(rend_data_ctx, Glitter::DISP_ALPHA, reflect_cam);
+        Glitter::glt_particle_manager_x->DispScenes(rend_data_ctx, Glitter::DISP_PRE_TRANSLUCENT, reflect_cam);
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         /*if (npr_param == 1) {
@@ -2164,7 +2164,7 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         }
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // X
-        Glitter::glt_particle_manager_x->DispScenes(rend_data_ctx, Glitter::DISP_TYPE_2, reflect_cam);
+        Glitter::glt_particle_manager_x->DispScenes(rend_data_ctx, Glitter::DISP_POST_TRANSLUCENT, reflect_cam);
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         rend_data_ctx.state.disable_depth_test();
 

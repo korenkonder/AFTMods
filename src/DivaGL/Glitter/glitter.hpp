@@ -85,11 +85,11 @@ namespace Glitter {
     };
 
     enum DispType {
-        DISP_OPAQUE = 0,
-        DISP_NORMAL = 1,
-        DISP_ALPHA  = 2, // 3 in X
-        DISP_TYPE_2 = 3, // 2 in X
-        DISP_LOCAL  = 4,
+        DISP_OPAQUE           = 0,
+        DISP_NORMAL           = 1,
+        DISP_PRE_TRANSLUCENT  = 2, // 3 in X
+        DISP_POST_TRANSLUCENT = 3, // 2 in X
+        DISP_LOCAL            = 4,
     };
 
     enum EffectExtAnimFlag {
@@ -127,22 +127,22 @@ namespace Glitter {
     };
 
     enum EffectFlag {
-        EFFECT_NONE       = 0x00,
-        EFFECT_LOOP       = 0x01,
-        EFFECT_LOCAL      = 0x02,
-        EFFECT_ALPHA      = 0x04,
-        EFFECT_FOG        = 0x08,
-        EFFECT_FOG_HEIGHT = 0x10,
-        EFFECT_EMISSION   = 0x20,
-        EFFECT_USE_SEED   = 0x40,
+        EFFECT_NONE            = 0x00,
+        EFFECT_LOOP            = 0x01,
+        EFFECT_LOCAL           = 0x02,
+        EFFECT_PRE_TRANSLUCENT = 0x04,
+        EFFECT_FOG             = 0x08,
+        EFFECT_FOG_HEIGHT      = 0x10,
+        EFFECT_EMISSION        = 0x20,
+        EFFECT_USE_SEED        = 0x40,
     };
 
     enum EffectFileFlag {
-        EFFECT_FILE_ALPHA      = 0x01,
-        EFFECT_FILE_FOG        = 0x02,
-        EFFECT_FILE_FOG_HEIGHT = 0x04,
-        EFFECT_FILE_EMISSION   = 0x08,
-        EFFECT_FILE_USE_SEED   = 0x10,
+        EFFECT_FILE_PRE_TRANSLUCENT = 0x01,
+        EFFECT_FILE_FOG             = 0x02,
+        EFFECT_FILE_FOG_HEIGHT      = 0x04,
+        EFFECT_FILE_EMISSION        = 0x08,
+        EFFECT_FILE_USE_SEED        = 0x10,
     };
 
     enum EffectInstFlag {
@@ -169,7 +169,7 @@ namespace Glitter {
         EFFECT_INST_DISP                     = 0x0080000,
         EFFECT_INST_CAMERA                   = 0x0100000,
         EFFECT_INST_MESH                     = 0x0200000,
-        EFFECT_INST_FLAG_23                  = 0x0400000,
+        EFFECT_INST_POST_TRANSLUCENT         = 0x0400000,
         EFFECT_INST_JUST_INIT                = 0x0800000,
         EFFECT_INST_NOT_ENDED                = 0x1000000,
     };
