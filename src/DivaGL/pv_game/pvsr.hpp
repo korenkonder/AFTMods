@@ -55,8 +55,12 @@ struct pvsr_stage_effect {
 };
 
 struct pvsr_stage_effect_env {
-    int8_t num_aet;
-    pvsr_auth_2d* aet_array;
+    int8_t num_aet_front;
+    int8_t num_aet_front_low;
+    int8_t num_aet_back;
+    pvsr_auth_2d* aet_front_array;
+    pvsr_auth_2d* aet_front_low_array;
+    pvsr_auth_2d* aet_back_array;
 };
 
 #define PVSR_STAGE_EFFECT_COUNT 0x10

@@ -455,7 +455,7 @@ struct x_pv_game_data {
 
 struct x_pv_game_stage_env_data {
     auth_3d_id light_auth_3d_id;
-    aet_obj_data data[8];
+    aet_obj_data data[3][8];
 
     x_pv_game_stage_env_data();
 };
@@ -463,8 +463,8 @@ struct x_pv_game_stage_env_data {
 struct x_pv_game_stage_env_aet {
     int32_t state;
     float_t duration;
-    aet_obj_data* prev[8];
-    aet_obj_data* next[8];
+    aet_obj_data* prev[3][8];
+    aet_obj_data* next[3][8];
 
     x_pv_game_stage_env_aet();
 };
@@ -485,7 +485,7 @@ struct x_pv_game_stage_env {
     ~x_pv_game_stage_env();
 
     void ctrl(float_t delta_time);
-    const pvsr_auth_2d* get_aet(int32_t env_index, int32_t index);
+    const pvsr_auth_2d* get_aet(int32_t env_index, int32_t type, int32_t index);
     void load(int32_t pv_id, const pvsr* stage_resource);
     void reset();
     void reset_env();
@@ -2752,7 +2752,8 @@ state(), stage_resource(), trans_duration(), trans_remain() {
 
     for (auto& i : data)
         for (auto& j : i.data)
-            j.frame_rate_control = &frame_rate_control;
+            for (auto& k : j)
+                k.frame_rate_control = &frame_rate_control;
 }
 
 x_pv_game_stage_env::~x_pv_game_stage_env() {
@@ -2780,13 +2781,27 @@ void x_pv_game_stage_env::ctrl(float_t delta_time) {
     }
 }
 
-const pvsr_auth_2d* x_pv_game_stage_env::get_aet(int32_t env_index, int32_t index) {
+const pvsr_auth_2d* x_pv_game_stage_env::get_aet(int32_t env_index, int32_t type, int32_t index) {
     if (env_index < 0 || env_index >= stage_resource->num_stage_effect_env)
         return 0;
 
     const pvsr_stage_effect_env* env = &stage_resource->stage_effect_env_array[env_index];
-    if (index < env->num_aet)
-        return &env->aet_array[index];
+
+    switch (type) {
+    case 0:
+    default:
+        if (index < env->num_aet_front)
+            return &env->aet_front_array[index];
+        break;
+    case 1:
+        if (index < env->num_aet_front_low)
+            return &env->aet_front_low_array[index];
+        break;
+    case 2:
+        if (index < env->num_aet_back)
+            return &env->aet_back_array[index];
+        break;
+    }
     return 0;
 }
 
@@ -2811,7 +2826,8 @@ void x_pv_game_stage_env::reset() {
 void x_pv_game_stage_env::reset_env() {
     for (auto& i : data)
         for (auto& j : i.data)
-            j.reset();
+            for (auto& k : j)
+                k.reset();
 
     trans_duration = 0.0f;
     trans_remain = 0.0f;
@@ -2842,48 +2858,64 @@ void x_pv_game_stage_env::set(int32_t env_index, float_t end_time, float_t start
         float_t frame = start_time * 60.0f;
         if (this->env_index != -1)
             for (auto& i : data[this->env_index].data)
-                i.reset();
+                for (auto& j : i)
+                    j.reset();
 
         if (!(flags & 0x04))
-            for (int32_t index = 0; index < 8; index++) {
-                const pvsr_auth_2d* aet = get_aet(env_index, index);
-                if (!aet)
-                    break;
+            for (int32_t type = 0; type < 3; type++)
+                for (int32_t index = 0; index < 8; index++) {
+                    const pvsr_auth_2d* aet = get_aet(env_index, type, index);
+                    if (!aet)
+                        break;
 
-                aet_obj_data& aet_obj = data[env_index].data[index];
+                    aet_obj_data& aet_obj = data[env_index].data[type][index];
 
-                AetArgs args;
-                args.id.id = pv_disp2d_data.pv_aet_id;
-                args.layer_name = aet->name;
-                args.mode = RESOLUTION_MODE_HD;
-                args.flags = AET_PLAY_ONCE;
-                args.index = 0;
-                args.prio = spr::SPR_PRIO_00;
-                args.start_marker = 0;
-                args.end_marker = 0;
-                args.color = vec4(1.0f, 1.0f, 1.0f, env_aet_opacity);
-                aet_obj.init(args);
+                    AetArgs args;
+                    args.id.id = pv_disp2d_data.pv_aet_id;
+                    args.layer_name = aet->name;
+                    args.mode = RESOLUTION_MODE_HD;
+                    args.flags = AET_PLAY_ONCE;
+                    switch (type) {
+                    case 0:
+                        args.index = 0;
+                        args.prio = spr::SPR_PRIO_01;
+                        break;
+                    case 1:
+                        args.index = 0;
+                        args.prio = spr::SPR_PRIO_00;
+                        break;
+                    case 2:
+                        args.index = 2;
+                        args.prio = spr::SPR_PRIO_00;
+                        break;
+                    }
+                    args.start_marker = 0;
+                    args.end_marker = 0;
+                    args.color = vec4(1.0f, 1.0f, 1.0f, env_aet_opacity);
+                    aet_obj.init(args);
 
-                if (aet_obj.id)
-                    aet_manager_set_obj_frame(aet_obj.id, frame);
-            }
+                    if (aet_obj.id)
+                        aet_manager_set_obj_frame(aet_obj.id, frame);
+                }
     }
     else {
         trans_duration = duration;
         trans_remain = duration;
 
         bool has_prev = false;
-        for (int32_t index = 0; index < 8; index++)
-            if (data[this->env_index].data[index].id) {
-                aet.prev[index] = &data[this->env_index].data[index];
+        for (int32_t type = 0; type < 3; type++)
+            for (int32_t index = 0; index < 8; index++)
+            if (data[this->env_index].data[type][index].id) {
+                aet.prev[type][index] = &data[this->env_index].data[type][index];
                 has_prev = true;
             }
             else
                 break;
 
-        for (int32_t index = 0; index < 8; index++)
-            if (get_aet(env_index, index))
-                aet.next[index] = &data[env_index].data[index];
+        for (int32_t type = 0; type < 3; type++)
+            for (int32_t index = 0; index < 8; index++)
+            if (get_aet(env_index, type, index))
+                aet.next[type][index] = &data[env_index].data[type][index];
             else
                 break;
 
@@ -2912,28 +2944,41 @@ void x_pv_game_stage_env::sub_810EE03E() {
     if (env_index < 0 || env_index >= 64)
         return;
 
-    for (int32_t index = 0; index < 8; index++) {
-        aet_obj_data& aet_obj = data[env_index].data[index];
-        if (!aet_obj.id || !aet_obj.check_disp())
-            continue;
+    for (int32_t type = 0; type < 3; type++)
+        for (int32_t index = 0; index < 8; index++) {
+            aet_obj_data& aet_obj = data[env_index].data[type][index];
+            if (!aet_obj.id || !aet_obj.check_disp())
+                continue;
 
-        AetArgs args;
-        if (stage_resource && env_index >= 0 && env_index < 64) {
-            const pvsr_auth_2d* aet = get_aet(env_index, index);
-            if (aet) {
-                args.id.id = pv_disp2d_data.pv_aet_id;
-                args.layer_name = aet->name;
-                args.mode = RESOLUTION_MODE_HD;
-                args.flags = AET_PLAY_ONCE;
-                args.index = 0;
-                args.prio = spr::SPR_PRIO_00;
-                args.start_marker = 0;
-                args.end_marker = 0;
-                args.color = vec4(1.0f, 1.0f, 1.0f, env_aet_opacity);
+            AetArgs args;
+            if (stage_resource && env_index >= 0 && env_index < 64) {
+                const pvsr_auth_2d* aet = get_aet(env_index, type, index);
+                if (aet) {
+                    args.id.id = pv_disp2d_data.pv_aet_id;
+                    args.layer_name = aet->name;
+                    args.mode = RESOLUTION_MODE_HD;
+                    args.flags = AET_PLAY_ONCE;
+                    switch (type) {
+                    case 0:
+                        args.index = 0;
+                        args.prio = spr::SPR_PRIO_01;
+                        break;
+                    case 1:
+                        args.index = 0;
+                        args.prio = spr::SPR_PRIO_00;
+                        break;
+                    case 2:
+                        args.index = 2;
+                        args.prio = spr::SPR_PRIO_00;
+                        break;
+                    }
+                    args.start_marker = 0;
+                    args.end_marker = 0;
+                    args.color = vec4(1.0f, 1.0f, 1.0f, env_aet_opacity);
+                }
             }
+            aet_obj.init(args);
         }
-        aet_obj.init(args);
-    }
 }
 
 bool x_pv_game_stage_env::sub_810EE198(float_t delta_time) {
@@ -2947,63 +2992,79 @@ bool x_pv_game_stage_env::sub_810EE198(float_t delta_time) {
     case 1: {
         float_t alpha = 1.0f - t * 2.0f;
         if (alpha > 0.0f) {
-            for (int32_t index = 0; index < 8; index++) {
-                aet_obj_data* aet_obj = aet.prev[index];
-                if (!aet_obj)
-                    break;
+            for (int32_t type = 0; type < 3; type++)
+                for (int32_t index = 0; index < 8; index++) {
+                    aet_obj_data* aet_obj = aet.prev[type][index];
+                    if (!aet_obj)
+                        break;
 
-                aet_manager_set_obj_alpha(aet_obj->id, alpha * env_aet_opacity);
-            }
+                    aet_manager_set_obj_alpha(aet_obj->id, alpha * env_aet_opacity);
+                }
             break;
         }
 
-        for (int32_t index = 0; index < 8; index++) {
-            aet_obj_data* aet_obj = aet.prev[index];
-            if (!aet_obj)
-                break;
+        for (int32_t type = 0; type < 3; type++)
+            for (int32_t index = 0; index < 8; index++) {
+                aet_obj_data* aet_obj = aet.prev[type][index];
+                if (!aet_obj)
+                    break;
 
-            aet_obj->reset();
-        }
+                aet_obj->reset();
+            }
 
         aet.state = 2;
     }
     case 2: {
-        for (int32_t index = 0; index < 8; index++) {
-            aet_obj_data* aet_obj = aet.next[index];
-            if (!aet_obj)
-                break;
+        for (int32_t type = 0; type < 3; type++)
+            for (int32_t index = 0; index < 8; index++) {
+                aet_obj_data* aet_obj = aet.next[type][index];
+                if (!aet_obj)
+                    break;
 
-            AetArgs args;
-            if (stage_resource && env_index >= 0 && env_index < 64) {
-                const pvsr_auth_2d* aet = get_aet(env_index, index);
-                if (aet) {
-                    args.id.id = pv_disp2d_data.pv_aet_id;
-                    args.layer_name = aet->name;
-                    args.mode = RESOLUTION_MODE_HD;
-                    args.flags = AET_PLAY_ONCE;
-                    args.index = 0;
-                    args.prio = spr::SPR_PRIO_00;
-                    args.start_marker = 0;
-                    args.end_marker = 0;
-                    args.color = vec4(1.0f, 1.0f, 1.0f, env_aet_opacity);
+                AetArgs args;
+                if (stage_resource && env_index >= 0 && env_index < 64) {
+                    const pvsr_auth_2d* aet = get_aet(env_index, type, index);
+                    if (aet) {
+                        args.id.id = pv_disp2d_data.pv_aet_id;
+                        args.layer_name = aet->name;
+                        args.mode = RESOLUTION_MODE_HD;
+                        args.flags = AET_PLAY_ONCE;
+                        switch (type) {
+                        case 0:
+                            args.index = 0;
+                            args.prio = spr::SPR_PRIO_01;
+                            break;
+                        case 1:
+                            args.index = 0;
+                            args.prio = spr::SPR_PRIO_00;
+                            break;
+                        case 2:
+                            args.index = 2;
+                            args.prio = spr::SPR_PRIO_00;
+                            break;
+                        }
+                        args.start_marker = 0;
+                        args.end_marker = 0;
+                        args.color = vec4(1.0f, 1.0f, 1.0f, env_aet_opacity);
+                    }
                 }
-            }
-            aet_obj->init(args);
+                aet_obj->init(args);
 
-            aet_manager_set_obj_alpha(aet_obj->id, 0.0f);
-        }
+                aet_manager_set_obj_alpha(aet_obj->id, 0.0f);
+            }
 
         aet.state = 3;
     } break;
     case 3: {
         float_t alpha = 1.0f - trans_remain / aet.duration;
-        for (int32_t index = 0; index < 8; index++) {
-            aet_obj_data* aet_obj = aet.next[index];
-            if (!aet_obj)
-                break;
+        for (int32_t type = 0; type < 3; type++)
+            for (int32_t index = 0; index < 8; index++) {
+                aet_obj_data* aet_obj = aet.next[type][index];
+                if (!aet_obj)
+                    break;
 
-            aet_manager_set_obj_alpha(aet_obj->id, alpha * env_aet_opacity);
-        }
+                aet_manager_set_obj_alpha(aet_obj->id, alpha * env_aet_opacity);
+            }
     } break;
     }
 

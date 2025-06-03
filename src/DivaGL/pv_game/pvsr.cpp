@@ -67,12 +67,36 @@ const pvsr* pvsr::read(const void* data, size_t size) {
         for (int32_t i = 0; i < num_stage_effect_env; i++) {
             pvsr_stage_effect_env* eff_env = (pvsr_stage_effect_env*)&sr->stage_effect_env_array[i];
 
-            if (eff_env->aet_array) {
-                eff_env->aet_array = (pvsr_auth_2d*)(d + (size_t)eff_env->aet_array);
+            if (eff_env->aet_front_array) {
+                eff_env->aet_front_array = (pvsr_auth_2d*)(d + (size_t)eff_env->aet_front_array);
 
-                int32_t num_aet = eff_env->num_aet;
-                for (int32_t i = 0; i < num_aet; i++) {
-                    pvsr_auth_2d* a2d = (pvsr_auth_2d*)&eff_env->aet_array[i];
+                int32_t num_aet_front = eff_env->num_aet_front;
+                for (int32_t i = 0; i < num_aet_front; i++) {
+                    pvsr_auth_2d* a2d = (pvsr_auth_2d*)&eff_env->aet_front_array[i];
+
+                    if (a2d->name)
+                        a2d->name = (const char*)(d + (size_t)a2d->name);
+                }
+            }
+
+            if (eff_env->aet_front_low_array) {
+                eff_env->aet_front_low_array = (pvsr_auth_2d*)(d + (size_t)eff_env->aet_front_low_array);
+
+                int32_t num_aet_front_low = eff_env->num_aet_front_low;
+                for (int32_t i = 0; i < num_aet_front_low; i++) {
+                    pvsr_auth_2d* a2d = (pvsr_auth_2d*)&eff_env->aet_front_low_array[i];
+
+                    if (a2d->name)
+                        a2d->name = (const char*)(d + (size_t)a2d->name);
+                }
+            }
+
+            if (eff_env->aet_back_array) {
+                eff_env->aet_back_array = (pvsr_auth_2d*)(d + (size_t)eff_env->aet_back_array);
+
+                int32_t num_aet_back = eff_env->num_aet_back;
+                for (int32_t i = 0; i < num_aet_back; i++) {
+                    pvsr_auth_2d* a2d = (pvsr_auth_2d*)&eff_env->aet_back_array[i];
 
                     if (a2d->name)
                         a2d->name = (const char*)(d + (size_t)a2d->name);
