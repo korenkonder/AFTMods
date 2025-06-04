@@ -449,7 +449,7 @@ struct auth_3d {
     object_info object_info;
     mat4* bone_mats;
     bool shadow;
-    bool chara_item;
+    bool chara_item; // X
     bool reflect; // X
     chara_index src_chara;
     chara_index dst_chara;
