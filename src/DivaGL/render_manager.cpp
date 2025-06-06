@@ -2015,8 +2015,7 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
 
     rndr::Render* rend = render_get();
 
-    extern bool reflect_full;
-    RenderTexture& rt = reflect_full && reflect_full_ptr
+    RenderTexture& rt = reflect_draw && reflect_full_ptr
         ? reflect_full_ptr->reflect_texture : rend->rend_texture[0];
 
     int32_t alpha_array[256];
@@ -2047,8 +2046,7 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
 
     rndr::Render* rend = render_get();
 
-    extern bool reflect_full;
-    RenderTexture& rt = reflect_full && reflect_full_ptr
+    RenderTexture& rt = reflect_draw && reflect_full_ptr
         ? reflect_full_ptr->reflect_texture : rend->rend_texture[0];
 
     int32_t alpha_array[256];
