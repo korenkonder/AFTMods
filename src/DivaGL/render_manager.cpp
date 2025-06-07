@@ -46,10 +46,11 @@ struct reflect_full_struct {
 
 extern render_context* rctx;
 
-vec4 reflect_clip_plane;
+vec4 reflect_clip_plane = 0.0f;
 bool reflect_draw = false;
-mat4 reflect_mat;
-reflect_full_struct* reflect_full_ptr;
+mat4 reflect_mat = mat4_identity;
+reflect_full_struct* reflect_full_ptr = 0;
+vec4 sss_param = 0.0f;
 
 RenderTexture* litproj_shadow = (RenderTexture*)0x0000000141194DA0;
 RenderTexture* litproj_texture = (RenderTexture*)0x0000000141194E00;
@@ -489,8 +490,10 @@ namespace rndr {
 
     void RenderManager::pass_ss_sss(render_data_context& rend_data_ctx) {
         ::sss_data* sss = sss_data_get();
-        if (!sss->init_data || !sss->enable)
+        if (!sss->init_data || !sss->enable) {
+            sss_param = 0.0f;
             return;
+        }
 
         cam_data& cam = rctx->render_manager_cam;
         rend_data_ctx.state.begin_event("pass_ss_sss");
@@ -926,6 +929,7 @@ namespace rndr {
         sss_data_get()->set_texture(rend_data_ctx.state, 1);
 
         rend_data_ctx.set_npr(this);
+        rend_data_ctx.set_batch_sss_param(sss_param);
 
         rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[0]);
         rend_data_ctx.state.bind_sampler(15, rctx->render_samplers[0]);
@@ -1835,7 +1839,7 @@ static void draw_pass_sss_filter(render_data_context& rend_data_ctx, sss_data* s
     float_t v34 = (float_t)(1.0 / clamp_def(v31 * v29, 0.25f, 100.0f));
     if (v34 < 0.145f)
         v33 = max_def(v34 - 0.02f, 0.0f) * 8.0f * 0.6f;
-    rend_data_ctx.set_batch_sss_param({ v33, 0.0f, 0.0f, 0.0f });
+    sss_param = { v33, 0.0f, 0.0f, 0.0f };
 
     rend_data_ctx.state.active_texture(0);
     if (sss->npr_contour) {
@@ -2192,6 +2196,9 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         rend_data_ctx.shader_flags.arr[U_WATER_REFLECT] = 0;
 
         sss_data_get()->set_texture(rend_data_ctx.state, 3);
+
+        rend_data_ctx.set_npr(&render_manager);
+        rend_data_ctx.set_batch_sss_param(sss_param);
 
         rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[0]);
         rend_data_ctx.state.bind_sampler(15, rctx->render_samplers[0]);
