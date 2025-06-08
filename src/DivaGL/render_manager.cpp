@@ -50,7 +50,9 @@ vec4 reflect_clip_plane = 0.0f;
 bool reflect_draw = false;
 mat4 reflect_mat = mat4_identity;
 reflect_full_struct* reflect_full_ptr = 0;
+
 vec4 sss_param = 0.0f;
+vec4 sss_param_reflect = 0.0f;
 
 RenderTexture* litproj_shadow = (RenderTexture*)0x0000000141194DA0;
 RenderTexture* litproj_texture = (RenderTexture*)0x0000000141194E00;
@@ -492,6 +494,7 @@ namespace rndr {
         ::sss_data* sss = sss_data_get();
         if (!sss->init_data || !sss->enable) {
             sss_param = 0.0f;
+            sss_param_reflect = 0.0f;
             return;
         }
 
@@ -926,16 +929,16 @@ namespace rndr {
             rend_data_ctx.shader_flags.arr[U_WATER_REFLECT] = 0;
         }
 
-        sss_data_get()->set_texture(rend_data_ctx.state, 1);
-
-        rend_data_ctx.set_npr(this);
-        rend_data_ctx.set_batch_sss_param(sss_param);
-
         rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[0]);
         rend_data_ctx.state.bind_sampler(15, rctx->render_samplers[0]);
         rend_data_ctx.state.bind_sampler(16, rctx->render_samplers[0]);
 
         rend_data_ctx.shader_flags.arr[U_STAGE_AMBIENT] = light_stage_ambient ? 1 : 0;
+
+        sss_data_get()->set_texture(rend_data_ctx.state, 1);
+
+        rend_data_ctx.set_npr(this);
+        rend_data_ctx.set_batch_sss_param(sss_param);
 
         if (alpha_z_sort) {
             disp_manager->obj_sort(rend_data_ctx,
@@ -1762,39 +1765,37 @@ static void draw_pass_sss_contour(render_data_context& rend_data_ctx, rndr::Rend
             0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 }
 
-static void draw_pass_sss_filter_calc_coef(double_t step, int32_t size, double_t a3, int32_t iterations,
-    const double_t* a5, const double_t* a6, const double_t* a7, const double_t* a8, vec4 a9[64]) {
+static void draw_pass_sss_filter_calc_coef(const double_t step, const int32_t size,
+    const double_t inverse_scale, const int32_t iterations, const double_t* weights,
+    const double_t* r_radius, const double_t* g_radius, const double_t* b_radius, vec4 coef[64]) {
     if (size > 8)
         return;
 
-    for (int32_t i = 0; i < iterations; i++) {
-        const double_t v18 = a5[i];
-        double_t v56[3];
-        v56[0] = a6[i];
-        v56[1] = a7[i];
-        v56[2] = a8[i];
+    for (int32_t it = 0; it < iterations; it++) {
+        const double_t it_weight = weights[it];
+        const double_t ch_radius[] = { r_radius[it], g_radius[it], b_radius[it] };
 
-        for (int32_t j = 0; j < 3; j++) {
-            double_t v22 = 0.0;
-            double_t v23 = 0.0;
-            double_t v54[8];
-            double_t v24 = 1.0 / (a3 * v56[j]);
+        for (int32_t ch = 0; ch < 3; ch++) {
+            double_t kernel[8];
+            double_t pos = 0.0;
+            double_t kernel_sum = 0.0;
+            double_t scale = 1.0 / (inverse_scale * ch_radius[ch]);
             for (int32_t k = 0; k < size; k++) {
-                double_t v25 = exp(-0.5 * (v24 * v23) * (v24 * v23));
-                v54[k] = v25;
-                v23 += step;
-                v22 += v25;
+                double_t weight = exp(-0.5 * (scale * pos) * (scale * pos));
+                kernel[k] = weight;
+                pos += step;
+                kernel_sum += weight;
             }
 
-            double_t v27 = 1.0 / v22;
+            double_t inv_sum = 1.0 / kernel_sum;
             for (int32_t k = 0; k < size; k++)
-                v54[k] *= v27;
+                kernel[k] *= inv_sum;
 
-            float_t* v35 = (float_t*)a9 + j;
+            float_t* ptr = (float_t*)coef + ch;
             for (int32_t k = 0; k < size; k++)
                 for (size_t l = 0; l < size; l++) {
-                    *v35 = (float_t)(v54[k] * v18 * v54[l] + *v35);
-                    v35 += 4;
+                    *ptr = (float_t)(kernel[k] * it_weight * kernel[l] + *ptr);
+                    ptr += 4;
                 }
         }
     }
@@ -1821,6 +1822,8 @@ static void draw_pass_sss_filter(render_data_context& rend_data_ctx, sss_data* s
                 mat4 temp;
                 mat4_transpose(mat, &temp);
                 mat4_get_translation(&temp, &chara_position[i]);
+                if (reflect_draw)
+                    mat4_transform_point(&reflect_mat, &chara_position[i], &chara_position[i]);
                 chara_distance[i] = vec3::distance(view_point, chara_position[i]);
             }
         }
@@ -1833,13 +1836,16 @@ static void draw_pass_sss_filter(render_data_context& rend_data_ctx, sss_data* s
     if (length > 1.25f)
         interest = chara_position[0];
 
-    float_t v29 = max_def(vec3::distance(view_point, interest), 0.25f);
-    float_t v31 = max_def(tanf(camera_data.fov * 0.5f * DEG_TO_RAD_FLOAT) * 5.0f, 0.25f);
-    float_t v33 = 0.6f;
-    float_t v34 = (float_t)(1.0 / clamp_def(v31 * v29, 0.25f, 100.0f));
-    if (v34 < 0.145f)
-        v33 = max_def(v34 - 0.02f, 0.0f) * 8.0f * 0.6f;
-    sss_param = { v33, 0.0f, 0.0f, 0.0f };
+    float_t distance_to_interest = max_def(vec3::distance(view_point, interest), 0.25f);
+    float_t fov_scale = max_def(tanf(camera_data.fov * 0.5f * DEG_TO_RAD_FLOAT) * 5.0f, 0.25f);
+    float_t sss_strength = 0.6f;
+    float_t inverse_scale = (float_t)(1.0 / clamp_def(fov_scale * distance_to_interest, 0.25f, 100.0f));
+    if (inverse_scale < 0.145f)
+        sss_strength = max_def(inverse_scale - 0.02f, 0.0f) * 8.0f * 0.6f;
+    if (reflect_draw)
+        sss_param_reflect = { sss_strength, 0.0f, 0.0f, 0.0f };
+    else
+        sss_param = { sss_strength, 0.0f, 0.0f, 0.0f };
 
     rend_data_ctx.state.active_texture(0);
     if (sss->npr_contour) {
@@ -1868,11 +1874,12 @@ static void draw_pass_sss_filter(render_data_context& rend_data_ctx, sss_data* s
     sss_filter_gaussian_coef_shader_data shader_data = {};
     shader_data.g_param = { (float_t)(sss_count - 1), 0.0f, 1.0f, 1.0f };
 
-    const double_t a5[] = { 0.4, 0.3, 0.3 };
-    const double_t a6[] = { 1.0, 2.0, 5.0 };
-    const double_t a7[] = { 0.2, 0.4, 1.2 };
-    const double_t a8[] = { 0.3, 0.7, 2.0 };
-    draw_pass_sss_filter_calc_coef(1.0, sss_count, v34, 3, a5, a6, a7, a8, shader_data.g_coef);
+    const double_t weights[] = { 0.4, 0.3, 0.3 };
+    const double_t r_radius[] = { 1.0, 2.0, 5.0 };
+    const double_t g_radius[] = { 0.2, 0.4, 1.2 };
+    const double_t b_radius[] = { 0.3, 0.7, 2.0 };
+    draw_pass_sss_filter_calc_coef(1.0, sss_count, inverse_scale,
+        3, weights, r_radius, g_radius, b_radius, shader_data.g_coef);
 
     rctx->sss_filter_gaussian_coef_ubo.WriteMemory(rend_data_ctx.state, shader_data);
     sss->textures[reflect_draw ? 3 : 1].Bind(rend_data_ctx.state);
@@ -2195,16 +2202,16 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
 
         rend_data_ctx.shader_flags.arr[U_WATER_REFLECT] = 0;
 
-        sss_data_get()->set_texture(rend_data_ctx.state, 3);
-
-        rend_data_ctx.set_npr(&render_manager);
-        rend_data_ctx.set_batch_sss_param(sss_param);
-
         rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[0]);
         rend_data_ctx.state.bind_sampler(15, rctx->render_samplers[0]);
         rend_data_ctx.state.bind_sampler(16, rctx->render_samplers[0]);
 
         rend_data_ctx.shader_flags.arr[U_STAGE_AMBIENT] = render_manager.light_stage_ambient ? 1 : 0;
+
+        sss_data_get()->set_texture(rend_data_ctx.state, 3);
+
+        rend_data_ctx.set_npr(&render_manager);
+        rend_data_ctx.set_batch_sss_param(sss_param_reflect);
 
         cam_data reflect_cam = rctx->render_manager_cam;
         set_reflect_mat(rend_data_ctx, reflect_cam);
