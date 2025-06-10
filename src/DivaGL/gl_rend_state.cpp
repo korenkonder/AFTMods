@@ -825,6 +825,22 @@ inline void gl_rend_state::clear(GLbitfield mask) {
 inline void gl_rend_state::clear_buffer(GLenum buffer, GLint drawbuffer, const GLfloat* value) {
     update_draw_framebuffer();
 
+    if (buffer == GL_COLOR)
+        update_color_mask();
+
+    if (buffer == GL_DEPTH) {
+        update_depth_test();
+        update_depth_mask();
+    }
+
+    update_scissor_test();
+    update_scissor();
+
+    if (buffer == GL_STENCIL) {
+        update_stencil_test();
+        update_stencil_mask();
+    }
+
     glClearBufferfv(buffer, drawbuffer, value);
     enum_or(flags, GL_REND_STATE_EXECUTE);
 }
