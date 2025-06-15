@@ -657,12 +657,12 @@ namespace rndr {
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
 
         for (int32_t i = 0; i < 3; i++) {
-            taa_tex[i] = texture_load_tex_2d(texture_id(0x25, texture_counter++),
+            taa_tex[i] = texture_load_tex_2d(0x25000000 | texture_counter++,
                 GL_RGBA8, render_post_width[0], render_post_height[0], 0, 0, 0);
             taa_buffer[i].SetColorDepthTextures(taa_tex[i]->glid, 0, rend_texture[0].GetDepthTex());
         }
 
-        aet_back_tex = texture_load_tex_2d(texture_id(0x25, texture_counter++),
+        aet_back_tex = texture_load_tex_2d(0x25000000 | texture_counter++,
             GL_RGBA8, render_post_width[0], render_post_height[0], 0, 0, 0);
         aet_back_texture.SetColorDepthTextures(aet_back_tex->glid, 0, rend_texture[0].GetDepthTex());
 
@@ -694,7 +694,7 @@ namespace rndr {
         dof = new renderer::DOF3(render_post_width[0], render_post_height[0]);
 
         for (int32_t i = 0; i < 1; i++)
-            transparency_tex[i] = texture_load_tex_2d(texture_id(0x25, texture_counter++),
+            transparency_tex[i] = texture_load_tex_2d(0x25000000 | texture_counter++,
                 GL_RGBA16F, render_post_width[0], render_post_height[0], 0, 0, 0);
 
         transparency = new renderer::Transparency(transparency_tex[0]->glid,
@@ -703,7 +703,7 @@ namespace rndr {
 
     void Render::init_post_process_buffers() {
         for (int32_t i = 0; i < 5; i++) {
-            reduce_tex[i] = texture_load_tex_2d(texture_id(0x25, texture_counter++),
+            reduce_tex[i] = texture_load_tex_2d(0x25000000 | texture_counter++,
                 GL_RGBA16F, reduce_width[i], reduce_height[i], 0, 0, 0);
             gl_state.bind_texture_2d(reduce_tex[i]->glid);
 
@@ -715,7 +715,7 @@ namespace rndr {
 
         reduce_texture[0].SetColorDepthTextures(reduce_tex[0]->glid);
 
-        exposure_history = texture_load_tex_2d(texture_id(0x25, texture_counter++),
+        exposure_history = texture_load_tex_2d(0x25000000 | texture_counter++,
             GL_RGBA16F, 32, 2, 0, 0, 0);
 
         glGenTexturesDLL(1, &exposure_tex);

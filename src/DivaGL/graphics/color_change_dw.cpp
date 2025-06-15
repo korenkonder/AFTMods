@@ -254,7 +254,7 @@ bool ColorChangeDw::LoadTexture() {
         ::texture* chg_tex = 0;
         ::texture* org_tex = textures[i];
         if (org_tex->target == GL_TEXTURE_2D) {
-            chg_tex = texture_create_copy_texture(texture_id(0x22, i), org_tex);
+            chg_tex = texture_create_copy_texture(0x22000000 | i), org_tex);
             if (!chg_tex)
                 break;
         }
@@ -290,7 +290,7 @@ bool ColorChangeDw::LoadTexture() {
                 vec_data.push_back(data);
             }
 
-            chg_tex = texture_load_tex_2d(texture_id(0x22, i), org_tex->internal_format,
+            chg_tex = texture_load_tex_2d(0x22000000 | i, org_tex->internal_format,
                 org_tex->width, org_tex->height, org_tex->max_mipmap_level, (const void**)vec_data.data(), true);
 
             if (!chg_tex)

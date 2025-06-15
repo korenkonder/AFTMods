@@ -568,7 +568,7 @@ HOOK(void, FASTCALL, sub_140526FD0, 0x0000000140526FD0,
         bool changed = false;
         if (item->data.col[j].flag & 0x01) {
             tex = texture_create_copy_texture_apply_color_tone(
-                texture_manager_get_copy_id(0x30), tex, &item->data.col[j].col_tone);
+                texture_manager_get_copy_id(0x30000000), tex, &item->data.col[j].col_tone);
             changed = true;
         }
 

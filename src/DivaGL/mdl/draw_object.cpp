@@ -370,7 +370,7 @@ namespace mdl {
             if (texture_id != -1) {
                 texture_id &= 0xFFFFF;
                 for (int32_t j = 0; j < args->texture_pattern_count; j++)
-                    if (args->texture_pattern_array[j].src == ::texture_id(0x00, tex_index)) {
+                    if (args->texture_pattern_array[j].src == ::texture_id(texture_id)) {
                         texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
                         if (tex)
                             tex_id = tex->glid;
@@ -642,7 +642,7 @@ static void draw_object_material_set_cheap(
 
         GLuint tex_id = -1;
         for (int32_t j = 0; j < args->texture_pattern_count; j++)
-            if (args->texture_pattern_array[j].src == ::texture_id(0x00, texture_id)) {
+            if (args->texture_pattern_array[j].src == ::texture_id(texture_id)) {
                 texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
                 if (tex)
                     tex_id = tex->glid;
@@ -731,7 +731,7 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
         GLuint tex_id = -1;
         uint32_t texture_id = texdata->tex_index & 0xFFFFF;
         for (int32_t j = 0; j < args->texture_pattern_count; j++)
-            if (args->texture_pattern_array[j].src == ::texture_id(0x00, texture_id)) {
+            if (args->texture_pattern_array[j].src == ::texture_id(texture_id)) {
                 texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
                 if (tex)
                     tex_id = tex->glid;

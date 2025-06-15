@@ -15,18 +15,19 @@ enum texture_flags {
 
 static_assert(sizeof(texture_flags) == 0x04, "\"texture_flags\" struct should have a size of 0x04");
 
-struct texture_id {
-    uint32_t index : 24;
-    uint32_t id : 8;
+union texture_id {
+    struct {
+        uint32_t index : 28;
+        uint32_t id : 4;
+    };
+    uint32_t data;
 
     inline texture_id() {
-        id = 0;
-        index = 0;
+        data = 0;
     }
 
-    inline texture_id(uint8_t id, uint32_t index) {
-        this->id = id;
-        this->index = index;
+    inline texture_id(uint32_t data) {
+        this->data = data;
     }
 
     inline operator uint32_t() const {
@@ -37,7 +38,7 @@ struct texture_id {
 static_assert(sizeof(texture_id) == 0x04, "\"texture_id\" struct should have a size of 0x04");
 
 constexpr bool operator==(const texture_id& left, const texture_id& right) {
-    return (((uint64_t)left.id << 32) | left.index) == (((uint64_t)right.id << 32) | right.index);
+    return left.data == right.data;
 }
 
 constexpr bool operator!=(const texture_id& left, const texture_id& right) {
@@ -45,7 +46,7 @@ constexpr bool operator!=(const texture_id& left, const texture_id& right) {
 }
 
 constexpr bool operator<(const texture_id& left, const texture_id& right) {
-    return (((uint64_t)left.id << 32) | left.index) < (((uint64_t)right.id << 32) | right.index);
+    return left.data < right.data;
 }
 
 constexpr bool operator>(const texture_id& left, const texture_id& right) {

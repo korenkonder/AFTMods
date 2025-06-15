@@ -270,7 +270,7 @@ HOOK(void, FASTCALL, SelModule__DispRandom, 0x000000014058FCE0, __int64 a1) {
         mat4_scale_rot(&mat, 0.92f, 1.03f, 1.0f, &mat);
         mat4_transpose(&mat, &mat);
 
-        texture_pattern_struct tex_pat(texture_id(0x00, 0x9A61), rnd_tex->id);
+        texture_pattern_struct tex_pat(0x9A61, rnd_tex->id);
         disp_manager->set_texture_pattern(1, &tex_pat);
         disp_manager->entry_obj_by_object_info(mat, object_info(0x00, 0x07F5), alpha);
         disp_manager->set_texture_pattern();
@@ -280,7 +280,7 @@ HOOK(void, FASTCALL, SelModule__DispRandom, 0x000000014058FCE0, __int64 a1) {
             mat4_mul_translate_z(&mat, 0.01f, &mat);
             mat4_transpose(&mat, &mat);
 
-            texture_pattern_struct tex_pat(texture_id(0x00, 0x9A61), rnd_tex_next->id);
+            texture_pattern_struct tex_pat(0x9A61, rnd_tex_next->id);
             disp_manager->set_texture_pattern(1, &tex_pat);
             disp_manager->entry_obj_by_object_info(mat, object_info(0x00, 0x07F5), alpha_next);
             disp_manager->set_texture_pattern();

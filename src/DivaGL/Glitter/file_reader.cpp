@@ -661,7 +661,7 @@ namespace Glitter {
 
         texture_id* ids = (texture_id*)_operator_new(sizeof(texture_id) * count);
         for (size_t i = 0; i < count; i++)
-            ids[i] = texture_id(0x2A, GPM_VAL->texture_counter++);
+            ids[i] = 0x2A000000 | GPM_VAL->texture_counter++;
 
         txp_set_load(st->data.data(), &eff_group->resources, (uint32_t*)ids);
         _operator_delete(ids);

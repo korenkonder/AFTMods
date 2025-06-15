@@ -101,11 +101,11 @@ texture* texture_create_copy_texture_apply_color_tone(
 }
 
 inline texture_id texture_manager_get_copy_id(uint32_t id) {
-    if (!texture_manager_work_ptr || id != 0x30)
-        return texture_id(-1, -1);
+    if (!texture_manager_work_ptr || id != 0x30000000)
+        return (uint32_t)-1;
 
     int32_t& copy_count = texture_manager_work_ptr->copy_count;
-    texture_id tex_id(0x30, copy_count);
+    texture_id tex_id(0x30000000 | copy_count);
     if (copy_count < 0x0FFFFFFF)
         copy_count++;
     else
@@ -305,7 +305,7 @@ HOOK(void, FASTCALL, texture_release, 0x000000014069DA70, texture* tex) {
 
     texture_manager_work_ptr->alloc_count--;
     texture_manager_work_ptr->texmem_now_size -= tex->size_texmem;
-    texture_manager_work_ptr->texmem_now_size_by_type[tex->id.id >> 4] -= tex->size_texmem;
+    texture_manager_work_ptr->texmem_now_size_by_type[tex->id.id] -= tex->size_texmem;
     texture_manager_work_ptr->textures.erase(tex->id);
 }
 
@@ -612,10 +612,10 @@ static texture* texture_load_tex(texture_id id, GLenum target,
         texture_manager_work_ptr->texmem_peak_size,
         texture_manager_work_ptr->texmem_now_size);
 
-    texture_manager_work_ptr->texmem_now_size_by_type[id.id >> 4] += tex->size_texmem;
-    texture_manager_work_ptr->texmem_peak_size_by_type[id.id >> 4] = max_def(
-        texture_manager_work_ptr->texmem_peak_size_by_type[id.id >> 4],
-        texture_manager_work_ptr->texmem_now_size_by_type[id.id >> 4]);
+    texture_manager_work_ptr->texmem_now_size_by_type[id.id] += tex->size_texmem;
+    texture_manager_work_ptr->texmem_peak_size_by_type[id.id] = max_def(
+        texture_manager_work_ptr->texmem_peak_size_by_type[id.id],
+        texture_manager_work_ptr->texmem_now_size_by_type[id.id]);
     return tex;
 
 fail:

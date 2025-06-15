@@ -1224,7 +1224,7 @@ void render_context::init() {
         empty_texture_data,
     };
 
-    empty_texture_2d = texture_load_tex_2d(texture_id(0x2F, 0),
+    empty_texture_2d = texture_load_tex_2d(0x2F000000 | 0x00,
         GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, empty_texture_2d_array, false);
 
     static const void* empty_texture_cube_map_array[] = {
@@ -1236,7 +1236,7 @@ void render_context::init() {
         empty_texture_data,
     };
 
-    empty_texture_cube_map = texture_load_tex_cube_map(texture_id(0x2F, 1),
+    empty_texture_cube_map = texture_load_tex_cube_map(0x2F000000 | 0x01,
         GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, empty_texture_cube_map_array);
 
     ctrl(false);

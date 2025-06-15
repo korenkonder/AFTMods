@@ -89,7 +89,7 @@ int32_t RenderTexture::Init(int32_t width, int32_t height,
 
     GLuint color_texture;
     if (color_format) {
-        this->color_texture = texture_load_tex_2d(texture_id(0x23, render_texture_counter),
+        this->color_texture = texture_load_tex_2d(0x23000000 | render_texture_counter,
             color_format, width, height, max_level, 0, 0);
         if (!this->color_texture)
             return -1;
@@ -111,7 +111,7 @@ int32_t RenderTexture::Init(int32_t width, int32_t height,
     GLuint depth_texture;
     bool stencil;
     if (depth_format) {
-        this->depth_texture = texture_load_tex_2d(texture_id(0x23, render_texture_counter),
+        this->depth_texture = texture_load_tex_2d(0x23000000 | render_texture_counter,
             depth_format, width, height, 0, 0, 0);
         if (!this->depth_texture)
             return -1;
