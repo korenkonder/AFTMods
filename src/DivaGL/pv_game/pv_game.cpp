@@ -597,6 +597,7 @@ struct x_pv_game_stage {
 class TaskPvGameX : public app::Task {
 public:
     bool use;
+    bool loaded;
     int32_t state;
     x_pv_game_data data;
     x_pv_game_stage stage_data;
@@ -686,11 +687,11 @@ HOOK(void, FASTCALL, pv_game_load_state_10_head, 0x000000014010290D);
 HOOK(void, FASTCALL, pv_game_load_state_13_head, 0x000000014010356E);
 
 HOOK(int64_t, FASTCALL, pv_game_pv_data__ctrl, 0x00000001401230E0,
-    size_t _this, float_t delta_time, int64_t curr_time, bool a4) {
-    int64_t ret = originalpv_game_pv_data__ctrl(_this, delta_time, curr_time, a4);
+    size_t This, float_t delta_time, int64_t curr_time, bool a4) {
+    int64_t ret = originalpv_game_pv_data__ctrl(This, delta_time, curr_time, a4);
     if (task_pv_game_x->use) {
-        int64_t curr_time = *(int64_t*)(_this + 0x2BF40);
-        float_t curr_time_float = *(float_t*)(_this + 0x2BF48);
+        int64_t curr_time = *(int64_t*)(This + 0x2BF40);
+        float_t curr_time_float = *(float_t*)(This + 0x2BF48);
 
         x_pv_game_data& x_pv_data = task_pv_game_x->data;
         x_pv_data.ctrl_stage_effect_index();
@@ -740,8 +741,8 @@ HOOK(void, FASTCALL, pv_game__set_data_itmpv_alpha_obj_flags, 0x0000000140115EC0
         task_pv_game_x->set_song_effect_alpha_obj_flags(chara_id, type, alpha);
 }
 
-HOOK(void, FASTCALL, pv_game_pv_data__dsc_reset_position, 0x000000014011CB40, size_t _this) {
-    originalpv_game_pv_data__dsc_reset_position(_this);
+HOOK(void, FASTCALL, pv_game_pv_data__dsc_reset_position, 0x000000014011CB40, size_t This) {
+    originalpv_game_pv_data__dsc_reset_position(This);
 
     if (task_pv_game_x->use) {
         x_pv_game_pv_data& pv_data = task_pv_game_x->data.pv_data;
@@ -756,78 +757,53 @@ HOOK(void, FASTCALL, pv_game_pv_data__dsc_reset_position, 0x000000014011CB40, si
     }
 }
 
-HOOK(bool, FASTCALL, pv_game_pv_data__load, 0x000000014011B7E0, size_t _this,
-    prj::string&& file_path, size_t pv_game, bool music_play) {
-    p_file_handler& dsc_file_handler = *(p_file_handler*)(_this + 0x2BF90);
-    int32_t& dsc_state = *(int32_t*)(_this + 0x04);
+HOOK(bool, FASTCALL, pv_game_pv_data__load, 0x000000014011B7E0, size_t This,
+    prj::string& file_path, size_t pv_game, bool music_play) {
+    if (!task_pv_game_x->use)
+        return originalpv_game_pv_data__load(This, file_path, pv_game, music_play);
 
-    switch (dsc_state) {
-    case 0:
-        if (!dsc_file_handler.read_file_path(file_path.c_str(), prj::HeapCMallocTemp))
-            break;
+    const int32_t dsc_state = *(int32_t*)(This + 0x04);
 
-        if (task_pv_game_x->use) {
-            bool load_x = false;
-            char buf[0x200];
-            sprintf_s(buf, sizeof(buf), "rom/pv_script/pv_%03d.dsc", task_pv_game_x->data.pv_id);
-            if (task_pv_game_x->data.pv_data.dsc_file_handler.read_file_path(buf, prj::HeapCMallocSystem)) {
-                sprintf_s(buf, sizeof(buf), "rom/pv/pv%03d.pvpp", task_pv_game_x->data.pv_id);
-                if (task_pv_game_x->data.play_param_file_handler.read_file_path(buf, prj::HeapCMallocSystem)) {
-                    sprintf_s(buf, sizeof(buf), "rom/pv_stage_rsrc/stgpv%03d_param.pvsr", task_pv_game_x->stage_data.pv_id);
-                    if (task_pv_game_x->stage_data.stage_resource_file_handler.read_file_path(buf, prj::HeapCMallocTemp))
-                        load_x = true;
-                }
+    if (dsc_state == 0) {
+        bool load_x = false;
+        char buf[0x200];
+        sprintf_s(buf, sizeof(buf), "rom/pv_script/pv_%03d.dsc", task_pv_game_x->data.pv_id);
+        if (task_pv_game_x->data.pv_data.dsc_file_handler.read_file_path(buf, prj::HeapCMallocSystem)) {
+            sprintf_s(buf, sizeof(buf), "rom/pv/pv%03d.pvpp", task_pv_game_x->data.pv_id);
+            if (task_pv_game_x->data.play_param_file_handler.read_file_path(buf, prj::HeapCMallocSystem)) {
+                sprintf_s(buf, sizeof(buf), "rom/pv_stage_rsrc/stgpv%03d_param.pvsr", task_pv_game_x->stage_data.pv_id);
+                if (task_pv_game_x->stage_data.stage_resource_file_handler.read_file_path(buf, prj::HeapCMallocTemp))
+                    load_x = true;
             }
-
-            if (!load_x)
-                task_pv_game_x->del();
         }
 
-        dsc_state = 1;
-        break;
-    case 1: {
-        if (dsc_file_handler.check_not_ready())
-            break;
+        if (!load_x)
+            task_pv_game_x->del();
 
-        if (task_pv_game_x->use)
-            if (task_pv_game_x->data.pv_data.dsc_file_handler.check_not_ready()
-                || task_pv_game_x->data.play_param_file_handler.check_not_ready()
-                || task_pv_game_x->stage_data.stage_resource_file_handler.check_not_ready())
-                break;
-
-        memmove((int32_t*)(_this + 0x0C), dsc_file_handler.get_data(),
-            min_def(dsc_file_handler.get_size(), 45000 * sizeof(int32_t)));
-        dsc_file_handler.reset();
-
-        static const char* (FASTCALL * pv_game_pv_data__dsc_process)(size_t _this, size_t pv_game)
-            = (const char* (FASTCALL*)(size_t _this, size_t pv_game))0x000000014011C3A0;
-
-        if (task_pv_game_x->use) {
-            task_pv_game_x->data.pv_data.dsc.parse(
-                task_pv_game_x->data.pv_data.dsc_file_handler.get_data(),
-                task_pv_game_x->data.pv_data.dsc_file_handler.get_size());
-            task_pv_game_x->data.pv_data.dsc_file_handler.reset();
-
-            task_pv_game_x->data.play_param = pvpp::read(
-                task_pv_game_x->data.play_param_file_handler.get_data(),
-                task_pv_game_x->data.play_param_file_handler.get_size());
-            task_pv_game_x->stage_data.stage_resource = pvsr::read(
-                task_pv_game_x->stage_data.stage_resource_file_handler.get_data(),
-                task_pv_game_x->stage_data.stage_resource_file_handler.get_size());
-        }
-
-        pv_game_pv_data__dsc_process(_this, pv_game);
-        dsc_state = 2;
-    } break;
-    case 2: {
-        static void (FASTCALL * pv_game_pv_data__init)(size_t _this, size_t pv_game, bool music_play)
-            = (void (FASTCALL*)(size_t _this, size_t pv_game, bool music_play))0x000000014011B2B0;
-
-        pv_game_pv_data__init(_this, pv_game, music_play);
-        dsc_state = 0;
-    } return true;
+        task_pv_game_x->loaded = false;
     }
-    return false;
+    else if (dsc_state == 1 && !task_pv_game_x->loaded) {
+        if (task_pv_game_x->data.pv_data.dsc_file_handler.check_not_ready()
+            || task_pv_game_x->data.play_param_file_handler.check_not_ready()
+            || task_pv_game_x->stage_data.stage_resource_file_handler.check_not_ready())
+            return false;
+
+        task_pv_game_x->data.pv_data.dsc.parse(
+            task_pv_game_x->data.pv_data.dsc_file_handler.get_data(),
+            task_pv_game_x->data.pv_data.dsc_file_handler.get_size());
+        task_pv_game_x->data.pv_data.dsc_file_handler.reset();
+
+        task_pv_game_x->data.play_param = pvpp::read(
+            task_pv_game_x->data.play_param_file_handler.get_data(),
+            task_pv_game_x->data.play_param_file_handler.get_size());
+        task_pv_game_x->stage_data.stage_resource = pvsr::read(
+            task_pv_game_x->stage_data.stage_resource_file_handler.get_data(),
+            task_pv_game_x->stage_data.stage_resource_file_handler.get_size());
+
+        task_pv_game_x->loaded = true;
+    }
+
+    return originalpv_game_pv_data__load(This, file_path, pv_game, music_play);
 }
 
 void pv_game_init() {
@@ -3902,7 +3878,7 @@ void x_pv_game_stage::unload() {
     state = 30;
 }
 
-TaskPvGameX::TaskPvGameX() : use(), state(), state_old(), pv_id(), charas() {
+TaskPvGameX::TaskPvGameX() : use(), loaded(), state(), state_old(), pv_id(), charas() {
 
 }
 
@@ -3912,6 +3888,7 @@ TaskPvGameX::~TaskPvGameX() {
 
 bool TaskPvGameX::init() {
     use = true;
+    loaded = false;
     x_pv_game_firstread_ptr->read();
     reflect_full = false;
     if (firstread_ptr && firstread_ptr->stage_data_array && sv_reflect_full) {
@@ -4007,6 +3984,7 @@ bool TaskPvGameX::dest() {
     unload();
     reflect_full = false;
     use = false;
+    loaded = false;
     return true;
 }
 
@@ -4059,8 +4037,8 @@ void TaskPvGameX::load(int32_t pv_id, int32_t modules[6]) {
 #pragma warning(pop)
 
         static size_t(FASTCALL* module_data_handler_data_get)() = (size_t(FASTCALL*)())0x00000001403F8C30;
-        static bool (FASTCALL* module_data_handler__get_module_by_id)(size_t _this, int32_t id, module_data* data)
-            = (bool (FASTCALL*)(size_t _this, int32_t id, module_data * data))0x00000001403F8B40;
+        static bool (FASTCALL* module_data_handler__get_module_by_id)(size_t This, int32_t id, module_data* data)
+            = (bool (FASTCALL*)(size_t This, int32_t id, module_data * data))0x00000001403F8B40;
 
         for (int32_t i = 0; i < 6; i++) {
             module_data mdl;

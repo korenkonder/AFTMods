@@ -212,8 +212,8 @@ HOOK(void, FASTCALL, SelModule__DispRandom, 0x000000014058FCE0, __int64 a1) {
     alpha_next = clamp_def(alpha_next, 0.0f, 1.0f);
 
     static size_t(FASTCALL * module_data_handler_data_get)() = (size_t(FASTCALL*)())0x00000001403F8C30;
-    static bool (FASTCALL * module_data_handler__check_random)(size_t _this, int32_t id)
-        = (bool (FASTCALL*)(size_t _this, int32_t id))0x00000001403F8E70;
+    static bool (FASTCALL * module_data_handler__check_random)(size_t This, int32_t id)
+        = (bool (FASTCALL*)(size_t This, int32_t id))0x00000001403F8E70;
     static int32_t(FASTCALL * sub_1405905D0)(int32_t* a1)
         = (int32_t(FASTCALL*)(int32_t* a1))0x00000001405905D0;
 

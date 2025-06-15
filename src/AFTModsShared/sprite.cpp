@@ -242,20 +242,20 @@ namespace spr {
 }
 
 const spr_db_spr* sprite_database_get_spr_by_id(int32_t id) {
-    const spr_db_spr* (FASTCALL * sprite_database_struct__get_spr_by_id)(size_t _this, int32_t id)
-        = (const spr_db_spr * (FASTCALL*)(size_t _this, int32_t id))0x000000014063C800;
+    const spr_db_spr* (FASTCALL * sprite_database_struct__get_spr_by_id)(size_t This, int32_t id)
+        = (const spr_db_spr * (FASTCALL*)(size_t This, int32_t id))0x000000014063C800;
     return sprite_database_struct__get_spr_by_id(sprite_database, id);
 }
 
 int32_t sprite_database_get_spr_set_id_by_name(const prj::string& name) {
-    int32_t(FASTCALL * sprite_database_struct__get_spr_set_id_by_name)(size_t _this, const prj::string & name)
-        = (int32_t(FASTCALL*)(size_t _this, const prj::string & name))0x00000001401121A0;
+    int32_t(FASTCALL * sprite_database_struct__get_spr_set_id_by_name)(size_t This, const prj::string & name)
+        = (int32_t(FASTCALL*)(size_t This, const prj::string & name))0x00000001401121A0;
     return sprite_database_struct__get_spr_set_id_by_name(sprite_database, name);
 }
 
 texture* sprite_manager_get_spr_texture(spr_info info) {
-    texture* (FASTCALL * spr__SpriteManager__GetSprTexture)(size_t _this, uint32_t info)
-        = (texture * (FASTCALL*)(size_t _this, uint32_t info))0x000000014063C990;
+    texture* (FASTCALL * spr__SpriteManager__GetSprTexture)(size_t This, uint32_t info)
+        = (texture * (FASTCALL*)(size_t This, uint32_t info))0x000000014063C990;
     return spr__SpriteManager__GetSprTexture(sprite_manager, *(uint32_t*)&info);
 }
 

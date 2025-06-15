@@ -276,15 +276,15 @@ void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
 
 int32_t aet_database_get_aet_id_by_name(const prj::string& name) {
     int32_t(FASTCALL * aet_database_struct__get_aet_id_by_name)
-        (size_t _this, const prj::string & name)
-        = (int32_t(FASTCALL*)(size_t _this, const prj::string & name))0x0000000140112180;
+        (size_t This, const prj::string & name)
+        = (int32_t(FASTCALL*)(size_t This, const prj::string & name))0x0000000140112180;
     return aet_database_struct__get_aet_id_by_name(0x0000000140EC5430, name);
 }
 
 int32_t aet_database_get_aet_set_id_by_name(const prj::string& name) {
     int32_t(FASTCALL * aet_database_struct__get_aet_set_id_by_name)
-        (size_t _this, const prj::string & name)
-        = (int32_t(FASTCALL*)(size_t _this, const prj::string & name))0x0000000140112190;
+        (size_t This, const prj::string & name)
+        = (int32_t(FASTCALL*)(size_t This, const prj::string & name))0x0000000140112190;
     return aet_database_struct__get_aet_set_id_by_name(0x0000000140EC5430, name);
 }
 
