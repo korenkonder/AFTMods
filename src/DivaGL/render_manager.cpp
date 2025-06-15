@@ -1099,6 +1099,8 @@ namespace rndr {
     void RenderManager::pass_post_process(render_data_context& rend_data_ctx) {
         rend_data_ctx.state.begin_event("pass_post_process");
 
+        rend_data_ctx.set_npr(this);
+
         static texture* (FASTCALL * litproj_texture_get)() = (texture * (FASTCALL*)())0x0000000140350600;
         render->apply_post_process(rend_data_ctx,
             rctx->render_manager_cam, litproj_texture_get(), npr_param);
@@ -1178,12 +1180,12 @@ namespace rndr {
         rctx->quad_ubo.WriteMemory(rend_data_ctx.state, quad_data);
 
         contour_params_shader_data contour_params_data = {};
-        const float_t max_distance = cam.get_max_distance();
-        const float_t min_distance = cam.get_min_distance();
+        const double_t max_distance = cam.get_max_distance();
+        const double_t min_distance = cam.get_min_distance();
         contour_params_data.g_near_far = {
-            (float_t)(max_distance / (max_distance - min_distance)),
-            (float_t)(-(max_distance * min_distance) / (max_distance - min_distance)),
-            min_distance, max_distance
+            (float_t)(max_distance * (1.0 / (max_distance - min_distance))),
+            (float_t)(-(max_distance * min_distance) * (1.0 / (max_distance - min_distance))),
+            (float_t)min_distance, (float_t)max_distance
         };
         rctx->contour_params_ubo.WriteMemory(rend_data_ctx.state, contour_params_data);
 
@@ -1741,12 +1743,12 @@ static void draw_pass_sss_contour(render_data_context& rend_data_ctx, rndr::Rend
 
     contour_coef_shader_data shader_data = {};
     shader_data.g_contour = { v9 * 0.004f + 0.0027f, 0.003f, v3 * 0.35f, 0.0008f };
-    const float_t max_distance = cam.get_max_distance();
-    const float_t min_distance = cam.get_min_distance();
+    const double_t max_distance = cam.get_max_distance();
+    const double_t min_distance = cam.get_min_distance();
     shader_data.g_near_far = {
-        (float_t)(max_distance / (max_distance - min_distance)),
-        (float_t)(-(max_distance * min_distance) / (max_distance - min_distance)),
-        min_distance, max_distance
+        (float_t)(max_distance * (1.0 / (max_distance - min_distance))),
+        (float_t)(-(max_distance * min_distance) * (1.0 / (max_distance - min_distance))),
+        (float_t)min_distance, (float_t)max_distance
     };
     rctx->contour_coef_ubo.WriteMemory(rend_data_ctx.state, shader_data);
 
