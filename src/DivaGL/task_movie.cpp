@@ -353,8 +353,11 @@ void TaskMoviePlayerNoInterop::UpdateD3D11Texture(TaskMovie::Player* player,
             d3d11_tex = 0;
         }
 
-        static uint16_t counter = 0;
-        d3d11_tex = texture_load_tex_2d(0x31000000 | counter, GL_RGBA8, desc.Width, desc.Height, 0, 0, 0);
+        static uint32_t counter = 0x02;
+        if (counter < 0x02 || counter > 0xFFFFFF)
+            counter = 0x02;
+        d3d11_tex = texture_load_tex_2d(0x2F000000 | counter, GL_RGBA8, desc.Width, desc.Height, 0, 0, 0);
+        counter++;
 
         if (d3d11_tex) {
             gl_state.bind_texture_2d(d3d11_tex->glid);
