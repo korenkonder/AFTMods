@@ -1020,7 +1020,8 @@ namespace Glitter {
     }
 
     RenderSceneX::~RenderSceneX() {
-
+        for (RenderGroupX*& i : groups)
+            delete i;
     }
 
     void RenderSceneX::Append(RenderGroupX* rend_group) {

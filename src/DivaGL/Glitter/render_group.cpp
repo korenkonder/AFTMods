@@ -360,11 +360,11 @@ namespace Glitter {
             rend_elem->frame -= rend_elem->life_time;
     }
 
-    void RenderGroupX::DeleteBuffers(bool a2) {
+    void RenderGroupX::DeleteBuffers(bool free) {
         ParticleX* ptcl = 0;
         if (particle) {
             ptcl = particle->data.particle;
-            if (!a2)
+            if (!free)
                 particle->data.render_group = 0;
             particle = 0;
         }
@@ -379,9 +379,13 @@ namespace Glitter {
             ptcl->buffer_used = false;
 #endif
 
-        if (!a2 && elements) {
+        if (!free && elements) {
             Free();
-            free_def(elements);
+
+            if (elements) {
+                delete[] elements;
+                elements = 0;
+            }
         }
     }
 

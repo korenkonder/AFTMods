@@ -46,8 +46,8 @@ namespace Glitter {
         }
 
         if (farc) {
-            farc = 0;
             delete farc;
+            farc = 0;
         }
 
         if (resource_hashes) {

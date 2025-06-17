@@ -1251,7 +1251,7 @@ namespace Glitter {
         void Copy(RenderGroupX* dst);
         void Ctrl(float_t delta_frame, bool copy_mats);
         void CtrlParticle(RenderElementX* rend_elem, float_t delta_frame);
-        void DeleteBuffers(bool a2);
+        void DeleteBuffers(bool free);
         void Emit(ParticleX::Data* ptcl_data,
             EmitterInstX* emit_inst, int32_t dup_count, int32_t count, float_t frame);
         void Free();
