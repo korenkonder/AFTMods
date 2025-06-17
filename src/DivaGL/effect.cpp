@@ -555,6 +555,7 @@ static leaf_particle_vertex_data*& leaf_ptcl_vertex_data = *(leaf_particle_verte
 
 static bool& particle_enable = *(bool*)0x0000000141194E30;
 static particle_rot_data*& ptcl_data = *(particle_rot_data**)0x0000000141194E38;
+static particle_vertex_data*& ptcl_vertex_data = *(particle_vertex_data**)0x0000000141194E40;
 static int32_t& particle_index = *(int32_t*)0x0000000141194E48;
 static int32_t& particle_count = *(int32_t*)0x0000000141194E4C;
 static vec3& particle_wind = *(vec3*)0x0000000141194E50;
@@ -725,19 +726,14 @@ void rain_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
 }
 
 void particle_draw(render_data_context& rend_data_ctx, const cam_data& cam) {
-    if (!ptcl_data)
+    if (!ptcl_data || !ptcl_vertex_data)
         return;
 
-    particle_vertex_data* vtx_data = (particle_vertex_data*)ptcl_vbo.MapMemory(rend_data_ctx.state);
-    if (!vtx_data)
-        return;
-
-    int32_t count = particle_disp(vtx_data, ptcl_data, ptcl_count);
-
-    ptcl_vbo.UnmapMemory(rend_data_ctx.state);
-
+    int32_t count = particle_disp(ptcl_vertex_data, ptcl_data, ptcl_count);
     if (!count)
         return;
+
+    ptcl_vbo.WriteMemory(rend_data_ctx.state, 0, sizeof(particle_vertex_data) * count, ptcl_vertex_data);
 
     const light_data& light_chara = light_set_data[LIGHT_SET_MAIN].lights[LIGHT_CHARA];
 
@@ -1042,9 +1038,13 @@ HOOK(void, FASTCALL, leaf_particle_init, 0x000000014034C530, bool change_stage) 
 
 HOOK(void, FASTCALL, particle_free, 0x0000000140351600) {
     if (ptcl_data)
-        delete[] ptcl_data;
+        free(ptcl_data);
+
+    if (ptcl_vertex_data)
+        free(ptcl_vertex_data);
 
     ptcl_data = 0;
+    ptcl_vertex_data = 0;
     particle_index = 0;
     particle_count = 0;
 
@@ -1064,6 +1064,7 @@ HOOK(void, FASTCALL, particle_init, 0x0000000140351C50, vec3* offset) {
     const size_t ptcl_vtx_count = ptcl_count * 0x06;
 
     ptcl_data = force_malloc<particle_rot_data>(ptcl_count);
+    ptcl_vertex_data = force_malloc<particle_vertex_data>(ptcl_vtx_count);
 
     particle_rot_data* data = ptcl_data;
     for (size_t i = 0; i < ptcl_count; i++, data++)
