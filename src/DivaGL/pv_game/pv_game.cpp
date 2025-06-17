@@ -3574,13 +3574,13 @@ bool x_pv_game_stage::set_change_effect_frame_part_1() {
     else
         curr_stg_eff = 0;
 
-    int32_t next_sta_eff = next_stage_effect;
-    if (next_sta_eff >= 1 && next_sta_eff <= 12)
-        next_sta_eff--;
+    int32_t next_stg_eff = next_stage_effect;
+    if (next_stg_eff >= 1 && next_stg_eff <= 12)
+        next_stg_eff--;
     else
-        next_sta_eff = 0;
+        next_stg_eff = 0;
 
-    x_pv_game_stage_change_effect& chg_eff = change_effect[curr_stg_eff][next_sta_eff];
+    x_pv_game_stage_change_effect& chg_eff = change_effect[curr_stg_eff][next_stg_eff];
     if (!chg_eff.enable)
         return false;
     return true;
@@ -3596,13 +3596,13 @@ void x_pv_game_stage::set_change_effect_frame_part_2(float_t frame) {
     else
         curr_stg_eff = 0;
 
-    int32_t next_sta_eff = next_stage_effect;
-    if (next_sta_eff >= 1 && next_sta_eff <= 12)
-        next_sta_eff--;
+    int32_t next_stg_eff = next_stage_effect;
+    if (next_stg_eff >= 1 && next_stg_eff <= 12)
+        next_stg_eff--;
     else
-        next_sta_eff = 0;
+        next_stg_eff = 0;
 
-    x_pv_game_stage_change_effect& chg_eff = change_effect[curr_stg_eff][next_sta_eff];
+    x_pv_game_stage_change_effect& chg_eff = change_effect[curr_stg_eff][next_stg_eff];
     if (!chg_eff.enable)
         return;
 
