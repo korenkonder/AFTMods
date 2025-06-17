@@ -34,6 +34,8 @@ namespace GL {
         void Destroy();
         void* MapMemory(gl_state_struct& gl_st);
         void* MapMemory(p_gl_rend_state& p_gl_rend_st);
+        void Recreate(gl_state_struct& gl_st, size_t size);
+        void Recreate(gl_state_struct& gl_st, size_t size, const void* data, bool dynamic = false);
         void UnmapMemory(gl_state_struct& gl_st);
         void UnmapMemory(p_gl_rend_state& p_gl_rend_st);
         void WriteMemory(gl_state_struct& gl_st, size_t offset, size_t size, const void* data);

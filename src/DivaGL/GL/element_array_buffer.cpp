@@ -103,6 +103,29 @@ namespace GL {
         return 0;
     }
 
+    void ElementArrayBuffer::Recreate(gl_state_struct& gl_st, size_t size) {
+        if (DIVA_GL_VERSION_4_4) {
+            Destroy();
+            Create(gl_st, size);
+        }
+        else {
+            gl_st.bind_element_array_buffer(buffer);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, 0, GL_STREAM_DRAW);
+        }
+    }
+
+    void ElementArrayBuffer::Recreate(gl_state_struct& gl_st, size_t size, const void* data, bool dynamic) {
+        if (DIVA_GL_VERSION_4_4) {
+            Destroy();
+            Create(gl_st, size, data, dynamic);
+        }
+        else {
+            gl_st.bind_element_array_buffer(buffer);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data,
+                dynamic ? GL_STREAM_DRAW : GL_STATIC_DRAW);
+        }
+    }
+
     void ElementArrayBuffer::UnmapMemory(gl_state_struct& gl_st) {
         if (!buffer)
             return;
