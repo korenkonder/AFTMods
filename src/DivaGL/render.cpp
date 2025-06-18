@@ -508,6 +508,46 @@ namespace rndr {
         }
     }
 
+    void Render::frame_texture_free() {
+        for (Render::FrameTexture& i : frame_texture) {
+            for (Render::FrameTextureData& j : i.data) {
+                j.texture = 0;
+                j.render_texture.Free();
+                j.type = FRAME_TEXTURE_MAX;
+            }
+
+            i.capture = false;
+        }
+    }
+
+    int32_t Render::frame_texture_load(int32_t slot, Render::FrameTextureType type, texture* tex) {
+        if (!tex || slot < 0 || slot >= 6)
+            return -1;
+
+        for (Render::FrameTextureData& i : frame_texture[slot].data)
+            if (!i.texture) {
+                i.render_texture.SetColorDepthTextures(tex->glid);
+                i.texture = tex;
+                i.type = type;
+                return (int32_t)(&i - frame_texture[slot].data);
+            }
+        return -1;
+    }
+
+    bool Render::frame_texture_unload(int32_t slot, texture* tex) {
+        if (!tex || slot < 0 || slot >= 6)
+            return false;
+
+        for (Render::FrameTextureData& i : frame_texture[slot].data)
+            if (i.texture == tex) {
+                i.render_texture.Free();
+                i.texture = 0;
+                i.type = FRAME_TEXTURE_MAX;
+                return true;
+            }
+        return false;
+    }
+
     void Render::free() {
         if (transparency) {
             delete transparency;

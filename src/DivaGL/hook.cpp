@@ -163,9 +163,18 @@ HOOK(void, FASTCALL, rndr__Render__free, 0x00000001404AB900, rndr::Render* rend)
     rend->free();
 }
 
+HOOK(void, FASTCALL, rndr__Render__frame_texture_free, 0x00000001404AE6C0, rndr::Render* rend) {
+    return rend->frame_texture_free();
+}
+
 HOOK(void, FASTCALL, rndr__Render__render_texture_set, 0x00000001404B1560,
     rndr::Render* rend, texture* render_texture, bool task_photo) {
     rend->render_texture_set(render_texture, task_photo);
+}
+
+HOOK(int32_t, FASTCALL, rndr__Render__frame_texture_load, 0x00000001404B1600,
+    rndr::Render* rend, int32_t slot, rndr::Render::FrameTextureType type, texture* tex) {
+    return rend->frame_texture_load(slot, type, tex);
 }
 
 HOOK(void, FASTCALL, rndr__Render__movie_texture_set, 0x00000001404B16A0,
@@ -181,6 +190,11 @@ HOOK(void, FASTCALL, rndr__Render__render_texture_free, 0x00000001404B1880,
 HOOK(void, FASTCALL, rndr__Render__movie_texture_free, 0x00000001404B18F0,
     rndr::Render* rend, texture* movie_texture) {
     rend->movie_texture_free(movie_texture);
+}
+
+HOOK(bool, FASTCALL, rndr__Render__frame_texture_unload, 0x00000001404B30A0,
+    rndr::Render* rend, int32_t slot, texture* tex) {
+    return rend->frame_texture_unload(slot, tex);
 }
 
 HOOK(void, FASTCALL, rndr__RenderManager__rndpass_pre_proc, 0x0000000140502C90) {
@@ -362,10 +376,13 @@ void hook_funcs() {
     INSTALL_HOOK(rndr__Render__init_post_process_buffers);
     INSTALL_HOOK(rndr__Render__init_render_buffers);
     INSTALL_HOOK(rndr__Render__free);
+    INSTALL_HOOK(rndr__Render__frame_texture_free);
     INSTALL_HOOK(rndr__Render__render_texture_set);
+    INSTALL_HOOK(rndr__Render__frame_texture_load);
     INSTALL_HOOK(rndr__Render__movie_texture_set);
     INSTALL_HOOK(rndr__Render__render_texture_free);
     INSTALL_HOOK(rndr__Render__movie_texture_free);
+    INSTALL_HOOK(rndr__Render__frame_texture_unload);
 
     INSTALL_HOOK(rndr__RenderManager__rndpass_pre_proc);
     INSTALL_HOOK(rndr__RenderManager__render_all);
