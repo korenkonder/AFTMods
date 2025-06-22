@@ -67,7 +67,7 @@ bool APIENTRY DllMain(HMODULE handle, DWORD ul_reason_for_call, LPVOID lpReserve
             L"texture_skinning_buffer", 0, CONFIG_FILE) > 0 ? true : false;
 
         dll_handle = (size_t)handle;
-        printf_divagl("Current version - v0.7.4.5 (Build date: " __DATE__ ")");
+        printf_divagl("Current version - v0.8.0.0 (Build date: " __DATE__ ")");
         printf_divagl("Attach");
         divagl_main();
         break;
@@ -84,7 +84,7 @@ extern "C" __declspec(dllexport) LPCWSTR GetPluginDescription(void) {
 }
 
 extern "C" __declspec(dllexport) LPCWSTR GetBuildDate(void) {
-    return L"v0.7.4.5 (Build date: " __DATE__ ")";
+    return L"v0.8.0.0 (Build date: " __DATE__ ")";
 }
 
 static std::wstring GetDirPath() {
