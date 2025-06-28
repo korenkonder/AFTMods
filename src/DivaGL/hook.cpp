@@ -121,7 +121,7 @@ HOOK(void, FASTCALL, display_callback, 0x000000140194CD0) {
     rctx->ctrl();
     originaldisplay_callback();
     render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
-    rend_data_ctx.state.update();
+    rend_data_ctx.state.finish();
 }
 
 HOOK(void, FASTCALL, draw_state_stats_update, 0x0000000140441410) {

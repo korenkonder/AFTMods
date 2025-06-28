@@ -298,7 +298,7 @@ namespace mdl {
         morph_vertex_buffer = 0;
         morph_vertex_buffer_offset = 0;
 
-        gl_state.bind_vertex_array(vertex_array);
+        gl_state.bind_vertex_array(vertex_array, true);
         for (int32_t i = 0; i < 16; i++)
             if (vertex_attrib_array[i]) {
                 glDisableVertexAttribArray(i);
@@ -381,7 +381,7 @@ namespace mdl {
         if (!vertex_array->vertex_array) {
             glGenVertexArrays(1, &vertex_array->vertex_array);
 
-            gl_state.bind_vertex_array(vertex_array->vertex_array);
+            gl_state.bind_vertex_array(vertex_array->vertex_array, true);
             glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
             glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -415,7 +415,7 @@ namespace mdl {
             vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding));
 
         if (!new_vertex_array)
-            gl_state.bind_vertex_array(vertex_array->vertex_array);
+            gl_state.bind_vertex_array(vertex_array->vertex_array, true);
         gl_state.bind_array_buffer(vertex_buffer, true);
         if (index_buffer)
             gl_state.bind_element_array_buffer(index_buffer, true);
@@ -1655,7 +1655,7 @@ namespace mdl {
         if (!etc_vertex_array->vertex_array) {
             glGenVertexArrays(1, &etc_vertex_array->vertex_array);
 
-            gl_state.bind_vertex_array(etc_vertex_array->vertex_array);
+            gl_state.bind_vertex_array(etc_vertex_array->vertex_array, true);
             glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
             glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -1795,7 +1795,7 @@ namespace mdl {
         GLsizei size_vertex = sizeof(vec3) * 2;
 
         if (!new_vertex_array)
-            gl_state.bind_vertex_array(etc_vertex_array->vertex_array);
+            gl_state.bind_vertex_array(etc_vertex_array->vertex_array, true);
 
         if (etc_vertex_array->vertex_buffer.IsNull())
             etc_vertex_array->vertex_buffer.Create(gl_state, sizeof(vec3) * 2 * vtx_data.size());
@@ -2036,12 +2036,12 @@ namespace mdl {
 
         for (DispManager::etc_vertex_array& i : etc_vertex_array_cache)
             if (i.alive_time > 0 && --i.alive_time <= 0) {
-                gl_state.bind_vertex_array(i.vertex_array);
+                gl_state.bind_vertex_array(i.vertex_array, true);
                 glDisableVertexAttribArray(POSITION_INDEX);
-                glDisableVertexAttribArray(NORMAL_INDEX);
-                gl_state.bind_array_buffer(0);
+                glDisableVertexAttribArray(  NORMAL_INDEX);
+                gl_state.bind_array_buffer(0, true);
                 if (i.indexed)
-                    gl_state.bind_element_array_buffer(0);
+                    gl_state.bind_element_array_buffer(0, true);
                 gl_state.bind_vertex_array(0);
             }
     }
@@ -4110,6 +4110,24 @@ namespace mdl {
         disp_manager->entry_obj_etc(mat, etc);
     }
 
+    HOOK(void, FASTCALL, disp_manager_free, 0x00000001404371C0) {
+        for (DispManager::vertex_array& i : vertex_array_cache)
+            glDeleteVertexArrays(1, &i.vertex_array);
+        vertex_array_cache.clear();
+        vertex_array_cache.shrink_to_fit();
+
+        for (DispManager::etc_vertex_array& i : etc_vertex_array_cache) {
+            glDeleteVertexArrays(1, &i.vertex_array);
+
+            i.vertex_buffer.Destroy();
+            i.index_buffer.Destroy();
+        }
+        etc_vertex_array_cache.clear();
+        etc_vertex_array_cache.shrink_to_fit();
+
+        originaldisp_manager_free();
+    }
+
     HOOK(void, FASTCALL, DispManager__entry_obj, 0x00000001404379E0,
         obj* obj_data, obj_mesh_vertex_buffer* obj_vert_buf, obj_mesh_index_buffer* obj_index_buf,
         prj::vector<GLuint>* textures, vec4* blend_color, mat4* bone_mat, obj* obj_morph,
@@ -4157,6 +4175,7 @@ namespace mdl {
         INSTALL_HOOK(disp_stgtst);
         INSTALL_HOOK(MeshDw__DrawObjAxisAlignedBoundingBox);
         INSTALL_HOOK(MeshDw__DrawObjBoundingSphere);
+        INSTALL_HOOK(disp_manager_free);
         INSTALL_HOOK(DispManager__entry_obj);
         INSTALL_HOOK(DispManager__entry_obj_etc);
         INSTALL_HOOK(DispManager__entry_obj_by_obj);

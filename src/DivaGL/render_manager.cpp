@@ -301,7 +301,7 @@ namespace rndr {
             for (int32_t i = RND_PASSID_SHADOW; i <= RND_PASSID_CLEAR; i++)
                 RenderManager::render_single_pass(rend_data_ctx, (RenderPassID)i);
             rend_data_ctx.state.end_event();
-            rend_data_ctx.state.update();
+            rend_data_ctx.state.finish();
         }
 
         {
@@ -311,7 +311,7 @@ namespace rndr {
             for (int32_t i = RND_PASSID_PRE_SPRITE; i <= RND_PASSID_3D; i++)
                 RenderManager::render_single_pass(rend_data_ctx, (RenderPassID)i);
             rend_data_ctx.state.end_event();
-            rend_data_ctx.state.update();
+            rend_data_ctx.state.finish();
         }
 
         {
@@ -321,7 +321,7 @@ namespace rndr {
             for (int32_t i = RND_PASSID_SHOW_VECTOR; i <= RND_PASSID_12; i++)
                 RenderManager::render_single_pass(rend_data_ctx, (RenderPassID)i);
             rend_data_ctx.state.end_event();
-            rend_data_ctx.state.update();
+            rend_data_ctx.state.finish();
         }
 
         disp_manager->check_vertex_arrays();

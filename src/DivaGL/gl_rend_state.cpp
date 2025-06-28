@@ -232,6 +232,7 @@ struct gl_rend_state {
     void enable_scissor_test();
     void enable_stencil_test();
     void end_event();
+    void finish();
     void generate_mipmap(GLenum target);
     void generate_texture_mipmap(GLuint texture);
     void get();
@@ -507,6 +508,10 @@ void p_gl_rend_state::end_event() {
     ptr.end_event();
 }
 
+void p_gl_rend_state::finish() {
+    ptr.finish();
+}
+
 void p_gl_rend_state::generate_mipmap(GLenum target) {
     ptr.generate_mipmap(target);
 }
@@ -616,10 +621,6 @@ void p_gl_rend_state::set_viewport(GLint x, GLint y, GLsizei width, GLsizei heig
 void p_gl_rend_state::tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
     GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
     ptr.tex_sub_image_2d(target, level, xoffset, yoffset, width, height, format, type, pixels);
-}
-
-void p_gl_rend_state::update() {
-    ptr.update();
 }
 
 void p_gl_rend_state::use_program(GLuint program) {
@@ -1029,6 +1030,29 @@ inline void gl_rend_state::enable_stencil_test() {
 inline void gl_rend_state::end_event() {
     if (DIVA_GL_VERSION_4_3)
         glPopDebugGroup();
+}
+
+inline void gl_rend_state::finish() {
+    bind_vertex_array(0);
+    update_vertex_array();
+
+    bind_array_buffer(0);
+    bind_element_array_buffer(0);
+    bind_uniform_buffer(0);
+    bind_shader_storage_buffer(0);
+
+    set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    set_depth_mask(GL_TRUE);
+    set_stencil_mask(GL_TRUE);
+
+    update_blend();
+    update_color_mask();
+    update_depth_test();
+    update_depth_mask();
+    update_primitive_restart();
+    update_scissor_test();
+    update_stencil_test();
+    update_stencil_mask();
 }
 
 inline void gl_rend_state::generate_mipmap(GLenum target) {

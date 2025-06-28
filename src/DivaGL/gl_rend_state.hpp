@@ -83,6 +83,7 @@ struct p_gl_rend_state {
     void enable_scissor_test();
     void enable_stencil_test();
     void end_event();
+    void finish();
     void generate_mipmap(GLenum target);
     void generate_texture_mipmap(GLuint texture);
     void get();
@@ -113,7 +114,6 @@ struct p_gl_rend_state {
     void set_viewport(GLint x, GLint y, GLsizei width, GLsizei height);
     void tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
         GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
-    void update();
     void use_program(GLuint program);
 
     template <size_t size>
