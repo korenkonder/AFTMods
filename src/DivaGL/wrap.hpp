@@ -1262,6 +1262,7 @@ typedef void (GLAPIENTRY* PFNGLNAMEDBUFFERSUBDATAPROC) (GLuint buffer, GLintptr 
 typedef void* (GLAPIENTRY* PFNGLMAPNAMEDBUFFERPROC) (GLuint buffer, GLenum access);
 typedef void* (GLAPIENTRY* PFNGLMAPNAMEDBUFFERRANGEPROC) (GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access);
 typedef GLboolean (GLAPIENTRY* PFNGLUNMAPNAMEDBUFFERPROC) (GLuint buffer);
+typedef void (GLAPIENTRY* PFNGLGETNAMEDBUFFERPARAMETERIVPROC)(GLuint buffer, GLenum pname, GLint* params);
 typedef void (GLAPIENTRY* PFNGLTEXTURESUBIMAGE2DPROC) (GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
 typedef void (GLAPIENTRY* PFNGLGENERATETEXTUREMIPMAPPROC) (GLuint texture);
 typedef void (GLAPIENTRY* PFNGLBINDTEXTUREUNITPROC) (GLuint unit, GLuint texture);
@@ -2520,6 +2521,7 @@ extern PFNGLNAMEDBUFFERSUBDATAPROC divagl_glNamedBufferSubData;
 extern PFNGLMAPNAMEDBUFFERPROC divagl_glMapNamedBuffer;
 extern PFNGLMAPNAMEDBUFFERRANGEPROC divagl_glMapNamedBufferRange;
 extern PFNGLUNMAPNAMEDBUFFERPROC divagl_glUnmapNamedBuffer;
+extern PFNGLGETNAMEDBUFFERPARAMETERIVPROC divagl_glGetNamedBufferParameteriv;
 extern PFNGLTEXTURESUBIMAGE2DPROC divagl_glTextureSubImage2D;
 extern PFNGLGENERATETEXTUREMIPMAPPROC divagl_glGenerateTextureMipmap;
 extern PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit;
@@ -3778,6 +3780,7 @@ extern PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit;
 #define glMapNamedBuffer divagl_glMapNamedBuffer
 #define glMapNamedBufferRange divagl_glMapNamedBufferRange
 #define glUnmapNamedBuffer divagl_glUnmapNamedBuffer
+#define glGetNamedBufferParameteriv divagl_glGetNamedBufferParameteriv
 #define glTextureSubImage2D divagl_glTextureSubImage2D
 #define glGenerateTextureMipmap divagl_glGenerateTextureMipmap
 #define glBindTextureUnit divagl_glBindTextureUnit

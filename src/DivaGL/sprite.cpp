@@ -228,13 +228,13 @@ namespace spr {
     }
 
     SpriteManager::RenderData::~RenderData() {
-        ebo.Destroy();
-        vbo.Destroy();
-
         if (vao[0]) {
             glDeleteVertexArrays(3, vao);
             vao[0] = 0;
         }
+
+        ebo.Destroy();
+        vbo.Destroy();
     }
 
     template <typename T>

@@ -1213,10 +1213,15 @@ static void free_index_buffer(GLuint buffer) {
 
     disp_manager->check_index_buffer(buffer);
 
-    GLint size;
-    gl_state.bind_element_array_buffer(buffer);
-    glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-    gl_state.bind_element_array_buffer(0);
+    GLint size = 0;
+    if (DIVA_GL_VERSION_4_5)
+        glGetNamedBufferParameteriv(buffer, GL_BUFFER_SIZE, &size);
+    else {
+        gl_state.bind_element_array_buffer(buffer);
+        glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+        gl_state.bind_element_array_buffer(0);
+    }
+
     bufobj_mgr.ib_all_size -= size;
 
     glDeleteBuffers(1, &buffer);
@@ -1230,9 +1235,14 @@ static void free_vertex_buffer(GLuint buffer) {
     disp_manager->check_vertex_buffer(buffer);
 
     GLint size = 0;
-    gl_state.bind_array_buffer(buffer);
-    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-    gl_state.bind_array_buffer(0);
+    if (DIVA_GL_VERSION_4_5)
+        glGetNamedBufferParameteriv(buffer, GL_BUFFER_SIZE, &size);
+    else {
+        gl_state.bind_array_buffer(buffer);
+        glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+        gl_state.bind_array_buffer(0);
+    }
+
     bufobj_mgr.vb_all_size -= size;
 
     glDeleteBuffers(1, &buffer);

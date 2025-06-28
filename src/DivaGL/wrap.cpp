@@ -2469,6 +2469,7 @@ PFNGLNAMEDBUFFERSUBDATAPROC divagl_glNamedBufferSubData = 0;
 PFNGLMAPNAMEDBUFFERPROC divagl_glMapNamedBuffer = 0;
 PFNGLMAPNAMEDBUFFERRANGEPROC divagl_glMapNamedBufferRange = 0;
 PFNGLUNMAPNAMEDBUFFERPROC divagl_glUnmapNamedBuffer = 0;
+PFNGLGETNAMEDBUFFERPARAMETERIVPROC divagl_glGetNamedBufferParameteriv = 0;
 PFNGLTEXTURESUBIMAGE2DPROC divagl_glTextureSubImage2D = 0;
 PFNGLGENERATETEXTUREMIPMAPPROC divagl_glGenerateTextureMipmap = 0;
 PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit = 0;
@@ -2624,6 +2625,7 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
         glMapNamedBuffer = (PFNGLMAPNAMEDBUFFERPROC)wglGetProcAddressDLL("glMapNamedBuffer");
         glMapNamedBufferRange = (PFNGLMAPNAMEDBUFFERRANGEPROC)wglGetProcAddressDLL("glMapNamedBufferRange");
         glUnmapNamedBuffer = (PFNGLUNMAPNAMEDBUFFERPROC)wglGetProcAddressDLL("glUnmapNamedBuffer");
+        glGetNamedBufferParameteriv = (PFNGLGETNAMEDBUFFERPARAMETERIVPROC)wglGetProcAddressDLL("glGetNamedBufferParameteriv");
         glTextureSubImage2D = (PFNGLTEXTURESUBIMAGE2DPROC)wglGetProcAddressDLL("glTextureSubImage2D");
         glGenerateTextureMipmap = (PFNGLGENERATETEXTUREMIPMAPPROC)wglGetProcAddressDLL("glGenerateTextureMipmap");
         glBindTextureUnit = (PFNGLBINDTEXTUREUNITPROC)wglGetProcAddressDLL("glBindTextureUnit");
