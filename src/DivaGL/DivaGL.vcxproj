@@ -152,6 +152,7 @@
     <ClCompile Include="graphics\color_change_dw.cpp" />
     <ClCompile Include="mdl\disp_manager.cpp" />
     <ClCompile Include="mdl\draw_object.cpp" />
+    <ClCompile Include="movie_play_lib\movie_play_lib.cpp" />
     <ClCompile Include="pv_game\dsc.cpp" />
     <ClCompile Include="pv_game\firstread.cpp" />
     <ClCompile Include="pv_game\pvpp.cpp" />

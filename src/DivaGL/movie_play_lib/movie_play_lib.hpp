@@ -17,22 +17,22 @@
 
 struct texture;
 
-#define MOVIE_PLAY_LIB_PRINT_FUNC_BEGIN MoviePlayLib::PrintDebug(L">%S(%p)\n", __FUNCTION__, this)
-#define MOVIE_PLAY_LIB_PRINT_FUNC_END   MoviePlayLib::PrintDebug(L"<%S(%p)\n", __FUNCTION__, this)
+#define MOVIE_PLAY_LIB_TRACE_BEGIN MoviePlayLib::trace(L">%S(%p)\n", __FUNCTION__, this)
+#define MOVIE_PLAY_LIB_TRACE_END   MoviePlayLib::trace(L"<%S(%p)\n", __FUNCTION__, this)
 
 namespace MoviePlayLib {
-    enum class State {
-        None = 0x0,
-        Init,
-        Open,
-        Wait,
-        Pause,
-        Play,
-        Stop,
-        Max,
+    enum Status {
+        Status_NotInitialized = 0,
+        Status_Initializing,
+        Status_Initialized,
+        Status_Starting,
+        Status_Started,
+        Status_Stopping,
+        Status_Stopped,
+        Status_Shutdown,
     };
 
-    struct AudioParams {
+    struct AudioVolumes {
         float_t spk_l_volume;
         float_t spk_r_volume;
         float_t field_8;
@@ -41,44 +41,44 @@ namespace MoviePlayLib {
         float_t hph_r_volume;
     };
 
-    struct MediaStats {
+    struct PlayerStat {
         double_t duration;
-        bool audio_present;
-        bool video_present;
-        uint32_t width;
-        uint32_t height;
-        uint32_t frame_size_width;
-        uint32_t frame_size_height;
-        float_t frame_rate;
-        float_t pixel_aspect_ratio;
-        uint32_t sample_rate;
+        bool enable_audio;
+        bool enable_video;
+        uint32_t present_width;
+        uint32_t present_height;
+        uint32_t raw_width;
+        uint32_t raw_height;
+        float_t framerate;
+        float_t pixelaspect;
+        uint32_t sample_freq;
         uint32_t channels;
-        HRESULT curr_error;
-        IUnknown* curr_object;
-        uint32_t audio_mf_samples_wait_count;
-        uint32_t video_mf_samples_wait_count;
-        uint32_t audio_mf_samples_count;
-        uint32_t video_mf_samples_count;
-        double_t audio_sample_time;
-        double_t video_sample_time;
-        double_t audio_process_sample_time;
-        double_t video_process_sample_time;
-        double_t audio_process_output_time;
-        double_t video_process_output_time;
-        double_t video_process_blt_time;
-        double_t audio_time_advance;
-        double_t video_time_advance;
-        double_t audio_output_time;
-        double_t video_output_time;
+        HRESULT error;
+        void* error_object;
+        uint32_t source_audio_queue_count;
+        uint32_t source_video_queue_count;
+        uint32_t decode_audio_queue_count;
+        uint32_t decode_video_queue_count;
+        double_t source_audio_sample_time;
+        double_t source_video_sample_time;
+        double_t decode_audio_sample_time;
+        double_t decode_video_sample_time;
+        double_t decode_audio_elapse;
+        double_t decode_video_elapse;
+        double_t decode_video_conv_elapse;
+        double_t schedule_audio_drift;
+        double_t schedule_video_drift;
+        double_t audio_send_elapse;
+        double_t video_lock_elapse;
     };
 
-    struct VideoParams {
-        int32_t width;
-        int32_t height;
-        int32_t frame_size_width;
-        int32_t frame_size_height;
-        float_t frame_rate;
-        float_t pixel_aspect_ratio;
+    struct VideoInfo {
+        int32_t present_width;
+        int32_t present_height;
+        int32_t raw_width;
+        int32_t raw_height;
+        float_t framerate;
+        float_t pixelaspect;
     };
 
     class DECLSPEC_UUID("BE82EF2E-4B9F-4470-9C6F-F78E002FCDEF")
@@ -88,28 +88,28 @@ namespace MoviePlayLib {
         virtual HRESULT Close() = 0;
         virtual HRESULT Flush() = 0;
         virtual HRESULT Open() = 0;
-        virtual HRESULT SetMFSample(IMFSample* mf_sample) = 0;
+        virtual HRESULT ProcessSample(IMFSample * pSample) = 0;
     };
 
     class DECLSPEC_UUID("4A5C73B9-FBFE-4A00-A298-FD3FAB0C5AF1")
         IAudioRenderer : public IMediaRenderer {
     public:
-        virtual HRESULT GetParams(AudioParams* value) = 0;
-        virtual HRESULT SetParams(const AudioParams* value) = 0;
+        virtual HRESULT GetVolumes(AudioVolumes * out_volumes) = 0;
+        virtual HRESULT SetVolumes(const AudioVolumes * in_volumes) = 0;
     };
 
     class DECLSPEC_UUID("D19AC022-EA49-4B6F-9D51-673C1C15ECE8")
         IGLDXInteropTexture : public IUnknown {
     public:
-        virtual texture* GetTexture() = 0;
+        virtual texture* GetGLTexture() = 0;
     };
 
     class DECLSPEC_UUID("D4FA34F6-D03C-4F21-8591-6858161CA5D7")
         IMediaClock : public IUnknown {
     public:
-        virtual HRESULT TimeEnd() = 0;
-        virtual HRESULT TimeBegin() = 0;
-        virtual HRESULT SetTime(INT64 value) = 0;
+        virtual HRESULT Stop() = 0;
+        virtual HRESULT Start() = 0;
+        virtual HRESULT SetTime(INT64 hnsTime) = 0;
         virtual INT64 GetTime() = 0;
     };
 
@@ -120,14 +120,14 @@ namespace MoviePlayLib {
         virtual HRESULT Close() = 0;
         virtual HRESULT Flush() = 0;
         virtual HRESULT Open() = 0;
-        virtual HRESULT GetMFMediaType(IMFMediaType** mf_media_type) = 0;
-        virtual void SendMFSample(IMFSample* mf_sample) = 0;
-        virtual BOOL SignalEvent() = 0;
-        virtual BOOL CanShutdown() = 0;
-        virtual UINT32 GetMFSamplesWaitCount() = 0;
-        virtual UINT32 GetMFSamplesCount() = 0;
-        virtual INT64 GetSampleTime() = 0;
-        virtual void GetMFSample(IMFSample*& mf_sample) = 0;
+        virtual HRESULT GetMediaType(IMFMediaType * *pType) = 0;
+        virtual void PushSample(IMFSample * pSample) = 0;
+        virtual BOOL RequestSample() = 0;
+        virtual BOOL IsEndOfStream() = 0;
+        virtual UINT32 GetInputQueueCount() = 0;
+        virtual UINT32 GetOutputQueueCount() = 0;
+        virtual INT64 PeekSampleTime() = 0;
+        virtual void GetSample(IMFSample * &ppOutSample) = 0;
     };
 
     class DECLSPEC_UUID("0D41578B-4514-407D-B654-870BCCDC630A")
@@ -135,32 +135,34 @@ namespace MoviePlayLib {
     public:
         virtual HRESULT Shutdown() = 0;
         virtual HRESULT Stop() = 0;
-        virtual HRESULT Start(INT64 time) = 0;
+        virtual HRESULT Start(INT64 hnsTime) = 0;
         virtual UINT64 GetDuration() = 0;
-        virtual HRESULT GetAudioMFMediaType(IMFMediaType** ptr) = 0;
-        virtual HRESULT GetVideoMFMediaType(IMFMediaType** ptr) = 0;
-        virtual HRESULT SetAudioMediaTransform(IMediaTransform* media_transform) = 0;
-        virtual HRESULT SetVideoMediaTransform(IMediaTransform* media_transform) = 0;
+        virtual HRESULT GetAudioMediaType(IMFMediaType * *ppType) = 0;
+        virtual HRESULT GetVideoMediaType(IMFMediaType * *ppType) = 0;
+        virtual HRESULT SetAudioDecoder(IMediaTransform * pDecoder) = 0;
+        virtual HRESULT SetVideoDecoder(IMediaTransform * pDecoder) = 0;
     };
 
     class DECLSPEC_UUID("12AC5FCE-C816-47FE-84B4-4915D6B42FA7")
         IPlayer : public IUnknown {
     public:
-        virtual HRESULT Open(const wchar_t* path) = 0;
-        virtual HRESULT Open(const char* path) = 0;
+        virtual HRESULT Open(const wchar_t* filePath) = 0;
+        virtual HRESULT Open(const char* filePath) = 0;
         virtual HRESULT Close() = 0;
-        virtual HRESULT SetMediaClock(IMediaClock* media_clock) = 0;
-        virtual State GetState() = 0;
+        virtual HRESULT SetTimeSource(IMediaClock * pClock) = 0;
+        virtual Status GetStatus() = 0;
         virtual HRESULT Play() = 0;
         virtual HRESULT Pause() = 0;
         virtual double_t GetDuration() = 0;
-        virtual double_t GetTime() = 0;
-        virtual HRESULT SetTime(double_t value) = 0;
-        virtual HRESULT GetAudioParams(AudioParams* value) = 0;
-        virtual HRESULT SetAudioParams(const AudioParams* value) = 0;
-        virtual HRESULT GetVideoParams(VideoParams* value) = 0;
-        virtual HRESULT GetD3D9Texture(IDirect3DDevice9* d3d_device, IDirect3DTexture9** ptr) = 0;
-        virtual HRESULT GetD3D11Texture(ID3D11Device* d3d_device, ID3D11Texture2D** ptr) = 0;
-        virtual HRESULT GetGLDXIntreropTexture(IGLDXInteropTexture** value) = 0;
+        virtual double_t GetCurrentPosition() = 0;
+        virtual HRESULT SetCurrentPosition(double_t pos) = 0;
+        virtual HRESULT GetVolumes(AudioVolumes * out_volumes) = 0;
+        virtual HRESULT SetVolumes(const AudioVolumes * in_volumes) = 0;
+        virtual HRESULT GetVideoInfo(VideoInfo * out_info) = 0;
+        virtual HRESULT GetTextureD3D9Ex(IDirect3DDevice9 * pDevice, IDirect3DTexture9 * *ppOutTexture) = 0;
+        virtual HRESULT GetTextureD3D11(ID3D11Device * pDevice, ID3D11Texture2D * *ppOutTexture) = 0;
+        virtual HRESULT GetTextureOGL(IGLDXInteropTexture * *ppOutTexture) = 0;
     };
+
+    extern void(FASTCALL* trace)(const wchar_t* fmt, ...);
 }
