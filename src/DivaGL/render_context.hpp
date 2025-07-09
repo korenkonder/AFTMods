@@ -161,6 +161,8 @@ struct glass_eye_batch_shader_data {
 
 struct glitter_batch_shader_data {
     vec4 g_mvp[4];
+    vec4 g_wv[3];
+    vec4 g_fz_proj_row2;
     vec4 g_glitter_blend_color;
     vec4 g_state_material_diffuse;
     vec4 g_state_material_emission;
@@ -350,6 +352,7 @@ struct render_data {
         vec4 g_projection_view[4];
         vec4 g_view_position;
         vec4 g_light_projection[4];
+        vec4 g_forward_z_projection_row2;
 
         void reset();
     };

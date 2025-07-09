@@ -216,6 +216,7 @@ void render_data::obj_scene_data::reset() {
     g_light_projection[1] = mat4_identity.row1;
     g_light_projection[2] = mat4_identity.row2;
     g_light_projection[3] = mat4_identity.row3;
+    g_forward_z_projection_row2 = 0.0f;
 }
 
 void render_data::obj_batch_data::reset() {
@@ -567,6 +568,15 @@ void render_data_context::set_batch_scene_camera(const cam_data& cam) {
 
     *(vec3*)&data.buffer_scene_data.g_view_position = cam.get_view_point();
     data.buffer_scene_data.g_view_position.w = 0.0f;
+
+    const float_t min_distance = cam.get_min_distance();
+    const float_t max_distance = cam.get_max_distance();
+    data.buffer_scene_data.g_forward_z_projection_row2.x = 0.0f;
+    data.buffer_scene_data.g_forward_z_projection_row2.y = 0.0f;
+    data.buffer_scene_data.g_forward_z_projection_row2.z = (max_distance + min_distance)
+        * (1.0f / (min_distance - max_distance));
+    data.buffer_scene_data.g_forward_z_projection_row2.w = (max_distance + max_distance) * min_distance
+        * (1.0f / (min_distance - max_distance));
     //enum_or(data.flags, RENDER_DATA_BATCH_UPDATE | RENDER_DATA_SCENE_UPDATE);
     enum_or(data.flags, RENDER_DATA_SCENE_UPDATE);
 }

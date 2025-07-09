@@ -90,14 +90,16 @@ namespace Glitter {
         if (!rend_group->vao || rend_group->disp < 1)
             return;
 
-        mat4 mat;
-        mat4_transpose(&rend_group->mat_draw, &mat);
-        mat4_mul(&mat, &cam.get_view_mat(), &mat);
-        mat4_mul(&mat, &cam.get_proj_mat(), &mat);
+        mat4 draw_mat;
+        mat4_transpose(&rend_group->mat_draw, &draw_mat);
 
-        float_t emission = 1.0f;
-        if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
-            emission = rend_group->emission;
+        const mat4& view_mat = cam.get_view_mat();
+
+        mat4 vp_mat;
+        mat4_mul(&view_mat, &cam.get_proj_mat(), &vp_mat);
+
+        mat4 mat;
+        mat4_mul(&draw_mat, &vp_mat, &mat);
 
         glitter_batch_shader_data shader_data = {};
         mat4_transpose(&mat, &mat);
@@ -105,6 +107,23 @@ namespace Glitter {
         shader_data.g_mvp[1] = mat.row1;
         shader_data.g_mvp[2] = mat.row2;
         shader_data.g_mvp[3] = mat.row3;
+
+        mat4_mul(&view_mat, &draw_mat, &mat);
+        shader_data.g_wv[0] = mat.row0;
+        shader_data.g_wv[1] = mat.row1;
+        shader_data.g_wv[2] = mat.row2;
+
+        const float_t min_distance = cam.min_distance;
+        const float_t max_distance = cam.max_distance;
+        shader_data.g_fz_proj_row2.x = 0.0f;
+        shader_data.g_fz_proj_row2.y = 0.0f;
+        shader_data.g_fz_proj_row2.z = max_distance / (min_distance - max_distance);
+        shader_data.g_fz_proj_row2.w = min_distance / (min_distance - max_distance);
+
+        float_t emission = 1.0f;
+        if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
+            emission = rend_group->emission;
+
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
@@ -1801,13 +1820,14 @@ namespace Glitter {
         if (!rend_group->vao || rend_group->disp < 1)
             return;
 
-        mat4 mat;
-        mat4_mul(&rend_group->mat_draw, &cam.get_view_mat(), &mat);
-        mat4_mul(&mat, &cam.get_proj_mat(), &mat);
+        const mat4& draw_mat = rend_group->mat_draw;
+        const mat4& view_mat = cam.get_view_mat();
 
-        float_t emission = 1.0f;
-        if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
-            emission = rend_group->emission;
+        mat4 vp_mat;
+        mat4_mul(&view_mat, &cam.get_proj_mat(), &vp_mat);
+
+        mat4 mat;
+        mat4_mul(&draw_mat, &vp_mat, &mat);
 
         glitter_batch_shader_data shader_data = {};
         mat4_transpose(&mat, &mat);
@@ -1815,6 +1835,23 @@ namespace Glitter {
         shader_data.g_mvp[1] = mat.row1;
         shader_data.g_mvp[2] = mat.row2;
         shader_data.g_mvp[3] = mat.row3;
+
+        mat4_mul(&view_mat, &draw_mat, &mat);
+        shader_data.g_wv[0] = mat.row0;
+        shader_data.g_wv[1] = mat.row1;
+        shader_data.g_wv[2] = mat.row2;
+
+        const float_t min_distance = cam.min_distance;
+        const float_t max_distance = cam.max_distance;
+        shader_data.g_fz_proj_row2.x = 0.0f;
+        shader_data.g_fz_proj_row2.y = 0.0f;
+        shader_data.g_fz_proj_row2.z = max_distance / (min_distance - max_distance);
+        shader_data.g_fz_proj_row2.w = min_distance / (min_distance - max_distance);
+
+        float_t emission = 1.0f;
+        if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
+            emission = rend_group->emission;
+
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
