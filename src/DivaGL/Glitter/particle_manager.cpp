@@ -151,12 +151,12 @@ namespace Glitter {
             i = effect_groups.erase(i);
         }
 
-        bool local = false;
+        bool screen = false;
         for (auto i = scenes.begin(); i != scenes.end();) {
             SceneX* scene = *i;
             if (!(scene->flags & SCENE_ENDED)) {
-                if (!local && scene->CanDisp(DISP_LOCAL, true))
-                    local = true;
+                if (!screen && scene->CanDisp(DISP_SCREEN, true))
+                    screen = true;
                 i++;
                 continue;
             }
@@ -186,10 +186,10 @@ namespace Glitter {
                 i++;
         }
 
-        if (local)
-            enum_or(flags, PARTICLE_MANAGER_LOCAL);
+        if (screen)
+            enum_or(flags, PARTICLE_MANAGER_SCREEN);
         else
-            enum_and(flags, ~PARTICLE_MANAGER_LOCAL);
+            enum_and(flags, ~PARTICLE_MANAGER_SCREEN);
     }
 
     void GltParticleManagerX::CalcDisp() {
@@ -201,8 +201,8 @@ namespace Glitter {
                 i->CalcDisp();
     }
 
-    bool GltParticleManagerX::CheckHasLocalEffect() {
-        return !!(flags & PARTICLE_MANAGER_LOCAL);
+    bool GltParticleManagerX::CheckHasScreenEffect() {
+        return !!(flags & PARTICLE_MANAGER_SCREEN);
     }
 
     bool GltParticleManagerX::CheckNoFileReaders(uint32_t hash) {
@@ -230,9 +230,9 @@ namespace Glitter {
         return false;
     }
 
-    void GltParticleManagerX::CheckSceneHasLocalEffect(SceneX* sc) {
-        if (flags & PARTICLE_MANAGER_LOCAL && sc->CanDisp(DISP_LOCAL, false))
-            enum_or(flags, PARTICLE_MANAGER_LOCAL);
+    void GltParticleManagerX::CheckSceneHasScreenEffect(SceneX* sc) {
+        if (flags & PARTICLE_MANAGER_SCREEN && sc->CanDisp(DISP_SCREEN, false))
+            enum_or(flags, PARTICLE_MANAGER_SCREEN);
 
         sc->fade_frame = 30.0f;
     }
@@ -467,7 +467,7 @@ namespace Glitter {
         if (!(load_flags & 0x02) && scenes.size())
             for (SceneX*& i : scenes)
                 if (i && i->ResetEffect(hash)) {
-                    CheckSceneHasLocalEffect(i);
+                    CheckSceneHasScreenEffect(i);
 
                     size_t id = 0;
                     for (SceneEffectX& j : i->effects)
@@ -518,7 +518,7 @@ namespace Glitter {
                             }
                             id++;
                         }
-                        CheckSceneHasLocalEffect(j);
+                        CheckSceneHasScreenEffect(j);
 
                         SceneCounter counter = j->counter;
                         counter.index = (uint8_t)id;
@@ -545,7 +545,7 @@ namespace Glitter {
                 }
                 id++;
             }
-            CheckSceneHasLocalEffect(scene);
+            CheckSceneHasScreenEffect(scene);
             scenes.push_back(scene);
 
             counter.index = (uint8_t)id;

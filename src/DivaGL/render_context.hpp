@@ -576,7 +576,7 @@ struct render_context {
     int32_t screen_width;
     int32_t screen_height;
 
-    mdl::ObjList obj_local[mdl::OBJ_TYPE_LOCAL_MAX];
+    mdl::ObjList obj_screen[mdl::OBJ_TYPE_SCREEN_MAX];
     mdl::ObjList obj_reflect[mdl::OBJ_TYPE_REFLECT_MAX];
 
     uint32_t max_uniform_block_size = 0;

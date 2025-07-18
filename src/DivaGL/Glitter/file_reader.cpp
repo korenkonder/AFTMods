@@ -788,7 +788,7 @@ namespace Glitter {
             d += 8;
 
         if (type == 1)
-            enum_or(eff->data.flags, EFFECT_LOCAL);
+            enum_or(eff->data.flags, EFFECT_SCREEN);
         else if (type == 2) {
             EffectX::ExtAnim* ext_anim = force_malloc<EffectX::ExtAnim>();
             eff->data.ext_anim = ext_anim;
@@ -977,8 +977,8 @@ namespace Glitter {
         ptcl->data.flags = (ParticleFlag) * (int32_t*)(d + 112);
         ptcl->data.unk0 = *(int32_t*)(d + 116);
 
-        if (eff->data.flags & EFFECT_LOCAL)
-            enum_or(ptcl->data.flags, PARTICLE_LOCAL);
+        if (eff->data.flags & EFFECT_SCREEN)
+            enum_or(ptcl->data.flags, PARTICLE_SCREEN);
         if (eff->data.flags & EFFECT_EMISSION)
             enum_or(ptcl->data.flags, PARTICLE_EMISSION);
 

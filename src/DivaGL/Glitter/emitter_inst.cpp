@@ -167,7 +167,7 @@ namespace Glitter {
         mat4 dir_mat;
         switch (data.direction) {
         case DIRECTION_BILLBOARD: {
-            if (eff_inst->data.flags & EFFECT_LOCAL) {
+            if (eff_inst->data.flags & EFFECT_SCREEN) {
                 mat4_transpose(&camera_data.view, &dir_mat);
                 mat4_clear_trans(&dir_mat, &dir_mat);
                 mat4_mul(&dir_mat, &mat, &dir_mat);
