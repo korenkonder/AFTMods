@@ -108,7 +108,8 @@ namespace Glitter {
         shader_data.g_mvp[2] = mat.row2;
         shader_data.g_mvp[3] = mat.row3;
 
-        mat4_mul(&view_mat, &draw_mat, &mat);
+        mat4_mul(&draw_mat, &view_mat, &mat);
+        mat4_transpose(&mat, &mat);
         shader_data.g_wv[0] = mat.row0;
         shader_data.g_wv[1] = mat.row1;
         shader_data.g_wv[2] = mat.row2;
@@ -1836,7 +1837,8 @@ namespace Glitter {
         shader_data.g_mvp[2] = mat.row2;
         shader_data.g_mvp[3] = mat.row3;
 
-        mat4_mul(&view_mat, &draw_mat, &mat);
+        mat4_mul(&draw_mat, &view_mat, &mat);
+        mat4_transpose(&mat, &mat);
         shader_data.g_wv[0] = mat.row0;
         shader_data.g_wv[1] = mat.row1;
         shader_data.g_wv[2] = mat.row2;
