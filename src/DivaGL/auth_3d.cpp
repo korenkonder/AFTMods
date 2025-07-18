@@ -287,7 +287,7 @@ HOOK(void, FASTCALL, auth_3d_object_disp, 0x00000001401D0970, auth_3d_object* o,
                 ? rob_chara_get_item_adjust_data_mat(rob_chr)
                 : rob_chara_get_adjust_data_mat(rob_chr),
                 sub_140516740(rob_chr), &m);
-            mat4_mul(&mat, &m, &mat);
+            mat4_mul(&m, &mat, &mat);
             disp_manager.set_shadow_type(auth->chara_id ? SHADOW_STAGE : SHADOW_CHARA);
         }
     }
