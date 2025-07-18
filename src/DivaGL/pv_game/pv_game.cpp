@@ -2069,7 +2069,7 @@ void x_pv_game_title::disp() {
 
     PrintWork print_work;
     print_work.SetFont(&font);
-    print_work.prio = spr::SPR_PRIO_06;
+    print_work.prio = spr::SPR_PRIO_02;
 
     for (x_pv_aet_disp_string& i : txt_data) {
         if (!i.data.disp || !i.str.size())
