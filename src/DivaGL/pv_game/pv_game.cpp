@@ -619,6 +619,8 @@ public:
     void unload();
 
     void ctrl(int64_t curr_time, float_t delta_time);
+    void end();
+    void restart();
     void set_song_effect_alpha_obj_flags(int32_t chara_id, int32_t type, float_t alpha);
     void stop_current_pv();
 };
@@ -734,6 +736,24 @@ HOOK(bool, FASTCALL, task_pv_game_init_demo_pv, 0x0000000140675470, int32_t pv_i
     return ret;
 }
 
+HOOK(void, __fastcall, pv_game__end, 0x0000000140108260, size_t pv_game, bool complete, bool set_fade) {
+    if (task_pv_game_x)
+        task_pv_game_x->end();
+    originalpv_game__end(pv_game, complete, set_fade);
+}
+
+HOOK(void, FASTCALL, pv_game__restart, 0x0000000140106640, size_t pv_game) {
+    if (task_pv_game_x->use)
+        task_pv_game_x->restart();
+    originalpv_game__restart(pv_game);
+}
+
+HOOK(void, FASTCALL, pv_game__unload, 0x0000000140105750, size_t pv_game) {
+    if (task_pv_game_x)
+        task_pv_game_x->unload();
+    originalpv_game__unload(pv_game);
+}
+
 HOOK(void, FASTCALL, pv_game__set_data_itmpv_alpha_obj_flags, 0x0000000140115EC0,
     size_t pv_game, int32_t chara_id, int32_t type, float_t alpha) {
     originalpv_game__set_data_itmpv_alpha_obj_flags(pv_game, chara_id, type, alpha);
@@ -836,6 +856,9 @@ void pv_game_patch() {
     INSTALL_HOOK(task_pv_game_del_task);
     INSTALL_HOOK(task_pv_game_add_task);
     INSTALL_HOOK(task_pv_game_init_demo_pv);
+    INSTALL_HOOK(pv_game__end);
+    INSTALL_HOOK(pv_game__restart);
+    INSTALL_HOOK(pv_game__unload);
     INSTALL_HOOK(pv_game__set_data_itmpv_alpha_obj_flags);
     INSTALL_HOOK(pv_game_pv_data__dsc_reset_position);
     INSTALL_HOOK(pv_game_pv_data__load);
@@ -3964,8 +3987,6 @@ bool TaskPvGameX::ctrl() {
         }
     } break;
     case 21: {
-        data.unload();
-        stage_data.unload();
         state = 50;
 
         state_old = 22;
@@ -3978,6 +3999,16 @@ bool TaskPvGameX::ctrl() {
     } break;
     }
     return false;
+}
+
+void TaskPvGameX::end() {
+    data.pv_data.pv_end = true;
+}
+
+void TaskPvGameX::restart() {
+    stop_current_pv();
+    data.state = 30;
+    state_old = 19;
 }
 
 bool TaskPvGameX::dest() {
@@ -4058,6 +4089,9 @@ void TaskPvGameX::load(int32_t pv_id, int32_t modules[6]) {
 }
 
 void TaskPvGameX::unload() {
+    if (!state_old && !pv_id)
+        return;
+
     state_old = 0;
 
     data.unload();
