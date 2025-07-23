@@ -125,7 +125,7 @@ static_assert(sizeof(TaskPvGame) == 0x208, "\"TaskPvGame\" struct should have a 
 struct pv_game_parent {
     int8_t field_0;
     int8_t field_1;
-    uint8_t pv_state;
+    uint8_t outer_state;
     bool playing;
     int8_t field_4;
     int8_t field_5;
@@ -133,7 +133,7 @@ struct pv_game_parent {
     int8_t field_7;
     int64_t curr_time;
     float_t delta_time;
-    int32_t state;
+    int32_t inner_state;
     void(FASTCALL* update_func)(pv_game_parent*);
     int8_t field_20;
     int8_t field_21;
@@ -3969,7 +3969,7 @@ bool TaskPvGameX::ctrl() {
         state_old = 19;
     } break;
     case 19: {
-        if (pv_game_parent_data.state < 13)
+        if (pv_game_parent_data.inner_state < 13)
             break;
 
         Glitter::glt_particle_manager_x->SetPause(false);
@@ -3978,9 +3978,9 @@ bool TaskPvGameX::ctrl() {
         state_old = 20;
     } break;
     case 20: {
-        if (!data.pv_data.play || data.pv_data.pv_end || pv_game_parent_data.pv_state == 2)
+        if (!data.pv_data.play || data.pv_data.pv_end || pv_game_parent_data.outer_state == 2)
             state_old = 21;
-        else if (pv_game_parent_data.state < 13) {
+        else if (pv_game_parent_data.inner_state < 13) {
             data.stop();
             data.state = 30;
             state_old = 19;
