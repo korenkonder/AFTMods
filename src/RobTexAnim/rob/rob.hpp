@@ -5,6 +5,6 @@
 
 #pragma once
 
-#include "../../AFTModsShared/rob/rob.hpp"
+#include "../../KKdLib/default.hpp"
 
 extern void rob_patch();

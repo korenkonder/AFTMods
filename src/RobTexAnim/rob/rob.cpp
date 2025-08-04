@@ -4,6 +4,7 @@
 */
 
 #include "rob.hpp"
+#include "../../AFTModsShared/rob/rob.hpp"
 #include "../../AFTModsShared/auth_3d.hpp"
 #include <Helpers.h>
 
