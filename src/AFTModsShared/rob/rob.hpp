@@ -12,6 +12,7 @@
 #include "../item_table.hpp"
 #include "../object.hpp"
 #include "../shadow.hpp"
+#include "../types.hpp"
 
 enum chara_index {
     CHARA_NONE   = -1,
@@ -1447,12 +1448,12 @@ struct rob_chara_item_cos_data {
     ::chara_index chara_index_2nd;
     item_cos_data cos;
     item_cos_data cos_2nd;
-    prj::map<int32_t, std::vector<item_cos_texture_change_tex>> texture_change;
-    prj::map<int32_t, std::vector<uint32_t>> item_change;
+    prj::map<int32_t, prj::vector<item_cos_texture_change_tex>> texture_change;
+    prj::map<int32_t, prj::vector<uint32_t>> item_change;
     prj::map<object_info, item_id> field_F0;
     prj::map<int32_t, item_id> field_100;
-    std::vector<texture_pattern_struct> texture_pattern[31];
-    std::map<int32_t, object_info> head_replace;
+    prj::vector<texture_pattern_struct> texture_pattern[31];
+    prj::map<int32_t, object_info> head_replace;
 };
 
 static_assert(sizeof(rob_chara_item_cos_data) == 0x408, "\"rob_chara_item_cos_data\" struct should have a size of 0x408");
@@ -1484,6 +1485,31 @@ struct struc_406 {
 };
 
 static_assert(sizeof(struc_406) == 0x0C, "\"struc_406\" struct should have a size of 0x0C");
+
+struct rob_chara_data_adjust {
+    bool enable;
+    float_t frame;
+    float_t transition_frame;
+    vec3 curr_external_force;
+    float_t curr_force;
+    float_t curr_strength;
+    uint32_t motion_id;
+    float_t set_frame;
+    float_t transition_duration;
+    int32_t type;
+    int32_t cycle_type;
+    bool ignore_gravity;
+    vec3 external_force;
+    vec3 external_force_cycle_strength;
+    vec3 external_force_cycle;
+    float_t cycle;
+    float_t phase;
+    float_t force;
+    float_t strength;
+    float_t strength_transition;
+};
+
+static_assert(sizeof(rob_chara_data_adjust) == 0x70, "\"rob_chara_data_adjust\" struct should have a size of 0x70");
 
 struct rob_chara_data_hand_adjust {
     bool enable;
@@ -1525,6 +1551,8 @@ struct struc_526 {
     int32_t field_4;
 };
 
+static_assert(sizeof(struc_526) == 0x08, "\"struc_526\" struct should have a size of 0x08");
+
 struct struc_228 {
     int32_t field_0;
     int32_t field_4;
@@ -1532,11 +1560,41 @@ struct struc_228 {
     int32_t field_C;
 };
 
+static_assert(sizeof(struc_228) == 0x10, "\"struc_228\" struct should have a size of 0x10");
+
 struct struc_227 {
     int32_t field_0;
     float_t field_4;
     float_t field_8;
 };
+
+static_assert(sizeof(struc_227) == 0x0C, "\"struc_227\" struct should have a size of 0x0C");
+
+struct mothead_data {
+    mothead_data_type type;
+    int32_t frame;
+    const void* data;
+};
+
+static_assert(sizeof(mothead_data) == 0x10, "\"mothead_data\" struct should have a size of 0x10");
+
+struct mothead_mot_data {
+    int32_t type;
+    const void* data;
+};
+
+static_assert(sizeof(mothead_mot_data) == 0x10, "\"mothead_mot_data\" struct should have a size of 0x10");
+
+struct mothead_mot {
+    struc_228 field_0;
+    int16_t field_10;
+    int16_t field_12;
+    mothead_mot_data* mot_data;
+    mothead_data* data;
+    int64_t* field_28;
+};
+
+static_assert(sizeof(mothead_mot) == 0x30, "\"mothead_mot\" struct should have a size of 0x30");
 
 struct struc_652 {
     int32_t motion_id;
@@ -1641,22 +1699,32 @@ struct struc_652 {
     int32_t iterations;
 };
 
+static_assert(sizeof(struc_652) == 0x330, "\"struc_652\" struct should have a size of 0x330");
+
 struct struc_377 {
     struct mothead_data* current;
     struct mothead_data* data;
 };
 
+static_assert(sizeof(struc_377) == 0x10, "\"struc_377\" struct should have a size of 0x10");
+
 struct struc_226 {
     int8_t field_0[27];
 };
+
+static_assert(sizeof(struc_226) == 0x1B, "\"struc_226\" struct should have a size of 0x1B");
 
 struct struc_225 {
     float_t field_0[27];
 };
 
+static_assert(sizeof(struc_225) == 0x6C, "\"struc_225\" struct should have a size of 0x6C");
+
 struct struc_224 {
     int32_t field_0[27];
 };
+
+static_assert(sizeof(struc_224) == 0x6C, "\"struc_224\" struct should have a size of 0x6C");
 
 struct struc_306 {
     int16_t field_0;
@@ -1674,6 +1742,8 @@ struct struc_306 {
     int32_t field_44;
     int32_t field_48;
 };
+
+static_assert(sizeof(struc_306) == 0x4C, "\"struc_306\" struct should have a size of 0x4C");
 
 struct struc_651 {
     struc_377 field_0;
@@ -1699,6 +1769,8 @@ struct struc_651 {
     int8_t field_338;
     struc_306 field_33C[4];
 };
+
+static_assert(sizeof(struc_651) == 0x470, "\"struc_651\" struct should have a size of 0x470");
 
 struct struc_223 {
     struc_652 field_0;

@@ -228,6 +228,8 @@ struct obj_material_texture_data {
     uint32_t reserved[8];
 };
 
+static_assert(sizeof(obj_material_texture_data) == 0x78, "\"obj_material_texture_data\" struct should have a size of 0x78");
+
 struct obj_material_attrib_member {
     uint32_t alpha_texture : 1;
     uint32_t alpha_material : 1;
@@ -261,6 +263,8 @@ struct obj_material_color {
     float_t intensity;
 };
 
+static_assert(sizeof(obj_material_color) == 0x48, "\"obj_material_color\" struct should have a size of 0x48");
+
 struct obj_material {
     obj_shader_compo shader_compo;
     union {
@@ -278,10 +282,14 @@ struct obj_material {
     uint32_t reserved[15];
 };
 
+static_assert(sizeof(obj_material) == 0x4AC, "\"obj_material\" struct should have a size of 0x4AC");
+
 struct obj_material_data {
     int32_t num_of_textures;
     obj_material material;
 };
+
+static_assert(sizeof(obj_material_data) == 0x4B0, "\"obj_material_data\" struct should have a size of 0x4B0");
 
 struct obj_sub_mesh_attrib_member {
     uint32_t recieve_shadow : 1;

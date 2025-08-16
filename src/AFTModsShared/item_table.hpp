@@ -44,6 +44,9 @@ enum item_id {
     ITEM_ITEM15      = 0x1D,
     ITEM_ITEM16      = 0x1E,
     ITEM_MAX         = 0x1F,
+
+    ITEM_OSAGE_FIRST = ITEM_KAMI,
+    ITEM_OSAGE_COUNT = (ITEM_MAX - ITEM_KAMI),
 };
 
 enum item_sub_id {
@@ -75,7 +78,6 @@ enum item_sub_id {
     ITEM_SUB_HEAD        = 0x18,
     ITEM_SUB_MAX         = 0x19,
 };
-
 
 union item_cos_data {
     struct {

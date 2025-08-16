@@ -26,12 +26,12 @@ struct ObjsetInfo {
     bool tex_loaded;
     prj::shared_ptr<void*> alloc_handler; // prj::stack_allocator
     obj_set* obj_set;
-    prj::vector<std::pair<uint32_t, int32_t>> obj_id_data;
+    prj::vector<prj::pair<uint32_t, int32_t>> obj_id_data;
     bool field_50;
     int32_t field_54;
     int32_t tex_num;
     prj::vector<GLuint> gentex;
-    prj::vector<std::pair<int32_t, int32_t>> tex_id_data;
+    prj::vector<prj::pair<int32_t, int32_t>> tex_id_data;
     bool field_90;
     texture** textures;
     int32_t set_id;

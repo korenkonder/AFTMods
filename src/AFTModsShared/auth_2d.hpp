@@ -136,7 +136,7 @@ struct aet_layout_data {
 static_assert(sizeof(aet_layout_data) == 0x6C, "\"aet_layout_data\" struct should have a size of 0x6C");
 
 struct AetComp {
-    prj::map<std::string, aet_layout_data> data;
+    prj::map<prj::string, aet_layout_data> data;
 
     AetComp();
     ~AetComp();

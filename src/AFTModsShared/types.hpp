@@ -94,13 +94,13 @@ namespace prj {
     using list = std::list<T, Allocator<T>>;
 
     template<typename T, typename U>
-    using map = std::map<T, U, std::less<T>, Allocator<pair<T, U>>>;
+    using map = std::map<T, U, std::less<T>, Allocator<prj::pair<T, U>>>;
 
     template<typename T>
     using set = std::set<T, std::less<T>, Allocator<T>>;
 
     template<typename T, typename U>
-    using unordered_map = std::unordered_map<T, U, std::hash<T>, std::equal_to<T>, Allocator<pair<T, U>>>;
+    using unordered_map = std::unordered_map<T, U, std::hash<T>, std::equal_to<T>, Allocator<prj::pair<T, U>>>;
 
     template<typename T>
     using unordered_set = std::unordered_set<T, std::hash<T>, std::equal_to<T>, Allocator<T>>;

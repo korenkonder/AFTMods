@@ -533,7 +533,7 @@ HOOK(void, FASTCALL, sub_140526FD0, 0x0000000140526FD0,
         return;
 
     if (!(item->attr & 0x08)) {
-        std::vector<item_cos_texture_change_tex> tex_chg_vec;
+        prj::vector<item_cos_texture_change_tex> tex_chg_vec;
         for (const item_table_item_data_tex& i : item->data.tex) {
             item_cos_texture_change_tex chg_tex;
             chg_tex.org = texture_manager_get_texture(i.org);
@@ -547,7 +547,7 @@ HOOK(void, FASTCALL, sub_140526FD0, 0x0000000140526FD0,
     else if (item->data.col.size() <= 0)
         return;
 
-    std::vector<int32_t> chg_tex_ids;
+    prj::vector<int32_t> chg_tex_ids;
     if (item->attr & 0x04)
         for (const item_table_item_data_tex& i : item->data.tex)
             chg_tex_ids.push_back(i.chg);
@@ -555,7 +555,7 @@ HOOK(void, FASTCALL, sub_140526FD0, 0x0000000140526FD0,
         for (const item_table_item_data_col& i : item->data.col)
             chg_tex_ids.push_back(i.tex_id);
 
-    std::vector<item_cos_texture_change_tex> tex_chg_vec;
+    prj::vector<item_cos_texture_change_tex> tex_chg_vec;
     size_t index = 0;
     for (int32_t& i : chg_tex_ids) {
         size_t j = &i - chg_tex_ids.data();
@@ -748,7 +748,7 @@ void rob_chara_age_age_object::disp(size_t chara_index,
 
     disp_count = min_def(disp_count, 10);
 
-    std::pair<float_t, int32_t> v44[10];
+    prj::pair<float_t, int32_t> v44[10];
     for (int32_t i = 0; i < disp_count; i++) {
         v44[i].first = vec3::dot(pos[i], a5);
         v44[i].second = i;
@@ -756,7 +756,7 @@ void rob_chara_age_age_object::disp(size_t chara_index,
 
     if (disp_count >= 2)
         std::sort(v44, v44 + disp_count,
-            [](const std::pair<float_t, int32_t>& a, const std::pair<float_t, int32_t>& b) {
+            [](const prj::pair<float_t, int32_t>& a, const prj::pair<float_t, int32_t>& b) {
                 return a.first < b.first;
             });
 

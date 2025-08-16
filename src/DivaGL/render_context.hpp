@@ -583,11 +583,11 @@ struct render_context {
     uint32_t max_storage_block_size = 0;
 
     prj::vector<render_context::shared_storage_buffer> shared_storage_buffers;
-    std::unordered_map<size_t, shared_buffer_entry> shared_storage_buffer_entries;
+    prj::unordered_map<size_t, shared_buffer_entry> shared_storage_buffer_entries;
     prj::vector<render_context::shared_uniform_buffer> shared_uniform_buffers;
-    std::unordered_map<size_t, shared_buffer_entry> shared_uniform_buffer_entries;
+    prj::unordered_map<size_t, shared_buffer_entry> shared_uniform_buffer_entries;
     prj::vector<render_context::texture_skinning_buffer> texture_skinning_buffers;
-    std::unordered_map<size_t, texture_skinning_buffer_entry> texture_skinning_buffer_entries;
+    prj::unordered_map<size_t, texture_skinning_buffer_entry> texture_skinning_buffer_entries;
 
     render_context();
     ~render_context();
