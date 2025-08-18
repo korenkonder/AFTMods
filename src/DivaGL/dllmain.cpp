@@ -54,7 +54,7 @@ bool APIENTRY DllMain(HMODULE handle, DWORD ul_reason_for_call, LPVOID lpReserve
     switch (ul_reason_for_call) {
     case DLL_PROCESS_ATTACH:
         sv_reflect_full = GetPrivateProfileIntW(L"general", L"reflect_full", 0, CONFIG_FILE) > 0 ? true : false;
-        sv_reflect_res_scale = GetPrivateProfileIntW(L"general", L"reflect_res_scale", 1, CONFIG_FILE);
+        sv_reflect_res_scale = GetPrivateProfileIntW(L"general", L"reflect_res_scale", 100, CONFIG_FILE);
         sv_reflect_res_scale = sv_reflect_res_scale ? clamp_def(sv_reflect_res_scale, 25, 100) : 100;
 
         sv_shared_storage_uniform_buffer = GetPrivateProfileIntW(L"experimentals",
@@ -88,19 +88,19 @@ extern "C" __declspec(dllexport) LPCWSTR GetBuildDate(void) {
 }
 
 static std::wstring GetDirPath() {
-    wchar_t dll_file_path[MAX_PATH];
-    GetModuleFileNameW((HMODULE)dll_handle, dll_file_path, MAX_PATH);
+    wchar_t exe_file_path[MAX_PATH];
+    GetModuleFileNameW(0, exe_file_path, MAX_PATH);
 
-    wchar_t* dll_file_name = wcsrchr(dll_file_path, '\\');
-    if (!dll_file_name)
-        dll_file_name = wcsrchr(dll_file_path, '/');
+    wchar_t* exe_file_name = wcsrchr(exe_file_path, '\\');
+    if (!exe_file_name)
+        exe_file_name = wcsrchr(exe_file_path, '/');
 
-    if (!dll_file_name)
+    if (!exe_file_name)
         return L"";
 
     WCHAR buffer[MAX_PATH];
     GetModuleFileNameW(NULL, buffer, MAX_PATH);
-    return std::wstring(dll_file_path, dll_file_name - dll_file_path);
+    return std::wstring(exe_file_path, exe_file_name - exe_file_path);
 }
 
 PluginConfig::PluginConfigOption config[] = {
