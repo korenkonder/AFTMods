@@ -55,10 +55,10 @@ bool APIENTRY DllMain(HMODULE handle, DWORD ul_reason_for_call, LPVOID lpReserve
     case DLL_PROCESS_ATTACH:
         sv_reflect_full = GetPrivateProfileIntW(L"general", L"reflect_full", 0, CONFIG_FILE) > 0 ? true : false;
         sv_reflect_res_scale = GetPrivateProfileIntW(L"general", L"reflect_res_scale", 100, CONFIG_FILE);
-        sv_reflect_res_scale = sv_reflect_res_scale ? clamp_def(sv_reflect_res_scale, 25, 100) : 100;
+        sv_reflect_res_scale = sv_reflect_res_scale > 0 ? clamp_def(sv_reflect_res_scale, 25, 100) : 100;
 
         sv_shared_storage_uniform_buffer = GetPrivateProfileIntW(L"experimentals",
-            L"shared_storage_uniform_buffer", 0, CONFIG_FILE) > 0 ? true : false;
+            L"shared_storage_uniform_buffer", 1, CONFIG_FILE) > 0 ? true : false;
 
         sv_task_movie_player_no_interop = GetPrivateProfileIntW(L"experimentals",
             L"task_movie_player_no_interop", 0, CONFIG_FILE) > 0 ? true : false;
@@ -85,6 +85,23 @@ extern "C" __declspec(dllexport) LPCWSTR GetPluginDescription(void) {
 
 extern "C" __declspec(dllexport) LPCWSTR GetBuildDate(void) {
     return L"v0.8.1.1 (Build date: " __DATE__ ")";
+}
+
+extern "C" __declspec(dllexport) BOOL SetOption(const char* name, int value) {
+    if (!strcmp(name, "reflect_full"))
+        sv_reflect_full = !!value;
+    else if (!strcmp(name, "reflect_res_scale"))
+        sv_reflect_res_scale = value > 0 ? clamp_def(value, 25, 100) : 100;
+    else if (!strcmp(name, "shared_storage_uniform_buffer"))
+        sv_shared_storage_uniform_buffer = !!value;
+    else if (!strcmp(name, "task_movie_player_no_interop"))
+        sv_task_movie_player_no_interop = !!value;
+    else if (!strcmp(name, "texture_skinning_buffer"))
+        sv_texture_skinning_buffer = !!value;
+    else
+        return FALSE;
+
+    return TRUE;
 }
 
 static std::wstring GetDirPath() {
