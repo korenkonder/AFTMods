@@ -154,7 +154,7 @@ PluginConfig::PluginConfigOption config[] = {
             CONFIG_FILE,
             L"Shared Storage/Uniform Buffer",
             L"May be useful for running AFT via Mesa or on Apple devices\nor when driver doesn't support OpenGL 4.3.",
-            false,
+            true,
             false,
         }
     },
