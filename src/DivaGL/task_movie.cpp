@@ -26,8 +26,8 @@ public:
 
     enum DispType {
         DispType_None = 0,
-        DispType_SpriteTextute,
-        DispType_Textute,
+        DispType_SpriteTexture,
+        DispType_Texture,
     };
 
     struct PlayerVideoInfo {
