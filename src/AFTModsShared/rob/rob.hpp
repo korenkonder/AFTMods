@@ -886,17 +886,17 @@ class ExNodeBlock;
 
 struct ExNodeBlock_vtbl {
     ExNodeBlock* (FASTCALL* Dispose)(ExNodeBlock* This, uint8_t);
-    void(FASTCALL* Field_8)(ExNodeBlock* This);
-    void(FASTCALL* Field_10)(ExNodeBlock* This);
-    void(FASTCALL* Field_18)(ExNodeBlock* This, int32_t stage, bool disable_external_force);
-    void(FASTCALL* Field_20)(ExNodeBlock* This);
-    void(FASTCALL* SetOsagePlayData)(ExNodeBlock* This);
+    void(FASTCALL* Init)(ExNodeBlock* This);
+    void(FASTCALL* CtrlBegin)(ExNodeBlock* This);
+    void(FASTCALL* CtrlStep)(ExNodeBlock* This, int32_t stage, bool disable_external_force);
+    void(FASTCALL* CtrlMain)(ExNodeBlock* This);
+    void(FASTCALL* CtrlOsagePlayData)(ExNodeBlock* This);
     void(FASTCALL* Disp)(ExNodeBlock* This);
     void(FASTCALL* Reset)(ExNodeBlock* This);
     void(FASTCALL* Field_40)(ExNodeBlock* This);
-    void(FASTCALL* Field_48)(ExNodeBlock* This);
-    void(FASTCALL* Field_50)(ExNodeBlock* This);
-    void(FASTCALL* Field_58)(ExNodeBlock* This);
+    void(FASTCALL* CtrlInitBegin)(ExNodeBlock* This);
+    void(FASTCALL* CtrlInitMain)(ExNodeBlock* This);
+    void(FASTCALL* CtrlEnd)(ExNodeBlock* This);
 };
 
 static_assert(sizeof(ExNodeBlock_vtbl) == 0x60, "\"ExNodeBlock_vtbl\" struct should have a size of 0x60");
@@ -911,8 +911,8 @@ public:
     prj::string parent_name;
     ExNodeBlock* parent_node;
     rob_chara_item_equip_object* item_equip_object;
-    bool field_58;
-    bool field_59;
+    bool is_parent;
+    bool done;
     bool has_children_node;
 };
 
@@ -1174,18 +1174,18 @@ static_assert(sizeof(CLOTHLine) == 0x18, "\"CLOTHLine\" struct should have a siz
 class CLOTH;
 
 struct CLOTH_vtbl {
+    void(FASTCALL* Init)(CLOTH* This);
     CLOTH* (FASTCALL* Dispose)(CLOTH* This, uint8_t);
-    void(FASTCALL* Field_8)(CLOTH* This);
-    void(FASTCALL* Field_10)(CLOTH* This);
-    void(FASTCALL* Field_18)(CLOTH* This, int32_t stage, bool disable_external_force);
-    void(FASTCALL* Field_20)(CLOTH* This);
-    void(FASTCALL* SetOsagePlayData)(CLOTH* This);
-    void(FASTCALL* Disp)(CLOTH* This);
+    void(FASTCALL* SetSkinParamColiR)(CLOTH* This, float_t coli_r);
+    void(FASTCALL* SetSkinParamFriction)(CLOTH* This, float_t friction);
+    void(FASTCALL* SetSkinParamWindAfc)(CLOTH* This, float_t wind_afc);
+    void(FASTCALL* SetWindDirection)(CLOTH* This, vec3* wind_direction);
+    void(FASTCALL* Field_30)(CLOTH* This, float_t);
+    void(FASTCALL* SetSkinParamHinge)(CLOTH* This, float_t hinge_y, float_t hinge_z);
+    CLOTHNode* (FASTCALL* GetNodes)(CLOTH* This);
     void(FASTCALL* Reset)(CLOTH* This);
-    void(FASTCALL* Field_40)(CLOTH* This);
-    void(FASTCALL* Field_48)(CLOTH* This);
-    void(FASTCALL* Field_50)(CLOTH* This);
-    void(FASTCALL* Field_58)(CLOTH* This);
+    void(FASTCALL* DrawNormals)(CLOTH* This);
+    void(FASTCALL* ResetData)(CLOTH* This);
 };
 
 static_assert(sizeof(CLOTH_vtbl) == 0x60, "\"CLOTH_vtbl\" struct should have a size of 0x60");
@@ -1204,7 +1204,7 @@ public:
     prj::vector<CLOTHLine> lines;
     skin_param* skin_param_ptr;
     skin_param skin_param;
-    OsageCollision::Work coli[64];
+    OsageCollision::Work coli_chara[64];
     OsageCollision::Work coli_ring[64];
     osage_ring_data ring;
     mat4* mats;
@@ -1265,7 +1265,7 @@ static_assert(sizeof(ExClothBlock) == 0x2438, "\"ExClothBlock\" struct should ha
 struct skin_param_file_data {
     skin_param skin_param;
     prj::vector<RobOsageNodeData> nodes_data;
-    bool field_88;
+    bool depends_on_others;
 };
 
 static_assert(sizeof(skin_param_file_data) == 0x90, "\"skin_param_file_data\" struct should have a size of 0x90");
@@ -1287,18 +1287,17 @@ struct RobOsage {
     bool field_2A0;
     bool field_2A1;
     float_t field_2A4;
-    OsageCollision::Work coli[64];
+    OsageCollision::Work coli_chara[64];
     OsageCollision::Work coli_ring[64];
     vec3 wind_direction;
-    float_t field_1EB4;
+    float_t inertia;
     int32_t yz_order;
-    int32_t field_1EBC;
     mat4* root_matrix_ptr;
     mat4 root_matrix;
     float_t move_cancel;
-    bool field_1F0C;
+    bool move_cancelled;
     bool osage_reset;
-    bool prev_osage_reset;
+    bool osage_reset_done;
     bool disable_collision;
     osage_ring_data ring;
     prj::map<prj::pair<int32_t, int32_t>, prj::list<RobOsageNodeResetData>> motion_reset_data;
@@ -1870,8 +1869,8 @@ struct rob_chara {
     int32_t cos_id;
     int32_t field_18;
     float_t frame_speed;
-    void* field_20;
-    struct rob_chara_bone_data* bone_data;
+    rob_chara* field_20;
+    rob_chara_bone_data* bone_data;
     rob_chara_item_equip* item_equip;
     rob_chara_item_cos_data item_cos_data;
     rob_chara_data data;
