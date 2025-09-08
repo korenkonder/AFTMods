@@ -1392,7 +1392,7 @@ namespace dw {
             }
     }
 
-    Group::Group(Composite* parent, Flags flag) : Composite(parent, (Flags)(flags & ~(VERTICAL | HORIZONTAL))) {
+    Group::Group(Composite* parent, Flags flags) : Composite(parent, (Flags)(flags & ~(VERTICAL | HORIZONTAL))) {
 
     }
 
