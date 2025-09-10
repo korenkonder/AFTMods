@@ -2940,7 +2940,7 @@ namespace dw {
 
 PrintWorkDebug::PrintWorkDebug() {
     prio = spr::SPR_PRIO_29;
-    SetResolutionMode(RESOLUTION_MODE_MAX);
+    set_resolution_mode(RESOLUTION_MODE_MAX);
 }
 
 namespace dw {
@@ -2985,17 +2985,16 @@ namespace dw {
 
     void Print::PrintText(prj::wstring& str, float_t pos_x, float_t pos_y) {
         PrintWorkDebug* print_work = this->print_work;
-        print_work->line_origin_loc = { pos_x, pos_y };
-        print_work->text_current_loc = print_work->line_origin_loc;
+        print_work->set_position(pos_x, pos_y);
         print_work->PrintText(app::TEXT_FLAG_ALIGN_FLAG_LEFT, str.c_str(), str.c_str() + str.size());
     }
 
     void Print::SetColor(color4u8 value) {
-        print_work->color = value;
+        print_work->set_color(value);
     }
 
     void Print::SetFillColor(color4u8 value) {
-        print_work->fill_color = value;
+        print_work->set_fill_color(value);
     }
 
     void Print::SetClipData(rectangle rect) {
@@ -3006,13 +3005,13 @@ namespace dw {
 
     void Print::SetFont(p_Font* value) {
         this->font = value;
-        print_work->SetFont(&value->ptr->font);
+        print_work->set_font(&value->ptr->font);
     }
 
     void Print::sub_140301390(rectangle rect, float_t a3) {
         color4u8 v3 = field_14;
 
-        print_work->fill_color = print_work->color;
+        print_work->set_fill_color(print_work->color);
 
         rectangle v10;
         v10.pos.x = rect.pos.x;
@@ -3033,7 +3032,7 @@ namespace dw {
         v10.pos.y = rect.size.y + rect.pos.y - a3;
         FillRectangle(v10);
 
-        print_work->fill_color = v3;
+        print_work->set_fill_color(v3);
     }
 
     void Print::sub_140302800() {

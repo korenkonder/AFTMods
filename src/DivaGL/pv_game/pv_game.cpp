@@ -2091,8 +2091,8 @@ void x_pv_game_title::disp() {
     font_info font(16);
 
     PrintWork print_work;
-    print_work.SetFont(&font);
-    print_work.prio = spr::SPR_PRIO_02;
+    print_work.set_font(&font);
+    print_work.set_prio(spr::SPR_PRIO_02);
 
     for (x_pv_aet_disp_string& i : txt_data) {
         if (!i.data.disp || !i.str.size())
@@ -2100,8 +2100,7 @@ void x_pv_game_title::disp() {
 
         font.set_glyph_size(i.data.rect.size.x, i.data.rect.size.y);
         print_work.color.a = i.data.opacity;
-        print_work.line_origin_loc = i.data.rect.pos;
-        print_work.text_current_loc = print_work.line_origin_loc;
+        print_work.set_position(i.data.rect.pos);
 
         print_work.printf((app::text_flags)(app::TEXT_FLAG_ALIGN_FLAG_LOCATE_V_CENTER
             | app::TEXT_FLAG_ALIGN_FLAG_H_CENTER

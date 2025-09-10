@@ -139,9 +139,9 @@ struct PrintWork {
     void PrintText(app::text_flags flags, const char* str, size_t length);
     void PrintText(app::text_flags flags, const wchar_t* str_begin, const wchar_t* str_end);
     void PutText(app::text_flags flags, const wchar_t* str_begin, const wchar_t* str_end);
-    void SetFont(const font_info* value);
-    void SetResolutionMode(::resolution_mode value);
-    void set_text_position(float_t column, float_t line);
+    void set_font(const font_info* value);
+    void set_resolution_mode(const ::resolution_mode value);
+    void set_text_position(const float_t column, const float_t line);
 
     void printf(app::text_flags flags,
         _In_z_ _Printf_format_string_ const char* const fmt, ...);
@@ -153,6 +153,37 @@ struct PrintWork {
         _In_z_ _Printf_format_string_ const char* const fmt, va_list args);
     void vwprintf(app::text_flags flags,
         _In_z_ _Printf_format_string_ const wchar_t* const fmt, va_list args);
+
+    inline void set_color(const color4u8 value) {
+        color = value;
+    }
+
+    inline void set_fill_color(const color4u8 value) {
+        fill_color = value;
+    }
+
+    inline void set_fill_opacity(const uint8_t value) {
+        fill_color.a = value;
+    }
+
+    inline void set_opacity(const uint8_t value) {
+        color.a = value;
+    }
+
+    inline void set_prio(const spr::SprPrio value) {
+        prio = value;
+    }
+
+    inline void set_position(const vec2 loc) {
+        line_origin_loc = loc;
+        text_current_loc = line_origin_loc;
+    }
+
+    inline void set_position(const float_t loc_x, const float_t loc_y) {
+        line_origin_loc.x = loc_x;
+        line_origin_loc.y = loc_y;
+        text_current_loc = line_origin_loc;
+    }
 
     static void ClampPosToClipBox(float_t pos_min, float_t pos_max,
         float_t clip_box_min, float_t clip_box_max, float_t& clip_pos_min, float_t& clip_pos_max);

@@ -383,15 +383,15 @@ void PrintWork::PutText(app::text_flags flags, const wchar_t* str_begin, const w
     }
 }
 
-void PrintWork::SetFont(const font_info* value) {
+void PrintWork::set_font(const font_info* value) {
     font = value;
 }
 
-void PrintWork::SetResolutionMode(::resolution_mode value) {
+void PrintWork::set_resolution_mode(const ::resolution_mode value) {
     resolution_mode = value;
 }
 
-void PrintWork::set_text_position(float_t column, float_t line) {
+void PrintWork::set_text_position(const float_t column, const float_t line) {
     line_origin_loc.x = (font->spacing.x + font->glyph.x * font->font_ptr->column_scale) * column;
     line_origin_loc.y = (font->spacing.y + font->glyph.y) * line;
     text_current_loc = line_origin_loc;
