@@ -642,7 +642,7 @@ namespace rndr {
     vec2 Render::get_taa_offset() {
         if (taa) {
             float_t offset = taa_texture_selector == 1 ? -0.25f : 0.25f;
-            return -offset / vec2((float_t)render_width[0], (float_t)render_height[0]);
+            return (offset * -2.0f) / vec2((float_t)render_width[0], (float_t)render_height[0]);
         }
         return 0.0;
     }
