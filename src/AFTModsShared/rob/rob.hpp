@@ -1469,21 +1469,21 @@ struct RobSubAction {
 
 static_assert(sizeof(RobSubAction) == 0xB0, "\"RobSubAction\" struct should have a size of 0xB0");
 
-struct struc_389 {
+struct rob_chara_motion_frame_data {
     float_t frame;
     float_t prev_frame;
     float_t last_set_frame;
 };
 
-static_assert(sizeof(struc_389) == 0x0C, "\"struc_389\" struct should have a size of 0x0C");
+static_assert(sizeof(rob_chara_motion_frame_data) == 0x0C, "\"rob_chara_motion_frame_data\" struct should have a size of 0x0C");
 
-struct struc_406 {
+struct rob_chara_motion_step_data {
     float_t frame;
     float_t field_4;
     float_t step;
 };
 
-static_assert(sizeof(struc_406) == 0x0C, "\"struc_406\" struct should have a size of 0x0C");
+static_assert(sizeof(rob_chara_motion_step_data) == 0x0C, "\"rob_chara_motion_step_data\" struct should have a size of 0x0C");
 
 struct rob_chara_data_adjust {
     bool enable;
@@ -1535,8 +1535,8 @@ static_assert(sizeof(rob_chara_data_hand_adjust) == 0x44, "\"rob_chara_data_hand
 struct rob_chara_motion {
     uint32_t motion_id;
     uint32_t prev_motion_id;
-    struc_389 frame_data;
-    struc_406 step_data;
+    rob_chara_motion_frame_data frame_data;
+    rob_chara_motion_step_data step_data;
     uint8_t data[0x1198];
     rob_chara_data_hand_adjust hand_adjust[2];
     rob_chara_data_hand_adjust hand_adjust_prev[2];
