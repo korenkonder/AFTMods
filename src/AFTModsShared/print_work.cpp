@@ -272,9 +272,12 @@ vec2 PrintWork::GetTextSize(const char* str, size_t length) {
 
 vec2 PrintWork::GetTextSize(const char* str_begin, const char* str_end) {
     wchar_t* wstr = utf8_to_utf16(str_begin, str_end - str_begin);
-    vec2 size = GetTextSize(wstr, wstr + utf16_length(wstr));
-    free_def(wstr);
-    return size;
+    if (wstr) {
+        vec2 size = GetTextSize(wstr, wstr + utf16_length(wstr));
+        free_def(wstr);
+        return size;
+    }
+    return 0.0f;
 }
 
 vec2 PrintWork::GetTextSize(const std::wstring& str) {
@@ -290,14 +293,18 @@ void PrintWork::NewLine() {
 
 void PrintWork::PrintText(app::text_flags flags, const char* str) {
     wchar_t* wstr = utf8_to_utf16(str);
-    PrintText(flags, wstr, wstr + utf16_length(wstr));
-    free_def(wstr);
+    if (wstr) {
+        PrintText(flags, wstr, wstr + utf16_length(wstr));
+        free_def(wstr);
+    }
 }
 
 void PrintWork::PrintText(app::text_flags flags, const char* str, size_t length) {
     wchar_t* wstr = utf8_to_utf16(str, length);
-    PrintText(flags, wstr, wstr + utf16_length(wstr));
-    free_def(wstr);
+    if (wstr) {
+        PrintText(flags, wstr, wstr + utf16_length(wstr));
+        free_def(wstr);
+    }
 }
 
 void PrintWork::PrintText(app::text_flags flags, const wchar_t* str_begin, const wchar_t* str_end) {

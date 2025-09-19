@@ -31,7 +31,7 @@ namespace Glitter {
         char* path_temp = utf16_to_utf8(path);
         char* file_temp = utf16_to_utf8(file);
         this->path = path_temp ? path_temp : "rom/particle_x/";
-        this->file = file_temp;
+        this->file = file_temp ? file_temp : "";
         this->emission = emission;
         this->hash = hash_utf8_murmurhash(file_temp);
         free_def(path_temp);
