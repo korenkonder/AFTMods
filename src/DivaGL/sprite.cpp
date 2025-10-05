@@ -1204,17 +1204,17 @@ namespace spr {
             int32_t tex_0_type = 0;
             int32_t tex_1_type = 0;
             if (draw_param.textures[0]) {
-                if (draw_param.textures[0]->internal_format == GL_COMPRESSED_RED_RGTC1_EXT)
+                if (draw_param.textures[0]->internal_format == GL_COMPRESSED_RED_RGTC1)
                     tex_0_type = 3;
-                else if (draw_param.textures[0]->internal_format == GL_COMPRESSED_RED_GREEN_RGTC2_EXT)
+                else if (draw_param.textures[0]->internal_format == GL_COMPRESSED_RG_RGTC2)
                     tex_0_type = 2;
                 else
                     tex_0_type = 1;
 
                 if (draw_param.textures[1]) {
-                    if (draw_param.textures[1]->internal_format == GL_COMPRESSED_RED_RGTC1_EXT)
+                    if (draw_param.textures[1]->internal_format == GL_COMPRESSED_RED_RGTC1)
                         tex_1_type = 3;
-                    else if (draw_param.textures[1]->internal_format == GL_COMPRESSED_RED_GREEN_RGTC2_EXT)
+                    else if (draw_param.textures[1]->internal_format == GL_COMPRESSED_RG_RGTC2)
                         tex_1_type = 2;
                     else
                         tex_1_type = 1;

@@ -796,9 +796,9 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
             texture* tex = texture_manager_get_texture(texture_id);
             if (!tex)
                 rend_data_ctx.shader_flags.arr[uni_type] = 1;
-            else if (tex->internal_format == GL_COMPRESSED_RED_RGTC1_EXT)
+            else if (tex->internal_format == GL_COMPRESSED_RED_RGTC1)
                 rend_data_ctx.shader_flags.arr[uni_type] = 3;
-            else if (tex->internal_format == GL_COMPRESSED_RED_GREEN_RGTC2_EXT)
+            else if (tex->internal_format == GL_COMPRESSED_RG_RGTC2)
                 rend_data_ctx.shader_flags.arr[uni_type] = 2;
             else
                 rend_data_ctx.shader_flags.arr[uni_type] = 1;
