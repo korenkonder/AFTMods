@@ -145,7 +145,6 @@ namespace mdl {
     EtcObj::EtcObj(EtcObjType type) : count(), offset() {
         this->type = type;
         color = 0xFFFFFFFF;
-        fog = false;
         constant = false;
         switch (type) {
         case ETC_OBJ_TEAPOT:
@@ -4086,7 +4085,7 @@ namespace mdl {
     HOOK(void, FASTCALL, MeshDw__DrawObjAxisAlignedBoundingBox, 0x000000014031AF10, obj_axis_aligned_bounding_box* aabb, color4u8_bgra color) {
         mdl::EtcObj etc(mdl::ETC_OBJ_CUBE);
         etc.color = color;
-        etc.fog = false;
+        etc.constant = false;
         etc.data.cube.size = aabb->size * 2.0f;
 
         mat4 mat;
@@ -4098,7 +4097,7 @@ namespace mdl {
     HOOK(void, FASTCALL, MeshDw__DrawObjBoundingSphere, 0x000000014031AFE0, obj_bounding_sphere* bounding_sphere, color4u8_bgra color) {
         mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
         etc.color = color;
-        etc.fog = false;
+        etc.constant = false;
         etc.data.sphere.radius = bounding_sphere->radius;
         etc.data.sphere.slices = 0x20;
         etc.data.sphere.stacks = 0x20;

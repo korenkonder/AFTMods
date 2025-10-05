@@ -103,23 +103,13 @@ namespace mdl {
 
         const vec4 color = etc->color;
 
-        if (etc->constant) {
-            vec4 diffuse = color;
-            vec4 ambient = color * 0.5f;
-            ambient.w = color.w;
-            vec4 emission = etc->constant ? 1.0f : vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            vec4 specular = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-            rend_data_ctx.set_batch_material_color(diffuse, ambient, emission,
-                0.0f, specular, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-            rend_data_ctx.set_batch_blend_color_offset_color(1.0f, 0.0f);
-        }
+        if (etc->constant)
+            rend_data_ctx.set_batch_blend_color_offset_color(0.0f, color);
         else
             rend_data_ctx.set_batch_blend_color_offset_color(color, 0.0f);
 
         rend_data_ctx.state.bind_vertex_array(vao);
-        //rend_data_ctx.set_shader(SHADER_FT_SIMPLE);
-        rend_data_ctx.set_shader(etc->constant ? SHADER_FT_CONSTANT : SHADER_FT_SIMPLE);
+        rend_data_ctx.set_shader(SHADER_FT_SIMPLE);
         rend_data_ctx.set_render_data_state();
         switch (etc->type) {
         case mdl::ETC_OBJ_TEAPOT:
