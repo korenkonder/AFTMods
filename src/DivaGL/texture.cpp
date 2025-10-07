@@ -54,7 +54,8 @@ texture* texture_create_copy_texture_apply_color_tone(
     GLenum format = GL_ZERO;
     GLenum type = GL_ZERO;
     if (!(org_tex->flags & TEXTURE_BLOCK_COMPRESSION))
-        texture_get_format_type_by_internal_format(org_tex->internal_format, &format, &type);
+        texture_get_format_type_by_internal_format(
+            texture_get_working_internal_format(org_tex->internal_format), &format, &type);
 
     std::vector<void*> vec_data;
     vec_data.reserve((size_t)org_tex->max_mipmap_level + 1);
@@ -243,15 +244,15 @@ HOOK(int32_t, FASTCALL, texture_get_size, 0x000000014069A6D0, GLenum internal_fo
     }
 }
 
-HOOK(texture*, FASTCALL, texture_create_copy_texture, 0x000000014069B550,
-    texture_id id, texture* org_tex) {
+HOOK(texture*, FASTCALL, texture_create_copy_texture, 0x000000014069B550, texture_id id, texture* org_tex) {
     if (org_tex->target != GL_TEXTURE_2D)
         return 0;
 
     GLenum format = GL_ZERO;
     GLenum type = GL_ZERO;
     if (!(org_tex->flags & TEXTURE_BLOCK_COMPRESSION))
-        texture_get_format_type_by_internal_format(org_tex->internal_format, &format, &type);
+        texture_get_format_type_by_internal_format(
+            texture_get_working_internal_format(org_tex->internal_format), &format, &type);
 
     prj::vector<void*> vec_data;
     vec_data.reserve((size_t)org_tex->max_mipmap_level + 1);
@@ -453,10 +454,6 @@ static void texture_get_format_type_by_internal_format(GLenum internal_format, G
         _format = GL_DEPTH_COMPONENT;
         _type = GL_FLOAT;
         break;
-    case GL_DEPTH32F_STENCIL8: // Added
-        _format = GL_DEPTH_STENCIL;
-        _type = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
-        break;
     //case GL_DEPTH_COMPONENT32F_NV: // 0x8DAB
     //    _format = GL_DEPTH_COMPONENT;
     //    _type = GL_FLOAT;
@@ -597,7 +594,7 @@ static texture* texture_load_tex(texture_id id, GLenum target,
                 if (texture_load_pixels(target_cube_map_array[i],
                     working_internal_format, mip_width, mip_height, j, data) < 0)
                     goto fail;
-                size += texture_get_size(internal_format, mip_width, mip_height);
+                size += texture_get_size(working_internal_format, mip_width, mip_height);
             }
     else
         for (int32_t i = 0; i <= max_mipmap_level; i++) {
@@ -612,7 +609,7 @@ static texture* texture_load_tex(texture_id id, GLenum target,
             if (texture_load_pixels(target,
                 working_internal_format, mip_width, mip_height, i, data) < 0)
                 goto fail;
-            size += texture_get_size(internal_format, mip_width, mip_height);
+            size += texture_get_size(working_internal_format, mip_width, mip_height);
         }
 
     texture_bind(target, 0);
