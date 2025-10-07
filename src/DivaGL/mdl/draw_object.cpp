@@ -75,93 +75,48 @@ namespace mdl {
             stats.draw_triangle_count += count - 2;
     }
 
-    void draw_etc_obj(render_data_context& rend_data_ctx, const mdl::EtcObj* etc, const mat4* mat) {
-        switch (etc->type) {
-        case mdl::ETC_OBJ_TEAPOT:
-        case mdl::ETC_OBJ_GRID:
-        case mdl::ETC_OBJ_CUBE:
-        case mdl::ETC_OBJ_SPHERE:
-        case mdl::ETC_OBJ_PLANE:
-        case mdl::ETC_OBJ_CONE:
-        case mdl::ETC_OBJ_LINE:
-        case mdl::ETC_OBJ_CROSS:
-        case mdl::ETC_OBJ_CAPSULE:  // Added
-        case mdl::ETC_OBJ_CYLINDER: // Added
-            break;
-        default:
-            return;
+    void draw_etc_obj(render_data_context& rend_data_ctx, const mdl::EtcObjData* etc, const mat4* mat) {
+        const vec4 normal_color = etc->color;
+        const vec4 const_color = 0.0f;
+
+        const vec4* p_normal_color;
+        const vec4* p_const_color;
+        if (!etc->constant) {
+            p_normal_color = &normal_color;
+            p_const_color = &const_color;
         }
-
-        if (!etc->count)
-            return;
-
-        GLuint vao = disp_manager->get_vertex_array(etc);
-        if (!vao)
-            return;
+        else {
+            p_normal_color = &const_color;
+            p_const_color = &normal_color;
+        }
+        rend_data_ctx.set_batch_blend_color_offset_color(*p_normal_color, *p_const_color);
 
         rend_data_ctx.set_batch_worlds(*mat);
-
-        const vec4 color = etc->color;
-
-        if (etc->constant)
-            rend_data_ctx.set_batch_blend_color_offset_color(0.0f, color);
-        else
-            rend_data_ctx.set_batch_blend_color_offset_color(color, 0.0f);
-
-        rend_data_ctx.state.bind_vertex_array(vao);
         rend_data_ctx.set_shader(SHADER_FT_SIMPLE);
         rend_data_ctx.set_render_data_state();
-        switch (etc->type) {
-        case mdl::ETC_OBJ_TEAPOT:
-            rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
-            break;
-        case mdl::ETC_OBJ_GRID:
-            rend_data_ctx.state.set_line_width(0.2f);
-            rend_data_ctx.state.draw_arrays(GL_LINES, 0, etc->count);
-            rend_data_ctx.state.set_line_width(2.0f);
-            rend_data_ctx.state.draw_arrays(GL_LINES, (GLint)etc->count, 4);
-            rend_data_ctx.state.set_line_width(1.0f);
-            break;
-        case mdl::ETC_OBJ_CUBE:
-            if (etc->data.sphere.wire)
-                rend_data_ctx.state.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
-            else
-                rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
-            break;
-        case mdl::ETC_OBJ_SPHERE:
-            if (etc->data.sphere.wire)
-                rend_data_ctx.state.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
-            else
-                rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
-            break;
-        case mdl::ETC_OBJ_PLANE:
-            rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, etc->count);
-            break;
-        case mdl::ETC_OBJ_CONE:
-            if (etc->data.cone.wire)
-                rend_data_ctx.state.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
-            else
-                rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
-            break;
-        case mdl::ETC_OBJ_LINE:
-            rend_data_ctx.state.draw_arrays(GL_LINES, 0, etc->count);
-            break;
-        case mdl::ETC_OBJ_CROSS:
-            rend_data_ctx.state.draw_arrays(GL_LINES, 0, etc->count);
-            break;
-        case mdl::ETC_OBJ_CAPSULE: // Added
-            if (etc->data.capsule.wire)
-                rend_data_ctx.state.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
-            else
-                rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
-            break;
-        case mdl::ETC_OBJ_CYLINDER: // Added
-            if (etc->data.cylinder.wire)
-                rend_data_ctx.state.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
-            else
-                rend_data_ctx.state.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
-            break;
+
+        rend_data_ctx.state.bind_vertex_array(0);
+        for (int32_t i = 0; i < 5; i++) {
+            rend_data_ctx.state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
+            rend_data_ctx.state.bind_sampler(i, rctx->render_samplers[0]);
         }
+        rend_data_ctx.state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
+
+        if (etc->count) {
+            int32_t index = etc->index;
+            for (int32_t i = etc->count; i; i--, index++) {
+                rend_data_ctx.state.bind_vertex_array(etc_obj_manager->vao);
+                mdl::etc_obj_draw_param& draw_param = etc_obj_manager->draw_param_buffer.data()[index];
+                if (!draw_param.end)
+                    rend_data_ctx.state.draw_arrays(
+                        draw_param.attrib.m.primitive, draw_param.first, draw_param.count);
+                else
+                    rend_data_ctx.state.draw_range_elements(
+                        draw_param.attrib.m.primitive, draw_param.start, draw_param.end,
+                        draw_param.count, GL_UNSIGNED_INT, (void*)draw_param.offset);
+            }
+        }
+
         shader::unbind(rend_data_ctx.state);
         rend_data_ctx.reset_shader_flags();
 

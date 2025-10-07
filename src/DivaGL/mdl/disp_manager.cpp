@@ -66,13 +66,31 @@ material_list_struct::material_list_struct(uint64_t hash, vec4& blend_color,
 }
 
 namespace mdl {
+    mdl::EtcObjManager* etc_obj_manager;
+
     prj::vector<DispManager::vertex_array> vertex_array_cache;
-    prj::vector<DispManager::etc_vertex_array> etc_vertex_array_cache;
 
     int32_t material_list_count;
     material_list_struct material_list_array[MATERIAL_LIST_COUNT];
 
     bool obj_reflect_enable;
+
+    static void gen_capsule_indices(std::vector<uint32_t>& indices,
+        int32_t slices, int32_t stacks, float_t length, bool wire, size_t start);
+    static void gen_capsule_vertices(etc_obj_vertex_data* data,
+        int32_t slices, int32_t stacks, float_t length, float_t radius);
+
+    static void gen_cylinder_indices(std::vector<uint32_t>& indices,
+        int32_t slices, int32_t stacks, bool wire, size_t start);
+    static void gen_cylinder_vertices(etc_obj_vertex_data* data,
+        int32_t slices, int32_t stacks, float_t base, float_t height);
+
+    static void gen_sphere_indices(std::vector<uint32_t>& indices,
+        int32_t slices, int32_t stacks, bool wire, size_t start);
+    static void gen_sphere_vertices(etc_obj_vertex_data* data,
+        int32_t slices, int32_t stacks, float_t radius);
+
+    static void set_default_vertex_attrib();
 
     ObjSubMeshArgs::ObjSubMeshArgs() : sub_mesh(), mesh(), material(), textures(), mat_count(), mats(),
         vertex_buffer(), vertex_buffer_offset(), index_buffer(), set_blend_color(), chara_color(), self_shadow(),
@@ -138,11 +156,51 @@ namespace mdl {
         stacks = 8;
     }
 
-    EtcObj::Data::Data() : line() {
+    EtcObj::Data::Data() : capsule() {
 
     }
 
-    EtcObj::EtcObj(EtcObjType type) : count(), offset() {
+    EtcObj::Data::Data(const EtcObjTeapot& other) : capsule() {
+        teapot = other;
+    }
+
+    EtcObj::Data::Data(const EtcObjGrid& other) : capsule() {
+        grid = other;
+    }
+
+    EtcObj::Data::Data(const EtcObjCube& other) : capsule() {
+        cube = other;
+    }
+
+    EtcObj::Data::Data(const EtcObjSphere& other) : capsule() {
+        sphere = other;
+    }
+
+    EtcObj::Data::Data(const EtcObjPlane& other) : capsule() {
+        plane = other;
+    }
+
+    EtcObj::Data::Data(const EtcObjCone& other) : capsule() {
+        cone = other;
+    }
+
+    EtcObj::Data::Data(const EtcObjLine& other) : capsule() {
+        line = other;
+    }
+
+    EtcObj::Data::Data(const EtcObjCross& other) : capsule() {
+        cross = other;
+    }
+
+    EtcObj::Data::Data(const EtcObjCapsule& other) : capsule() {
+        capsule = other;
+    }
+
+    EtcObj::Data::Data(const EtcObjCylinder& other) : capsule() {
+        cylinder = other;
+    }
+
+    EtcObj::EtcObj(EtcObjType type) {
         this->type = type;
         color = 0xFFFFFFFF;
         constant = false;
@@ -207,12 +265,30 @@ namespace mdl {
 
     }
 
-    void ObjData::init_etc(const mat4& mat, const mdl::EtcObj& etc) {
+    void ObjData::init_etc(const mat4& mat, int32_t index, int32_t count, const mdl::EtcObj& etc) {
         kind = mdl::OBJ_KIND_ETC;
         mat4_transpose(&mat, &this->mat);
-        args.etc = etc;
+        args.etc.color = etc.color;
+        args.etc.constant = etc.constant;
+        args.etc.index = index;
+        args.etc.count = count;
 
-        disp_manager->add_vertex_array(&args.etc, this->mat);
+        if (etc.type == mdl::ETC_OBJ_CAPSULE) {
+            const EtcObjCapsule& capsule = etc.data.capsule;
+
+            vec3 origin = (capsule.pos[0] + capsule.pos[1]) * 0.5f;
+            mat4_add_translate(&this->mat, &origin, &this->mat);
+
+            const vec3 dir = vec3::normalize(capsule.pos[1] - capsule.pos[0]);
+            const vec3 up = { 0.0f, 0.0f, 1.0f };
+            vec3 axis;
+            float_t angle;
+            vec3::axis_angle_from_vectors(axis, angle, up, dir);
+
+            mat4 m = mat4_identity;
+            mat4_mul_rotation(&m, &axis, angle, &m);
+            mat4_mul(&m, &this->mat, &this->mat);
+        }
     }
 
     void ObjData::init_sub_mesh(const mat4& mat, float_t radius, const obj_sub_mesh* sub_mesh,
@@ -288,6 +364,695 @@ namespace mdl {
         mat4_transpose(&mat, &this->mat);
         args.user.func = func;
         args.user.data = data;
+    }
+
+    EtcObjManager::EtcObjManager() : vao(), vbo_vertex_count(), ebo_index_count() {
+        vbo_vertex_count = 256;
+        ebo_index_count = 256;
+
+        static const GLsizei buffer_size = sizeof(etc_obj_vertex_data);
+
+        vbo.Create(gl_state, buffer_size * vbo_vertex_count);
+        ebo.Create(gl_state, sizeof(uint32_t) * ebo_index_count);
+
+        glGenVertexArrays(1, &vao);
+        gl_state.bind_vertex_array(vao);
+        gl_state.bind_array_buffer(vbo, true);
+        gl_state.bind_element_array_buffer(ebo, true);
+
+        set_default_vertex_attrib();
+
+        glEnableVertexAttribArray(POSITION_INDEX);
+        glVertexAttribPointer(POSITION_INDEX, 3, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(etc_obj_vertex_data, position));
+        glEnableVertexAttribArray(NORMAL_INDEX);
+        glVertexAttribPointer(NORMAL_INDEX, 3, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(etc_obj_vertex_data, normal));
+
+        gl_state.bind_array_buffer(0);
+        gl_state.bind_vertex_array(0);
+        gl_state.bind_element_array_buffer(0);
+
+    }
+
+    EtcObjManager::~EtcObjManager() {
+        if (vao) {
+            glDeleteVertexArrays(1, &vao);
+            vao = 0;
+        }
+
+        ebo.Destroy();
+        vbo.Destroy();
+    }
+
+    bool EtcObjManager::add_capsule(int32_t& index, int32_t& count, const EtcObjCapsule& capsule) {
+        if (capsule.slices < 2 || capsule.stacks < 2)
+            return false;
+
+        const float_t length = vec3::distance(capsule.pos[0], capsule.pos[1]);
+        if (length < 0.00000f) {
+            EtcObjSphere sphere = {};
+            sphere.radius = capsule.radius;
+            sphere.slices = capsule.slices;
+            sphere.stacks = capsule.stacks;
+            sphere.wire = capsule.wire;
+            return add_sphere(index, count, sphere);
+        }
+
+        for (const auto& i : etc_obj_buffer) {
+            if (i.first.first != ETC_OBJ_CAPSULE)
+                continue;
+
+            const EtcObjCapsule& other_capsule = i.second.capsule;
+            if (other_capsule.slices == capsule.slices
+                && ((other_capsule.stacks + 1)) >> 1 == ((capsule.stacks + 1) >> 1)
+                && fabsf(other_capsule.radius - capsule.radius) < 0.00001f
+                && fabsf(vec3::distance(other_capsule.pos[0], other_capsule.pos[1]) - length) < 0.00001f) {
+                index = i.first.second;
+                count = 1;
+                return true;
+            }
+        }
+
+        index = (int32_t)draw_param_buffer.size();
+        count = 1;
+
+        etc_obj_vertex_data* vtx_data = 0;
+        const size_t stacks = (((size_t)capsule.stacks + 1) / 2) * 2;
+        size_t vtx_count = (size_t)capsule.slices * stacks + 2;
+        size_t start = add_data(vtx_data, vtx_count);
+
+        gen_capsule_vertices(vtx_data, capsule.slices, capsule.stacks, length, capsule.radius);
+
+        draw_param_buffer.push_back({});
+        etc_obj_draw_param& draw_param = draw_param_buffer.back();
+
+        draw_param.attrib.m.primitive = capsule.wire ? GL_LINES : GL_TRIANGLES;
+        draw_param.start = (GLuint)start;
+
+        size_t idx_offset = index_buffer.size();
+        gen_capsule_indices(index_buffer, capsule.slices, capsule.stacks, length, capsule.wire, start);
+
+        draw_param.end = (GLuint)(start + vtx_count - 1);
+        draw_param.offset = (GLintptr)(idx_offset * sizeof(uint32_t));
+        draw_param.count = (GLsizei)(index_buffer.size() - idx_offset);
+
+        etc_obj_buffer.push_back({ ETC_OBJ_CAPSULE, index }, capsule);
+        return true;
+    }
+
+    bool EtcObjManager::add_cone(int32_t& index, int32_t& count, const EtcObjCone& cone) {
+        for (const auto& i : etc_obj_buffer) {
+            if (i.first.first != ETC_OBJ_CONE)
+                continue;
+
+            const EtcObjCone& other_cone = i.second.cone;
+            if (other_cone.slices == cone.slices
+                && other_cone.stacks == cone.stacks
+                && fabsf(other_cone.base - cone.base) < 0.00001f
+                && fabsf(other_cone.height - cone.height) < 0.00001f
+                && other_cone.wire == cone.wire) {
+                index = i.first.second;
+                count = cone.wire ? 2 : 1;
+                return true;
+            }
+        }
+
+        const float_t base = cone.base;
+        const float_t height = cone.height;
+        const int32_t slices = cone.slices;
+        const int32_t stacks = cone.stacks;
+
+        const float_t slice_step = (float_t)((M_PI * 2.0) / (double_t)slices);
+
+        if (!cone.wire) {
+            etc_obj_vertex_data* vtx_data = 0;
+            int32_t _index = 0;
+            if (add_data(_index, vtx_data, (size_t)slices * 3, GL_TRIANGLES)) {
+                index = _index;
+                count = 1;
+
+                float_t slice_angle = (float_t)-1 * slice_step;
+                float_t x = cosf(slice_angle);
+                float_t y = sinf(slice_angle);
+
+                const float_t cosn = base / sqrtf(height * height + base * base);
+                const float_t sinn = 1.0f - cosn * cosn;
+
+                etc_obj_vertex_data vtx2 = { vec3(x * base, y * base, 0.0f), vec3(x * sinn, y * sinn, cosn) };
+                for (int32_t j = 0; j < slices; j++) {
+                    float_t slice_angle0 = ((float_t)j - 0.5f) * slice_step;
+                    float_t x0 = cosf(slice_angle0);
+                    float_t y0 = sinf(slice_angle0);
+
+                    vtx_data[0] = { vec3(0.0f, 0.0f, height), vec3(x0 * sinn, y0 * sinn, cosn) };
+                    vtx_data[1] = vtx2;
+
+                    float_t slice_angle2 = (float_t)j * slice_step;
+                    float_t x2 = cosf(slice_angle2);
+                    float_t y2 = sinf(slice_angle2);
+
+                    vtx2 = { vec3(x2 * base, y2 * base, 0.0f), vec3(x2 * sinn, y2 * sinn, cosn) };
+                    vtx_data[2] = vtx2;
+
+                    vtx_data += 3;
+                }
+
+                etc_obj_buffer.push_back({ ETC_OBJ_CONE, index }, cone);
+                return true;
+            }
+        }
+        else {
+            const float_t cosn = base / sqrtf(height * height + base * base);
+            const float_t sinn = 1.0f - cosn * cosn;
+
+            etc_obj_vertex_data* vtx_data = 0;
+            int32_t _index = 0;
+            if (add_data(_index, vtx_data, ((size_t)slices + 1) * stacks + 1, GL_LINE_STRIP)) {
+                index = _index;
+                count = 2;
+
+                for (int32_t i = 0; i < stacks; i++) {
+                    const float_t xy = (1.0f - (float_t)i * (1.0f / stacks)) * base;
+                    const float_t z = (float_t)i * height * (1.0f / stacks);
+                    for (int32_t j = 0; j <= slices; j++) {
+                        float_t slice_angle = (float_t)j * slice_step;
+                        float_t x = cosf(slice_angle);
+                        float_t y = sinf(slice_angle);
+                        *vtx_data++ = { vec3(x * xy, y * xy, z), vec3(x * sinn, y * sinn, cosn) };
+                    }
+                }
+                *vtx_data++ = { vec3(0.0f, 0.0f, height), vec3(0.0f, 0.0f, 1.0f) };
+
+                int32_t _index = 0;
+                if (add_data(_index, vtx_data, ((size_t)slices - 1) * 2, GL_LINES)) {
+                    for (int32_t j = 1; j < slices; j++) {
+                        float_t slice_angle = (float_t)j * slice_step;
+                        float_t x = cosf(slice_angle);
+                        float_t y = sinf(slice_angle);
+                        vtx_data[0] = { vec3(x * base, y * base, 0.0f), vec3(x * sinn, y * sinn, cosn) };
+                        vtx_data[1] = { vec3(0.0f, 0.0f, height), vec3(x * sinn, y * sinn, cosn) };
+                        vtx_data += 2;
+                    }
+
+                    etc_obj_buffer.push_back({ ETC_OBJ_CONE, index }, cone);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool EtcObjManager::add_cross(int32_t& index, int32_t& count, const EtcObjCross& cross) {
+        if (fabsf(cross.size) < 0.00001f)
+            return false;
+
+        for (const auto& i : etc_obj_buffer) {
+            if (i.first.first != ETC_OBJ_CROSS)
+                continue;
+
+            const EtcObjCross& other_cross = i.second.cross;
+            if (fabsf(other_cross.size - cross.size) < 0.00001f) {
+                index = i.first.second;
+                count = 1;
+                return true;
+            }
+        }
+
+        int32_t _index = 0;
+        etc_obj_vertex_data* vtx_data = 0;
+        if (add_data(_index, vtx_data, 6, GL_LINES)) {
+            index = _index;
+            count = 1;
+
+            const float_t size = cross.size;
+
+            vtx_data[0] = vec3(-size, 0.0f, 0.0f);
+            vtx_data[1] = vec3(size, 0.0f, 0.0f);
+            vtx_data[2] = vec3(0.0f, -size, 0.0f);
+            vtx_data[3] = vec3(0.0f, size, 0.0f);
+            vtx_data[4] = vec3(0.0f, 0.0f, -size);
+            vtx_data[5] = vec3(0.0f, 0.0f, size);
+
+            etc_obj_buffer.push_back({ ETC_OBJ_CROSS, index }, cross);
+            return true;
+        }
+        return false;
+    }
+
+    bool EtcObjManager::add_cube(int32_t& index, int32_t& count, const EtcObjCube& cube) {
+        if (fabsf(cube.size.x) < 0.00001f || fabsf(cube.size.y) < 0.00001f || fabsf(cube.size.z) < 0.00001f)
+            return false;
+
+        for (const auto& i : etc_obj_buffer) {
+            if (i.first.first != ETC_OBJ_CUBE)
+                continue;
+
+            const EtcObjCube& other_cube = i.second.cube;
+            if (vec3::dot(vec3::abs(other_cube.size - cube.size), 1.0f) < 0.00001f) {
+                index = i.first.second;
+                count = cube.wire ? 2 : 1;
+                return true;
+            }
+        }
+
+        const vec3 size = cube.size * 0.5f;
+
+        const vec3 vtx_array[] = {
+            { -size.x, -size.y, -size.z },
+            { -size.x, -size.y,  size.z },
+            {  size.x, -size.y,  size.z },
+            {  size.x, -size.y, -size.z },
+            { -size.x,  size.y, -size.z },
+            { -size.x,  size.y,  size.z },
+            {  size.x,  size.y,  size.z },
+            {  size.x,  size.y, -size.z },
+        };
+
+        int32_t _index = 0;
+        etc_obj_vertex_data* vtx_data = 0;
+        if (!cube.wire) {
+            if (add_data(_index, vtx_data, 36, GL_TRIANGLES)) {
+                index = _index;
+                count = 1;
+
+                struct cube_face_data {
+                    int32_t vtx_idx[4];
+                    vec3 normal;
+                };
+
+                const cube_face_data face_array[] = {
+                    { { 5, 1, 2, 6 }, vec3(0.0f,  0.0f,  1.0f) },
+                    { { 6, 2, 3, 7 }, vec3(1.0f,  0.0f,  0.0f) },
+                    { { 7, 3, 0, 4 }, vec3(0.0f,  0.0f, -1.0f) },
+                    { { 4, 0, 1, 5 }, vec3(-1.0f,  0.0f,  0.0f) },
+                    { { 4, 5, 6, 7 }, vec3(0.0f,  1.0f,  0.0f) },
+                    { { 1, 0, 3, 2 }, vec3(0.0f, -1.0f,  0.0f) },
+                };
+
+                const cube_face_data* face = face_array;
+
+                for (int32_t i = 0; i < 6; i++) {
+                    vtx_data[0].position = vtx_array[face[i].vtx_idx[0]];
+                    vtx_data[0].normal = face[i].normal;
+                    vtx_data[1].position = vtx_array[face[i].vtx_idx[1]];
+                    vtx_data[1].normal = face[i].normal;
+                    vtx_data[2].position = vtx_array[face[i].vtx_idx[3]];
+                    vtx_data[2].normal = face[i].normal;
+                    vtx_data[3].position = vtx_array[face[i].vtx_idx[3]];
+                    vtx_data[3].normal = face[i].normal;
+                    vtx_data[4].position = vtx_array[face[i].vtx_idx[1]];
+                    vtx_data[4].normal = face[i].normal;
+                    vtx_data[5].position = vtx_array[face[i].vtx_idx[2]];
+                    vtx_data[5].normal = face[i].normal;
+                    vtx_data += 6;
+                }
+
+                etc_obj_buffer.push_back({ ETC_OBJ_CUBE, index }, cube);
+                return true;
+            }
+        }
+        else {
+            if (add_data(_index, vtx_data, 10, GL_LINE_STRIP)) {
+                index = _index;
+                count = 2;
+
+                vtx_data[0] = vtx_array[0];
+                vtx_data[1] = vtx_array[1];
+                vtx_data[2] = vtx_array[5];
+                vtx_data[3] = vtx_array[4];
+                vtx_data[4] = vtx_array[0];
+                vtx_data[5] = vtx_array[3];
+                vtx_data[6] = vtx_array[2];
+                vtx_data[7] = vtx_array[6];
+                vtx_data[8] = vtx_array[7];
+                vtx_data[9] = vtx_array[3];
+                vtx_data += 10;
+
+                if (add_data(_index, vtx_data, 6, GL_LINES)) {
+                    vtx_data[0] = vtx_array[4];
+                    vtx_data[1] = vtx_array[7];
+                    vtx_data[2] = vtx_array[5];
+                    vtx_data[3] = vtx_array[6];
+                    vtx_data[4] = vtx_array[1];
+                    vtx_data[5] = vtx_array[2];
+                    vtx_data += 6;
+
+                    etc_obj_buffer.push_back({ ETC_OBJ_CUBE, index }, cube);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool EtcObjManager::add_cylinder(int32_t& index, int32_t& count, const EtcObjCylinder& cylinder) {
+        if (cylinder.slices < 2 || cylinder.stacks < 0)
+            return false;
+
+        for (const auto& i : etc_obj_buffer) {
+            if (i.first.first != ETC_OBJ_CYLINDER)
+                continue;
+
+            const EtcObjCylinder& other_cylinder = i.second.cylinder;
+            if (other_cylinder.slices == cylinder.slices
+                && other_cylinder.stacks == cylinder.stacks
+                && fabsf(other_cylinder.base - cylinder.base) < 0.00001f
+                && fabsf(other_cylinder.height - cylinder.height) < 0.00001f) {
+                index = i.first.second;
+                count = 1;
+                return true;
+            }
+        }
+
+        index = (int32_t)draw_param_buffer.size();
+        count = 1;
+
+        etc_obj_vertex_data* vtx_data = 0;
+        size_t vtx_count = ((size_t)cylinder.slices * ((size_t)cylinder.stacks + 1) + 2);
+        size_t start = add_data(vtx_data, vtx_count);
+
+        gen_cylinder_vertices(vtx_data, cylinder.slices, cylinder.stacks, cylinder.base, cylinder.height);
+
+        draw_param_buffer.push_back({});
+        etc_obj_draw_param& draw_param = draw_param_buffer.back();
+
+        draw_param.attrib.m.primitive = cylinder.wire ? GL_LINES : GL_TRIANGLES;
+        draw_param.start = (GLuint)start;
+
+        size_t idx_offset = index_buffer.size();
+        gen_cylinder_indices(index_buffer, cylinder.slices, cylinder.stacks, cylinder.wire, start);
+
+        draw_param.end = (GLuint)(start + vtx_count - 1);
+        draw_param.offset = (GLintptr)(idx_offset * sizeof(uint32_t));
+        draw_param.count = (GLsizei)(index_buffer.size() - idx_offset);
+
+        etc_obj_buffer.push_back({ ETC_OBJ_CYLINDER, index }, cylinder);
+        return true;
+    }
+
+
+    template <typename T>
+    size_t EtcObjManager::add_data(T*& data, size_t num_vertex) {
+        size_t size = vertex_buffer.size();
+        size_t align_offset = (sizeof(T) - size % sizeof(T)) % sizeof(T);
+        size_t vertex_array_size = sizeof(T) * num_vertex;
+
+        vertex_buffer.resize(size + align_offset + vertex_array_size);
+        T* vtx_data = (T*)(vertex_buffer.data() + size + align_offset);
+        data = vtx_data;
+        return (uint32_t)((size + align_offset) / sizeof(T));
+    }
+
+    template <typename T>
+    bool EtcObjManager::add_data(int32_t& index, T*& data, size_t num_vertex, GLenum primitive) {
+        size_t size = vertex_buffer.size();
+        size_t align_offset = (sizeof(T) - size % sizeof(T)) % sizeof(T);
+        size_t vertex_array_size = sizeof(T) * num_vertex;
+
+        draw_param_buffer.push_back({});
+        etc_obj_draw_param& draw_param = draw_param_buffer.back();
+        draw_param.attrib.m.primitive = primitive;
+        draw_param.first = (GLint)(uint32_t)((size + align_offset) / sizeof(T));
+        draw_param.count = (GLsizei)num_vertex;
+
+        index = (int32_t)(draw_param_buffer.size() - 1);
+
+        if (vertex_buffer.size() < size + align_offset + vertex_array_size)
+            vertex_buffer.resize(size + align_offset + vertex_array_size);
+
+        T* vtx_data = (T*)(vertex_buffer.data() + size + align_offset);
+        data = vtx_data;
+        return true;
+    }
+
+    bool EtcObjManager::add_grid(int32_t& index, int32_t& count, const EtcObjGrid& grid) {
+        if (grid.ws < 1 || grid.hs < 1)
+            return false;
+
+        for (const auto& i : etc_obj_buffer) {
+            if (i.first.first != ETC_OBJ_GRID)
+                continue;
+
+            const EtcObjGrid& other_grid = i.second.grid;
+            if (!memcmp(&other_grid, &grid, sizeof(EtcObjGrid))) {
+                index = i.first.second;
+                count = 1;
+                return true;
+            }
+        }
+
+        int32_t _index = 0;
+        etc_obj_vertex_data* vtx_data = 0;
+        if (add_data(_index, vtx_data, ((size_t)grid.ws + grid.hs) * 2, GL_LINES)) {
+            index = _index;
+            count = 2;
+
+            const int32_t ws = grid.ws;
+            const int32_t hs = grid.hs;
+            const int32_t ws_half = grid.ws / 2;
+            const int32_t hs_half = grid.hs / 2;
+
+            const float_t width = (float_t)grid.w * 0.5f;
+            const float_t height = (float_t)grid.h * 0.5f;
+            const float_t ws_half_flt = (float_t)ws_half;
+            const float_t hs_half_flt = (float_t)hs_half;
+
+            for (int32_t i = 0; i <= ws; i++) {
+                if (ws_half == i)
+                    continue;
+
+                const float_t w = ((float_t)i * (width / ws_half_flt)) - width;
+                vtx_data[0] = vec3(w, 0.0f, -height);
+                vtx_data[1] = vec3(w, 0.0f, height);
+                vtx_data += 2;
+            }
+
+            for (int32_t i = 0; i <= hs; i++) {
+                if (hs_half == i)
+                    continue;
+
+                const float_t h = ((float_t)i * (height / hs_half_flt)) - height;
+                vtx_data[0] = vec3(-width, 0.0f, h);
+                vtx_data[1] = vec3(width, 0.0f, h);
+                vtx_data += 2;
+            }
+
+            if (add_data(_index, vtx_data, 4, GL_LINES)) {
+                vtx_data[0] = vec3(0.0f, 0.0f, -height);
+                vtx_data[1] = vec3(0.0f, 0.0f, height);
+                vtx_data[2] = vec3(-width, 0.0f, 0.0f);
+                vtx_data[3] = vec3(width, 0.0f, 0.0f);
+                vtx_data += 4;
+
+                etc_obj_buffer.push_back({ ETC_OBJ_GRID, index }, grid);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool EtcObjManager::add_line(int32_t& index, int32_t& count, const EtcObjLine& line) {
+        if (vec3::distance(line.pos[0], line.pos[1]) < 0.00001f)
+            return false;
+
+        for (const auto& i : etc_obj_buffer) {
+            if (i.first.first != ETC_OBJ_LINE)
+                continue;
+
+            const EtcObjLine& other_line = i.second.line;
+            if (other_line.pos[0] == line.pos[0]
+                && other_line.pos[1] == line.pos[1]) {
+                index = i.first.second;
+                count = 1;
+                return true;
+            }
+        }
+
+        int32_t _index = 0;
+        etc_obj_vertex_data* vtx_data = 0;
+        if (add_data(_index, vtx_data, 2, GL_LINES)) {
+            index = _index;
+            count = 1;
+
+            vtx_data[0] = line.pos[0];
+            vtx_data[1] = line.pos[1];
+            vtx_data += 2;
+
+            etc_obj_buffer.push_back({ ETC_OBJ_LINE, index }, line);
+            return true;
+        }
+        return false;
+    }
+
+    bool EtcObjManager::add_obj(int32_t& index, int32_t& count, const EtcObj& etc) {
+        switch (etc.type) {
+        case mdl::ETC_OBJ_GRID:
+            return add_grid(index, count, etc.data.grid);
+        case mdl::ETC_OBJ_CUBE:
+            return add_cube(index, count, etc.data.cube);
+        case mdl::ETC_OBJ_SPHERE:
+            return add_sphere(index, count, etc.data.sphere);
+        case mdl::ETC_OBJ_PLANE:
+            return add_plane(index, count, etc.data.plane);
+        case mdl::ETC_OBJ_CONE:
+            return add_cone(index, count, etc.data.cone);
+        case mdl::ETC_OBJ_LINE:
+            return add_line(index, count, etc.data.line);
+        case mdl::ETC_OBJ_CROSS:
+            return add_cross(index, count, etc.data.cross);
+        case mdl::ETC_OBJ_CAPSULE: // Added
+            return add_capsule(index, count, etc.data.capsule);
+        case mdl::ETC_OBJ_CYLINDER: // Added
+            return add_cylinder(index, count, etc.data.cylinder);
+        default:
+            return false;
+        }
+    }
+
+    bool EtcObjManager::add_plane(int32_t& index, int32_t& count, const EtcObjPlane& plane) {
+        if (!plane.w || !plane.h)
+            return false;
+
+        for (const auto& i : etc_obj_buffer) {
+            if (i.first.first != ETC_OBJ_PLANE)
+                continue;
+
+            const EtcObjPlane& other_plane = i.second.plane;
+            if (other_plane.w == plane.w && other_plane.h == plane.h) {
+                index = i.first.second;
+                count = 1;
+                return true;
+            }
+        }
+
+        int32_t _index = 0;
+        etc_obj_vertex_data* vtx_data = 0;
+        if (add_data(_index, vtx_data, 4, GL_TRIANGLE_STRIP)) {
+            index = _index;
+            count = 1;
+
+            const float_t width = (float_t)plane.w * 0.5f;
+            const float_t height = (float_t)plane.h * 0.5f;
+
+            vtx_data[0] = vec3(width, 0.0f, height);
+            vtx_data[1] = vec3(width, 0.0f, -height);
+            vtx_data[2] = vec3(-width, 0.0f, height);
+            vtx_data[3] = vec3(-width, 0.0f, -height);
+            vtx_data += 4;
+
+            etc_obj_buffer.push_back({ ETC_OBJ_PLANE, index }, plane);
+            return true;
+        }
+        return false;
+    }
+
+    bool EtcObjManager::add_sphere(int32_t& index, int32_t& count, const EtcObjSphere& sphere) {
+        if (sphere.slices < 2 || sphere.stacks < 2)
+            return false;
+
+        for (const auto& i : etc_obj_buffer) {
+            if (i.first.first != ETC_OBJ_SPHERE)
+                continue;
+
+            const EtcObjSphere& other_sphere = i.second.sphere;
+            if (other_sphere.slices == sphere.slices
+                && other_sphere.stacks == sphere.stacks
+                && fabsf(other_sphere.radius - sphere.radius) < 0.00001f) {
+                index = i.first.second;
+                count = 1;
+                return true;
+            }
+        }
+
+        index = (int32_t)draw_param_buffer.size();
+        count = 1;
+
+        const size_t stacks = (((size_t)sphere.stacks + 1) / 2) * 2;
+        const size_t slices = sphere.slices;
+
+        etc_obj_vertex_data* vtx_data = 0;
+        size_t vtx_count = ((size_t)slices * ((size_t)stacks - 1) + 2);
+        size_t start = add_data(vtx_data, vtx_count);
+
+        gen_sphere_vertices(vtx_data, sphere.slices, sphere.stacks, sphere.radius);
+
+        draw_param_buffer.push_back({});
+        etc_obj_draw_param& draw_param = draw_param_buffer.back();
+
+        draw_param.attrib.m.primitive = sphere.wire ? GL_LINES : GL_TRIANGLES;
+        draw_param.start = (GLuint)start;
+
+        size_t idx_offset = index_buffer.size();
+        gen_sphere_indices(index_buffer, sphere.slices, sphere.stacks, sphere.wire, start);
+
+        draw_param.end = (GLuint)(start + vtx_count - 1);
+        draw_param.offset = (GLintptr)(idx_offset * sizeof(uint32_t));
+        draw_param.count = (GLsizei)(index_buffer.size() - idx_offset);
+
+        etc_obj_buffer.push_back({ ETC_OBJ_SPHERE, index }, sphere);
+        return true;
+    }
+
+    void EtcObjManager::clear() {
+        draw_param_buffer.clear();
+        vertex_buffer.clear();
+        index_buffer.clear();
+        etc_obj_buffer.clear();
+    }
+
+    void EtcObjManager::pre_draw() {
+        update();
+    }
+
+    void EtcObjManager::post_draw() {
+        clear();
+    }
+
+    void EtcObjManager::update() {
+        static const GLsizei buffer_size = sizeof(etc_obj_vertex_data);
+
+        if (vbo_vertex_count < vertex_buffer.size() / buffer_size) {
+            while (vbo_vertex_count < vertex_buffer.size() / buffer_size)
+                vbo_vertex_count *= 2;
+
+            vbo.Recreate(gl_state, buffer_size * vbo_vertex_count);
+
+            gl_state.bind_vertex_array(vao);
+            gl_state.bind_array_buffer(vbo, true);
+
+            set_default_vertex_attrib();
+
+            glEnableVertexAttribArray(POSITION_INDEX);
+            glVertexAttribPointer(POSITION_INDEX, 3, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(etc_obj_vertex_data, position));
+            glEnableVertexAttribArray(NORMAL_INDEX);
+            glVertexAttribPointer(NORMAL_INDEX, 3, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(etc_obj_vertex_data, normal));
+
+            gl_state.bind_array_buffer(0);
+            gl_state.bind_vertex_array(0);
+        }
+
+        vbo.WriteMemory(gl_state, 0, vertex_buffer.size(), vertex_buffer.data());
+
+        if (ebo_index_count < index_buffer.size()) {
+            while (ebo_index_count < index_buffer.size())
+                ebo_index_count *= 2;
+
+            ebo.Recreate(gl_state, sizeof(uint32_t) * ebo_index_count);
+
+            gl_state.bind_vertex_array(vao);
+            gl_state.bind_element_array_buffer(ebo, true);
+
+            gl_state.bind_vertex_array(0);
+            gl_state.bind_element_array_buffer(0);
+        }
+
+        ebo.WriteMemory(gl_state, 0, sizeof(uint32_t) * index_buffer.size(), index_buffer.data());
+
+        gl_state.bind_array_buffer(0);
+        gl_state.bind_element_array_buffer(0);
     }
 
     void DispManager::vertex_array::reset_vertex_attrib() {
@@ -381,22 +1146,7 @@ namespace mdl {
             glGenVertexArrays(1, &vertex_array->vertex_array);
 
             gl_state.bind_vertex_array(vertex_array->vertex_array, true);
-            glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
-            glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(         COLOR0_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
-            glVertexAttrib4f(         COLOR1_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
-            glVertexAttrib4f(    MORPH_COLOR_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
-            glVertexAttrib4f(        TANGENT_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(        UNKNOWN_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(      TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(      TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f( MORPH_POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(   MORPH_NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(  MORPH_TANGENT_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(MORPH_TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(MORPH_TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(     BONE_INDEX_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
+            set_default_vertex_attrib();
             new_vertex_array = true;
         }
 
@@ -1482,350 +2232,6 @@ namespace mdl {
         return wire_offset;
     }
 
-    void DispManager::add_vertex_array(EtcObj* etc, mat4& mat) {
-        EtcObjType type = etc->type;
-        switch (type) {
-        case mdl::ETC_OBJ_TEAPOT:
-        case mdl::ETC_OBJ_GRID:
-        case mdl::ETC_OBJ_CUBE:
-        case mdl::ETC_OBJ_SPHERE:
-        case mdl::ETC_OBJ_PLANE:
-        case mdl::ETC_OBJ_CONE:
-        case mdl::ETC_OBJ_LINE:
-        case mdl::ETC_OBJ_CROSS:
-        case mdl::ETC_OBJ_CAPSULE: // Added
-        case mdl::ETC_OBJ_CYLINDER: // Added
-            break;
-        default:
-            return;
-        }
-
-        bool indexed = false;
-        bool wire = false;
-        float_t length = 0.0f;
-
-        switch (type) {
-        case mdl::ETC_OBJ_TEAPOT: {
-            EtcObjTeapot& teapot = etc->data.teapot;
-
-            indexed = true;
-        } break;
-        case mdl::ETC_OBJ_GRID: {
-            EtcObjGrid& grid = etc->data.grid;
-
-        } break;
-        case mdl::ETC_OBJ_CUBE: {
-            EtcObjCube& cube = etc->data.cube;
-
-            indexed = true;
-            wire = cube.wire;
-        } break;
-        case mdl::ETC_OBJ_SPHERE: {
-            EtcObjSphere& sphere = etc->data.sphere;
-
-            indexed = true;
-            wire = sphere.wire;
-        } break;
-        case mdl::ETC_OBJ_PLANE: {
-            EtcObjPlane& plane = etc->data.plane;
-        } break;
-        case mdl::ETC_OBJ_CONE: {
-            EtcObjCone& cone = etc->data.cone;
-
-            indexed = true;
-            wire = cone.wire;
-        } break;
-        case mdl::ETC_OBJ_LINE: {
-            EtcObjLine& line = etc->data.line;
-
-            vec3 origin = (line.pos[0] + line.pos[1]) * 0.5f;
-            mat4_add_translate(&mat, &origin, &mat);
-
-            const vec3 dir = vec3::normalize(line.pos[1] - line.pos[0]);
-            const vec3 up = { 0.0f, 1.0f, 0.0f };
-            vec3 axis;
-            float_t angle;
-            vec3::axis_angle_from_vectors(axis, angle, up, dir);
-
-            mat4 m = mat4_identity;
-            mat4_mul_rotation(&m, &axis, angle, &m);
-            mat4_mul(&m, &mat, &mat);
-
-            length = vec3::distance(line.pos[0], line.pos[1]);
-        } break;
-        case mdl::ETC_OBJ_CROSS: {
-            EtcObjCross& cross = etc->data.cross;
-        } break;
-        case mdl::ETC_OBJ_CAPSULE: { // Added
-            EtcObjCapsule& capsule = etc->data.capsule;
-
-            vec3 origin = (capsule.pos[0] + capsule.pos[1]) * 0.5f;
-            mat4_add_translate(&mat, &origin, &mat);
-
-            const vec3 dir = vec3::normalize(capsule.pos[1] - capsule.pos[0]);
-            const vec3 up = { 0.0f, 1.0f, 0.0f };
-            vec3 axis;
-            float_t angle;
-            vec3::axis_angle_from_vectors(axis, angle, up, dir);
-
-            mat4 m = mat4_identity;
-            mat4_mul_rotation(&m, &axis, angle, &m);
-            mat4_mul(&m, &mat, &mat);
-
-            indexed = true;
-            wire = capsule.wire;
-            length = vec3::distance(capsule.pos[0], capsule.pos[1]);
-        } break;
-        case mdl::ETC_OBJ_CYLINDER: { // Added
-            EtcObjCylinder& cylinder = etc->data.cylinder;
-
-            indexed = true;
-            wire = cylinder.wire;
-        } break;
-        }
-
-        DispManager::etc_vertex_array* etc_vertex_array = 0;
-        for (DispManager::etc_vertex_array& i : etc_vertex_array_cache) {
-            if (i.alive_time <= 0 || i.type != type || i.vertex_buffer.IsNull())
-                continue;
-
-            if (type == mdl::ETC_OBJ_TEAPOT
-                || type == mdl::ETC_OBJ_GRID
-                && !memcmp(&i.data.grid, &etc->data.grid, sizeof(EtcObjGrid))
-                || type == mdl::ETC_OBJ_CUBE
-                && vec3::dot(vec3::abs(i.data.cube.size - etc->data.cube.size), 1.0f) < 0.00001f
-                || type == mdl::ETC_OBJ_SPHERE
-                && i.data.sphere.slices == etc->data.sphere.slices
-                && i.data.sphere.stacks == etc->data.sphere.stacks
-                && fabsf(i.data.sphere.radius - etc->data.sphere.radius) < 0.00001f
-                || type == mdl::ETC_OBJ_PLANE
-                && i.data.plane.w == etc->data.plane.w
-                && i.data.plane.h == etc->data.plane.h
-                || type == mdl::ETC_OBJ_CONE
-                && i.data.cone.slices == etc->data.cone.slices
-                && i.data.cone.stacks == etc->data.cone.stacks
-                && fabsf(i.data.cone.base - etc->data.cone.base) < 0.00001f
-                && fabsf(i.data.cone.height - etc->data.cone.height) < 0.00001f
-                || type == mdl::ETC_OBJ_LINE
-                && fabsf(vec3::distance(i.data.line.pos[0], i.data.line.pos[1]) - length) < 0.00001f
-                || type == mdl::ETC_OBJ_CROSS
-                && fabsf(i.data.cross.size - etc->data.cross.size) < 0.00001f
-                || type == mdl::ETC_OBJ_CAPSULE // Added
-                && i.data.capsule.slices == etc->data.capsule.slices
-                && ((i.data.capsule.stacks + 1)) >> 1 == ((etc->data.capsule.stacks + 1) >> 1)
-                && fabsf(i.data.capsule.radius - etc->data.capsule.radius) < 0.00001f
-                && fabsf(vec3::distance(i.data.capsule.pos[0], i.data.capsule.pos[1]) - length) < 0.00001f
-                || type == mdl::ETC_OBJ_CYLINDER // Added
-                && i.data.cylinder.slices == etc->data.cylinder.slices
-                && i.data.cylinder.stacks == etc->data.cylinder.stacks
-                && fabsf(i.data.cylinder.base - etc->data.cylinder.base) < 0.00001f
-                && fabsf(i.data.cylinder.height - etc->data.cylinder.height) < 0.00001f)
-                if (i.vertex_array) {
-                    i.alive_time = 2;
-                    if (!wire) {
-                        etc->count = i.count;
-                        etc->offset = i.offset;
-                    }
-                    else {
-                        etc->count = i.wire_count;
-                        etc->offset = i.wire_offset;
-                    }
-                    return;
-                }
-                else {
-                    etc_vertex_array = &i;
-                    break;
-                }
-        }
-
-        if (!etc_vertex_array)
-            for (DispManager::etc_vertex_array& i : etc_vertex_array_cache)
-                if (i.alive_time <= 0) {
-                    etc_vertex_array = &i;
-                    break;
-                }
-
-        if (!etc_vertex_array) {
-            etc_vertex_array_cache.push_back({});
-            etc_vertex_array = &etc_vertex_array_cache.back();
-        }
-
-        bool new_vertex_array = false;
-        if (!etc_vertex_array->vertex_array) {
-            glGenVertexArrays(1, &etc_vertex_array->vertex_array);
-
-            gl_state.bind_vertex_array(etc_vertex_array->vertex_array, true);
-            glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
-            glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(         COLOR0_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
-            glVertexAttrib4f(         COLOR1_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
-            glVertexAttrib4f(    MORPH_COLOR_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
-            glVertexAttrib4f(        TANGENT_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(        UNKNOWN_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(      TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(      TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f( MORPH_POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(   MORPH_NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(  MORPH_TANGENT_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(MORPH_TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(MORPH_TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-            glVertexAttrib4f(     BONE_INDEX_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
-            new_vertex_array = true;
-        }
-
-        etc_vertex_array->alive_time = 2;
-        etc_vertex_array->data = etc->data;
-        etc_vertex_array->type = type;
-        etc_vertex_array->indexed = indexed;
-
-        prj::vector<prj::pair<vec3, vec3>> vtx_data;
-        prj::vector<uint32_t> vtx_indices;
-        switch (type) {
-        case mdl::ETC_OBJ_TEAPOT: {
-            EtcObjTeapot& teapot = etc->data.teapot;
-
-            etc_vertex_array->count = (GLsizei)vtx_indices.size();
-        } break;
-        case mdl::ETC_OBJ_GRID: {
-            EtcObjGrid& grid = etc->data.grid;
-
-            size_t center_offset = gen_grid_vertices(vtx_data, grid.w, grid.h, grid.ws, grid.hs);
-
-            etc_vertex_array->offset = 0;
-            etc_vertex_array->count = (GLsizei)center_offset;
-        } break;
-        case mdl::ETC_OBJ_CUBE: {
-            EtcObjCube& cube = etc->data.cube;
-
-            gen_cube_vertices(vtx_data, cube.size);
-            size_t wire_offset = gen_cube_indices(vtx_indices);
-
-            etc_vertex_array->offset = 0;
-            etc_vertex_array->count = (GLsizei)wire_offset;
-            etc_vertex_array->wire_offset = wire_offset * sizeof(uint32_t);
-            etc_vertex_array->wire_count = (GLsizei)(vtx_indices.size() - wire_offset);
-        } break;
-        case mdl::ETC_OBJ_SPHERE: {
-            EtcObjSphere& sphere = etc->data.sphere;
-
-            gen_sphere_vertices(vtx_data, sphere.slices, sphere.stacks, sphere.radius);
-            size_t wire_offset = gen_sphere_indices(vtx_indices, sphere.slices, sphere.stacks);
-
-            etc_vertex_array->offset = 0;
-            etc_vertex_array->count = (GLsizei)wire_offset;
-            etc_vertex_array->wire_offset = wire_offset * sizeof(uint32_t);
-            etc_vertex_array->wire_count = (GLsizei)(vtx_indices.size() - wire_offset);
-        } break;
-        case mdl::ETC_OBJ_PLANE: {
-            EtcObjPlane& plane = etc->data.plane;
-
-            gen_plane_vertices(vtx_data, plane.w, plane.h);
-
-            etc_vertex_array->count = (GLsizei)vtx_data.size();
-        } break;
-        case mdl::ETC_OBJ_CONE: {
-            EtcObjCone& cone = etc->data.cone;
-
-            etc_vertex_array->count = (GLsizei)vtx_indices.size();
-        } break;
-        case mdl::ETC_OBJ_LINE: {
-            EtcObjLine& line = etc->data.line;
-
-            gen_line_vertices(vtx_data, length);
-
-            etc_vertex_array->count = (GLsizei)vtx_data.size();
-        } break;
-        case mdl::ETC_OBJ_CROSS: {
-            EtcObjCross& cross = etc->data.cross;
-
-            gen_cross_vertices(vtx_data, cross.size);
-
-            etc_vertex_array->count = (GLsizei)vtx_data.size();
-        } break;
-        case mdl::ETC_OBJ_CAPSULE: { // Added
-            EtcObjCapsule& capsule = etc->data.capsule;
-
-            gen_capsule_vertices(vtx_data, capsule.slices, capsule.stacks, length, capsule.radius);
-            size_t wire_offset = gen_capsule_indices(vtx_indices, capsule.slices, capsule.stacks, length);
-
-            etc_vertex_array->offset = 0;
-            etc_vertex_array->count = (GLsizei)wire_offset;
-            etc_vertex_array->wire_offset = wire_offset * sizeof(uint32_t);
-            etc_vertex_array->wire_count = (GLsizei)(vtx_indices.size() - wire_offset);
-        } break;
-        case mdl::ETC_OBJ_CYLINDER: { // Added
-            EtcObjCylinder& cylinder = etc->data.cylinder;
-
-            gen_cylinder_vertices(vtx_data, cylinder.slices, cylinder.stacks, cylinder.base, cylinder.height);
-            size_t wire_offset = gen_cylinder_indices(vtx_indices, cylinder.slices, cylinder.stacks);
-
-            etc_vertex_array->offset = 0;
-            etc_vertex_array->count = (GLsizei)wire_offset;
-            etc_vertex_array->wire_offset = wire_offset * sizeof(uint32_t);
-            etc_vertex_array->wire_count = (GLsizei)(vtx_indices.size() - wire_offset);
-        } break;
-        }
-
-        if (!wire) {
-            etc->count = etc_vertex_array->count;
-            etc->offset = etc_vertex_array->offset;
-        }
-        else {
-            etc->count = etc_vertex_array->wire_count;
-            etc->offset = etc_vertex_array->wire_offset;
-        }
-
-        if (!etc_vertex_array->count)
-            return;
-
-        if (etc_vertex_array->max_vtx < vtx_data.size()) {
-            etc_vertex_array->max_vtx = vtx_data.size();
-
-            etc_vertex_array->vertex_buffer.Destroy();
-        }
-
-        if (etc_vertex_array->max_idx < vtx_indices.size()) {
-            etc_vertex_array->max_idx = vtx_indices.size();
-
-            etc_vertex_array->index_buffer.Destroy();
-        }
-
-        GLsizei size_vertex = sizeof(vec3) * 2;
-
-        if (!new_vertex_array)
-            gl_state.bind_vertex_array(etc_vertex_array->vertex_array, true);
-
-        if (etc_vertex_array->vertex_buffer.IsNull())
-            etc_vertex_array->vertex_buffer.Create(gl_state, sizeof(vec3) * 2 * vtx_data.size());
-
-        gl_state.bind_array_buffer(etc_vertex_array->vertex_buffer, true);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec3) * 2
-            * vtx_data.size(), vtx_data.data());
-
-        if (indexed) {
-            if (etc_vertex_array->index_buffer.IsNull())
-                etc_vertex_array->index_buffer.Create(gl_state, sizeof(uint32_t) * vtx_indices.size());
-
-            gl_state.bind_element_array_buffer(etc_vertex_array->index_buffer, true);
-            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(uint32_t)
-                * vtx_indices.size(), vtx_indices.data());
-        }
-
-        glEnableVertexAttribArray(POSITION_INDEX);
-        glVertexAttribPointer(POSITION_INDEX,
-            3, GL_FLOAT, GL_FALSE, size_vertex, (void*)0);
-
-        glEnableVertexAttribArray(NORMAL_INDEX);
-        glVertexAttribPointer(NORMAL_INDEX,
-            3, GL_FLOAT, GL_FALSE, size_vertex, (void*)sizeof(vec3));
-
-        gl_state.bind_array_buffer(0);
-        gl_state.bind_vertex_array(0);
-        if (indexed)
-            gl_state.bind_element_array_buffer(0);
-    }
-
     void* DispManager::alloc_data(int32_t size) {
         if (!buff || buff_offset + size > buff_size)
             return 0;
@@ -2032,17 +2438,6 @@ namespace mdl {
         for (DispManager::vertex_array& i : vertex_array_cache)
             if (i.alive_time > 0 && --i.alive_time <= 0)
                 i.reset_vertex_attrib();
-
-        for (DispManager::etc_vertex_array& i : etc_vertex_array_cache)
-            if (i.alive_time > 0 && --i.alive_time <= 0) {
-                gl_state.bind_vertex_array(i.vertex_array, true);
-                glDisableVertexAttribArray(POSITION_INDEX);
-                glDisableVertexAttribArray(  NORMAL_INDEX);
-                gl_state.bind_array_buffer(0, true);
-                if (i.indexed)
-                    gl_state.bind_element_array_buffer(0, true);
-                gl_state.bind_vertex_array(0);
-            }
     }
 
     void DispManager::check_vertex_buffer(GLuint buffer) {
@@ -3582,11 +3977,16 @@ namespace mdl {
     }
 
     void DispManager::entry_obj_etc(const mat4& mat, const EtcObj& etc) {
+        int32_t first = 0;
+        int32_t count = 0;
+        if (!etc_obj_manager->add_obj(first, count, etc))
+            return;
+
         ObjData* data = alloc_obj_data(mdl::OBJ_KIND_ETC);
         if (!data)
             return;
 
-        data->init_etc(mat, etc);
+        data->init_etc(mat, first, count, etc);
         if (etc.color.a == 0xFF) {
             if (obj_flags & OBJ_SHADOW)
                 entry_list((mdl::ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
@@ -3650,88 +4050,6 @@ namespace mdl {
                     vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding))
                 && !memcmp(i.texcoord_array, texcoord_array, sizeof(texcoord_array)))
                 return i.vertex_array;
-        return 0;
-    }
-
-    GLuint DispManager::get_vertex_array(const EtcObj* etc) {
-        EtcObjType type = etc->type;
-        float_t length = 0;
-        switch (type) {
-        case mdl::ETC_OBJ_TEAPOT:
-        case mdl::ETC_OBJ_GRID:
-        case mdl::ETC_OBJ_CUBE:
-        case mdl::ETC_OBJ_SPHERE:
-        case mdl::ETC_OBJ_PLANE:
-        case mdl::ETC_OBJ_CONE:
-            break;
-        case mdl::ETC_OBJ_LINE:
-            length = vec3::distance(etc->data.line.pos[0], etc->data.line.pos[1]);
-            break;
-        case mdl::ETC_OBJ_CROSS:
-            break;
-        case mdl::ETC_OBJ_CAPSULE: // Added
-            length = vec3::distance(etc->data.capsule.pos[0], etc->data.capsule.pos[1]);
-            break;
-        case mdl::ETC_OBJ_CYLINDER: // Added
-            break;
-        default:
-            return 0;
-        }
-
-        for (DispManager::etc_vertex_array& i : etc_vertex_array_cache) {
-            if (i.alive_time <= 0 || i.type != type)
-                continue;
-
-            switch (type) {
-            case mdl::ETC_OBJ_TEAPOT:
-                return i.vertex_array;
-            case mdl::ETC_OBJ_GRID:
-                if (!memcmp(&i.data.grid, &etc->data.grid, sizeof(EtcObjGrid)))
-                    return i.vertex_array;
-                break;
-            case mdl::ETC_OBJ_CUBE:
-                if (vec3::dot(vec3::abs(i.data.cube.size - etc->data.cube.size), 1.0f) < 0.00001f)
-                    return i.vertex_array;
-            case mdl::ETC_OBJ_SPHERE:
-                if (i.data.sphere.slices == etc->data.sphere.slices
-                    && i.data.sphere.stacks == etc->data.sphere.stacks
-                    && fabsf(i.data.sphere.radius - etc->data.sphere.radius) < 0.00001f)
-                    return i.vertex_array;
-                break;
-            case mdl::ETC_OBJ_PLANE:
-                if (i.data.plane.w == etc->data.plane.w
-                    && i.data.plane.h == etc->data.plane.h)
-                    return i.vertex_array;
-            case mdl::ETC_OBJ_CONE:
-                if (i.data.cone.slices == etc->data.cone.slices
-                    && i.data.cone.stacks == etc->data.cone.stacks
-                    && fabsf(i.data.cone.base - etc->data.cone.base) < 0.00001f
-                    && fabsf(i.data.cone.height - etc->data.cone.height) < 0.00001f)
-                    return i.vertex_array;
-                break;
-            case mdl::ETC_OBJ_LINE:
-                if (fabsf(vec3::distance(i.data.line.pos[0], i.data.line.pos[1]) - length) < 0.00001f)
-                    return i.vertex_array;
-                break;
-            case mdl::ETC_OBJ_CROSS:
-                if (fabsf(i.data.cross.size - etc->data.cross.size) < 0.00001f)
-                    return i.vertex_array;
-            case mdl::ETC_OBJ_CAPSULE: // Added
-                if (i.data.capsule.slices == etc->data.capsule.slices
-                    && ((i.data.capsule.stacks + 1)) >> 1 == ((etc->data.capsule.stacks + 1) >> 1)
-                    && fabsf(i.data.capsule.radius - etc->data.capsule.radius) < 0.00001f
-                    && fabsf(vec3::distance(i.data.capsule.pos[0], i.data.capsule.pos[1]) - length) < 0.00001f)
-                    return i.vertex_array;
-                break;
-            case mdl::ETC_OBJ_CYLINDER: // Added
-                if (i.data.cylinder.slices == etc->data.cylinder.slices
-                    && i.data.cylinder.stacks == etc->data.cylinder.stacks
-                    && fabsf(i.data.cylinder.base - etc->data.cylinder.base) < 0.00001f
-                    && fabsf(i.data.cylinder.height - etc->data.cylinder.height) < 0.00001f)
-                    return i.vertex_array;
-                break;
-            }
-        }
         return 0;
     }
 
@@ -4115,14 +4433,10 @@ namespace mdl {
         vertex_array_cache.clear();
         vertex_array_cache.shrink_to_fit();
 
-        for (DispManager::etc_vertex_array& i : etc_vertex_array_cache) {
-            glDeleteVertexArrays(1, &i.vertex_array);
-
-            i.vertex_buffer.Destroy();
-            i.index_buffer.Destroy();
+        if (etc_obj_manager) {
+            delete etc_obj_manager;
+            etc_obj_manager = 0;
         }
-        etc_vertex_array_cache.clear();
-        etc_vertex_array_cache.shrink_to_fit();
 
         originaldisp_manager_free();
     }
@@ -4134,6 +4448,13 @@ namespace mdl {
         int32_t instances_count, mat4* instances_mat, obj_mesh_vertex_buffer* a12, int32_t* a13,
         void(FASTCALL* func)(const mdl::ObjSubMeshArgs*), const mdl::ObjSubMeshArgs* func_data, bool enable_bone_mat) {
         abort();
+    }
+
+    HOOK(void, FASTCALL, disp_manager_init, 0x0000000140438980) {
+        originaldisp_manager_init();
+
+        if (!etc_obj_manager)
+            etc_obj_manager = new EtcObjManager;
     }
 
     HOOK(void, FASTCALL, DispManager__entry_obj_etc, 0x00000001404395C0, const mdl::EtcObj& etc) {
@@ -4176,11 +4497,462 @@ namespace mdl {
         INSTALL_HOOK(MeshDw__DrawObjBoundingSphere);
         INSTALL_HOOK(disp_manager_free);
         INSTALL_HOOK(DispManager__entry_obj);
+        INSTALL_HOOK(disp_manager_init);
         INSTALL_HOOK(DispManager__entry_obj_etc);
         INSTALL_HOOK(DispManager__entry_obj_by_obj);
         INSTALL_HOOK(disp_manager_refresh);
         INSTALL_HOOK(sub_1404BCC60);
         INSTALL_HOOK(DispManager__entry_obj_by_object_info_object_skin);
+    }
+
+    static void gen_capsule_indices(std::vector<uint32_t>& indices,
+        int32_t slices, int32_t stacks, float_t length, bool wire, size_t start) {
+        if (slices < 2 || stacks < 2)
+            return;
+
+        stacks = ((stacks + 1) / 2) * 2;
+
+        if (length < 0.00001f)
+            gen_sphere_indices(indices, slices, stacks, wire, start);
+
+        if (!wire) {
+            // Top stack vertices
+            {
+                int32_t m1 = 0;
+                int32_t m2 = 1;
+
+                indices.reserve(3LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                    indices.push_back((uint32_t)(start + k + m2));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+
+            // Middle stacks vertices
+            for (int32_t i = 1; i < stacks; i++) {
+                int32_t m1 = (i - 1) * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(6LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                    indices.push_back((uint32_t)(start + k + m1));
+
+                    indices.push_back((uint32_t)(start + k + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                    indices.push_back((uint32_t)(start + k + m2));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+
+            // Bottom stack vertices
+            {
+                int32_t m1 = (stacks - 1) * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(3LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + m2));
+                    indices.push_back((uint32_t)(start + k + m1));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+        }
+        else {
+            // Top stack wireframe
+            {
+                int32_t m1 = 0;
+                int32_t m2 = 1;
+
+                indices.reserve(2LL * slices);
+
+                for (int32_t j = 0; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                }
+            }
+
+            // Middle stacks wireframe
+            for (int32_t i = 1; i < stacks; i++) {
+                int32_t m1 = (i - 1) * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(2LL * slices);
+
+                for (int32_t j = 0; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                }
+            }
+
+            // Bottom stack wireframe
+            {
+                int32_t m1 = (stacks - 1) * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(2LL * slices);
+
+                for (int32_t j = 0; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + m2));
+                }
+            }
+
+            // Slices wireframe
+            for (int32_t i = 1; i <= stacks; i++) {
+                int32_t m = (i - 1) * slices + 1;
+
+                indices.reserve(2LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m));
+                    indices.push_back((uint32_t)(start + k + m));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+        }
+    }
+
+    static void gen_capsule_vertices(etc_obj_vertex_data* data,
+        int32_t slices, int32_t stacks, float_t length, float_t radius) {
+        stacks = ((stacks + 1) / 2) * 2;
+
+        if (length < 0.00001f)
+            gen_sphere_vertices(data, slices, stacks, radius);
+
+        length *= 0.5f;
+
+        *data++ = { { 0.0f, 0.0f, radius + length }, { 0.0f, 0.0f, 1.0f } };
+
+        double_t slice_step = (M_PI * 2.0) / (double_t)slices;
+        double_t stack_step = M_PI / (double_t)stacks;
+
+        for (int32_t i = 1; i <= stacks / 2; i++) {
+            float_t stack_angle = (float_t)((M_PI / 2.0) - (double_t)i * stack_step);
+            float_t xy = cosf(stack_angle);
+            float_t z = sinf(stack_angle);
+            z *= radius;
+
+            for (int32_t j = 0; j < slices; j++) {
+                float_t slice_angle = (float_t)((double_t)j * slice_step);
+
+                float_t x = xy * cosf(slice_angle);
+                float_t y = xy * sinf(slice_angle);
+
+                *data++ = { { x * radius, y * radius, z + length }, { x, y, z } };
+            }
+        }
+
+        for (int32_t i = stacks / 2; i < stacks; i++) {
+            float_t stack_angle = (float_t)((M_PI / 2.0) - (double_t)i * stack_step);
+            float_t xy = cosf(stack_angle);
+            float_t z = sinf(stack_angle);
+            z *= radius;
+
+            for (int32_t j = 0; j < slices; j++) {
+                float_t slice_angle = (float_t)((double_t)j * slice_step);
+
+                float_t x = xy * cosf(slice_angle);
+                float_t y = xy * sinf(slice_angle);
+
+                *data++ = { { x * radius, y * radius, z - length }, { x, y, z } };
+            }
+        }
+
+        *data++ = { { 0.0f, 0.0f, -radius - length }, { 0.0f, 0.0f, -1.0f } };
+    }
+
+    static void gen_cylinder_indices(std::vector<uint32_t>& indices,
+        int32_t slices, int32_t stacks, bool wire, size_t start) {
+        if (slices < 2 || stacks < 0)
+            return;
+
+        if (!wire) {
+            // Top cap vertices
+            {
+                int32_t m1 = 0;
+                int32_t m2 = 1;
+
+                indices.reserve(3LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                    indices.push_back((uint32_t)(start + k + m2));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+
+            // Stacks vertices
+            for (int32_t i = 0; i < stacks; i++) {
+                int32_t m1 = i * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(6LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                    indices.push_back((uint32_t)(start + k + m1));
+
+                    indices.push_back((uint32_t)(start + k + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                    indices.push_back((uint32_t)(start + k + m2));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+
+            // Bottom cap vertices
+            {
+                int32_t m1 = stacks * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(3LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + m2));
+                    indices.push_back((uint32_t)(start + k + m1));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+        }
+        else {
+            // Stacks wireframe
+            for (int32_t i = 0; i < stacks; i++) {
+                int32_t m1 = i * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(2LL * slices);
+
+                for (int32_t j = 0; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                }
+            }
+
+            // Slices wireframe
+            for (int32_t i = 0; i <= stacks; i++) {
+                int32_t m = i * slices + 1;
+
+                indices.reserve(2LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m));
+                    indices.push_back((uint32_t)(start + k + m));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+        }
+    }
+
+    static void gen_cylinder_vertices(etc_obj_vertex_data* data,
+        int32_t slices, int32_t stacks, float_t base, float_t height) {
+        float_t half_height = height * 0.5f;
+
+        *data++ = { { 0.0f, 0.0f, stacks ? half_height : 0.0f }, { 0.0f, 1.0f, 0.0f } };
+
+        double_t slice_step = (M_PI * 2.0) / (double_t)slices;
+
+        for (int32_t i = 0; i <= stacks; i++) {
+            float_t z = stacks ? lerp_def(half_height, -half_height, (float_t)i / (float_t)stacks) : 0.0f;
+
+            for (int32_t j = 0; j < slices; j++) {
+                float_t slice_angle = (float_t)((double_t)j * slice_step);
+
+                float_t x = cosf(slice_angle);
+                float_t y = sinf(slice_angle);
+
+                *data++ = { { x * base, y * base, z }, { x, y, 0.0f } };
+            }
+        }
+
+        *data++ = { { 0.0f, 0.0f, stacks ? -half_height : 0.0f }, { 0.0f, -1.0f, 0.0f } };
+    }
+
+    static void gen_sphere_indices(std::vector<uint32_t>& indices,
+        int32_t slices, int32_t stacks, bool wire, size_t start) {
+        if (slices < 2 || stacks < 2)
+            return;
+
+        if (!wire) {
+            // Top stack vertices
+            {
+                int32_t m1 = 0;
+                int32_t m2 = 1;
+
+                indices.reserve(3LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + m1));
+                    indices.push_back((uint32_t)(start + k + m2));
+                    indices.push_back((uint32_t)(start + j + m2));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+
+            // Middle stacks vertices
+            for (int32_t i = 1; i < stacks - 1; i++) {
+                int32_t m1 = (i - 1) * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(6LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + k + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+
+                    indices.push_back((uint32_t)(start + k + m1));
+                    indices.push_back((uint32_t)(start + k + m2));
+                    indices.push_back((uint32_t)(start + j + m2));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+
+            // Bottom stack vertices
+            {
+                int32_t m1 = (stacks - 2) * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(3LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + k + m1));
+                    indices.push_back((uint32_t)(start + m2));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+        }
+        else {
+            // Top stack wireframe
+            {
+                int32_t m1 = 0;
+                int32_t m2 = 1;
+
+                indices.reserve(2LL * slices);
+
+                for (int32_t j = 0; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                }
+            }
+
+            // Middle stacks wireframe
+            for (int32_t i = 1; i < stacks - 1; i++) {
+                int32_t m1 = (i - 1) * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(2LL * slices);
+
+                for (int32_t j = 0; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + j + m2));
+                }
+            }
+
+            // Bottom stack wireframe
+            {
+                int32_t m1 = (stacks - 2) * slices + 1;
+                int32_t m2 = m1 + slices;
+
+                indices.reserve(2LL * slices);
+
+                for (int32_t j = 0; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m1));
+                    indices.push_back((uint32_t)(start + m2));
+                }
+            }
+
+            // Slices wireframe
+            for (int32_t i = 1; i < stacks; i++) {
+                int32_t m = (i - 1) * slices + 1;
+
+                indices.reserve(2LL * slices);
+
+                for (int32_t j = 0, k = 1; j < slices; j++) {
+                    indices.push_back((uint32_t)(start + j + m));
+                    indices.push_back((uint32_t)(start + k + m));
+
+                    if (++k >= slices)
+                        k = 0;
+                }
+            }
+        }
+    }
+
+    static void gen_sphere_vertices(etc_obj_vertex_data* data,
+        int32_t slices, int32_t stacks, float_t radius) {
+        *data++ = { { 0.0f, 0.0f, radius }, { 0.0f, 0.0f, -1.0f } };
+
+        double_t slice_step = (M_PI * 2.0) / (double_t)slices;
+        double_t stack_step = M_PI / (double_t)stacks;
+
+        for (int32_t i = 1; i < stacks; i++) {
+            float_t stack_angle = (float_t)((M_PI / 2.0) - (double_t)i * stack_step);
+            float_t xy = cosf(stack_angle);
+            float_t z = sinf(stack_angle);
+
+            for (int32_t j = 0; j < slices; j++) {
+                float_t slice_angle = -(float_t)((double_t)j * slice_step);
+
+                float_t x = xy * cosf(slice_angle);
+                float_t y = xy * sinf(slice_angle);
+
+                *data++ = { { x * radius, y * radius, z * radius }, { x, y, z } };
+            }
+        }
+
+        *data++ = { { 0.0f, 0.0f, -radius }, { 0.0f, 0.0f, -1.0f } };
+    }
+
+    inline static void set_default_vertex_attrib() {
+        glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
+        glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(         COLOR0_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
+        glVertexAttrib4f(         COLOR1_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
+        glVertexAttrib4f(    MORPH_COLOR_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
+        glVertexAttrib4f(        TANGENT_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(        UNKNOWN_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(      TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(      TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f( MORPH_POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(   MORPH_NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(  MORPH_TANGENT_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(MORPH_TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(MORPH_TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(     BONE_INDEX_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
     }
 }
 

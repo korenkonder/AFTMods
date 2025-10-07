@@ -16,7 +16,7 @@ namespace mdl {
         render_data_context& rend_data_ctx, obj_primitive_type primitive_type, uint32_t count,
         uint16_t start, uint16_t end, obj_index_format index_format, size_t indices);
     extern void draw_etc_obj(
-        render_data_context& rend_data_ctx, const mdl::EtcObj* etc, const mat4* mat);
+        render_data_context& rend_data_ctx, const mdl::EtcObjData* etc, const mat4* mat);
     extern void draw_sub_mesh(render_data_context& rend_data_ctx, const ObjSubMeshArgs* args,
         const mat4* mat, void(*func)(render_data_context& rend_data_ctx,
             const ObjSubMeshArgs* args, const cam_data& cam, const mat4* mat), const cam_data& cam);

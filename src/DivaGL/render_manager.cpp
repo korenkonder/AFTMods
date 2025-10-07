@@ -283,6 +283,7 @@ namespace rndr {
 
         gl_state.get();
         sprite_manager_pre_draw();
+        mdl::etc_obj_manager->pre_draw();
 
         {
             render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
@@ -325,6 +326,7 @@ namespace rndr {
         }
 
         disp_manager->check_vertex_arrays();
+        mdl::etc_obj_manager->post_draw();
         sprite_manager_post_draw();
 
         render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
