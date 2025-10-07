@@ -58,7 +58,7 @@ struct rob_chara_age_age_data {
     float_t field_14;
     float_t rot_z;
     int32_t field_1C;
-    float_t rot_speed;
+    float_t speed;
     float_t gravity;
     float_t scale;
     float_t alpha;
