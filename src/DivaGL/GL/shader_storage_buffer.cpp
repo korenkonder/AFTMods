@@ -109,6 +109,9 @@ namespace GL {
             Create(gl_st, size);
         }
         else {
+            if (!buffer)
+                Create(gl_st, size);
+
             gl_st.bind_shader_storage_buffer(buffer);
             glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)size, 0, GL_DYNAMIC_DRAW);
         }
@@ -120,6 +123,9 @@ namespace GL {
             Create(gl_st, size, data, dynamic);
         }
         else {
+            if (!buffer)
+                Create(gl_st, size, data, dynamic);
+
             gl_st.bind_shader_storage_buffer(buffer);
             glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)size, data,
                 dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
