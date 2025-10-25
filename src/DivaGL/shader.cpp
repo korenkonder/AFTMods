@@ -233,6 +233,45 @@ static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::str
 
     binding_pos = 0;
     binding_end_pos = 0;
+    while ((binding_pos = temp.find("layout(std140, set = 1, binding = ", binding_pos)) != -1
+        && (binding_end_pos = temp.find(") uniform", binding_pos)) != -1) {
+        std::string binding_str = temp.substr(binding_pos + 34, binding_end_pos - (binding_pos + 34));
+        int32_t binding = atoi(binding_str.c_str());
+
+        if (DIVA_GL_VERSION_4_2) {
+            char buf[0x40];
+            sprintf_s(buf, sizeof(buf), "layout(binding = %d) uniform", binding);
+            temp.replace(binding_pos, binding_end_pos + 9 - binding_pos, buf);
+        }
+        else {
+            size_t name_pos = binding_end_pos + 9;
+            while (isspace(temp.data()[name_pos]))
+                name_pos++;
+
+            size_t name_end_pos = temp.find('{', name_pos);
+            if (name_end_pos != -1) {
+                while (isspace(temp.data()[name_end_pos - 1]))
+                    name_end_pos--;
+
+                std::string name_str = temp.substr(name_pos, name_end_pos - name_pos);
+
+                bool found = false;
+                for (auto& i : uniforms)
+                    if (i.first == binding && i.second == name_str) {
+                        found = true;
+                        break;
+                    }
+
+                if (!found)
+                    uniforms.push_back(binding, name_str);
+            }
+
+            temp.erase(binding_pos, binding_end_pos + 2 - binding_pos);
+        }
+    }
+
+    binding_pos = 0;
+    binding_end_pos = 0;
     while ((binding_pos = temp.find("layout(std430, set = 2, binding = ", binding_pos)) != -1
         && (binding_end_pos = temp.find(") readonly buffer", binding_pos)) != -1) {
         std::string binding_str = temp.substr(binding_pos + 34, binding_end_pos - (binding_pos + 34));
