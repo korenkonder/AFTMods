@@ -534,6 +534,14 @@ enum motion_bone_index {
     MOTION_BONE_MAX                     = 0xB9,
 };
 
+enum obj_skin_block_constraint_type {
+    OBJ_SKIN_BLOCK_CONSTRAINT_NONE        = 0x00,
+    OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION = 0x01,
+    OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION   = 0x02,
+    OBJ_SKIN_BLOCK_CONSTRAINT_POSITION    = 0x03,
+    OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE    = 0x04,
+};
+
 enum rob_bone_index {
     ROB_BONE_NONE                    = -1,
     ROB_BONE_N_HARA_CP               = 0x00,
@@ -917,6 +925,13 @@ public:
 };
 
 static_assert(sizeof(ExNodeBlock) == 0x60, "\"ExNodeBlock\" struct should have a size of 0x60");
+
+class ExNullBlock : public ExNodeBlock {
+public:
+    struct obj_skin_block_constraint* cns_data;
+};
+
+static_assert(sizeof(ExNullBlock) == 0x68, "\"ExNullBlock\" struct should have a size of 0x68");
 
 struct RobOsageNode;
 
@@ -1329,6 +1344,90 @@ public:
 
 static_assert(sizeof(ExOsageBlock) == 0x2000, "\"ExOsageBlock\" struct should have a size of 0x2000");
 
+class ExConstraintBlock : public ExNodeBlock {
+public:
+    obj_skin_block_constraint_type constraint_type;
+    bone_node* source_node_bone_node;
+    bone_node* direction_up_vector_bone_node;
+    struct obj_skin_block_constraint* cns_data;
+    int64_t field_80;
+};
+
+static_assert(sizeof(ExConstraintBlock) == 0x88, "\"ExConstraintBlock\" struct should have a size of 0x88");
+
+struct ex_expression_block_stack;
+
+struct ex_expression_block_stack_number {
+    float_t value;
+};
+
+static_assert(sizeof(ex_expression_block_stack_number) == 0x04, "\"ex_expression_block_stack_number\" struct should have a size of 0x04");
+
+struct ex_expression_block_stack_variable {
+    float_t* value;
+};
+
+static_assert(sizeof(ex_expression_block_stack_variable) == 0x08, "\"ex_expression_block_stack_variable\" struct should have a size of 0x08");
+
+struct ex_expression_block_stack_variable_radian {
+    float_t* value;
+};
+
+static_assert(sizeof(ex_expression_block_stack_variable_radian) == 0x08, "\"ex_expression_block_stack_variable_radian\" struct should have a size of 0x08");
+
+struct ex_expression_block_stack_op1 {
+    float_t(*func)(float_t v1);
+    ex_expression_block_stack* v1;
+};
+
+static_assert(sizeof(ex_expression_block_stack_op1) == 0x10, "\"ex_expression_block_stack_op1\" struct should have a size of 0x10");
+
+struct ex_expression_block_stack_op2 {
+    float_t(*func)(float_t v1, float_t v2);
+    ex_expression_block_stack* v1;
+    ex_expression_block_stack* v2;
+};
+
+static_assert(sizeof(ex_expression_block_stack_op2) == 0x18, "\"ex_expression_block_stack_op2\" struct should have a size of 0x18");
+
+struct ex_expression_block_stack_op3 {
+    float_t(*func)(float_t v1, float_t v2, float_t v3);
+    ex_expression_block_stack* v1;
+    ex_expression_block_stack* v2;
+    ex_expression_block_stack* v3;
+};
+
+static_assert(sizeof(ex_expression_block_stack_op3) == 0x20, "\"ex_expression_block_stack_op3\" struct should have a size of 0x20");
+
+struct ex_expression_block_stack {
+    ex_expression_block_stack_type type;
+    union {
+        ex_expression_block_stack_number number;
+        ex_expression_block_stack_variable var;
+        ex_expression_block_stack_variable_radian var_rad;
+        ex_expression_block_stack_op1 op1;
+        ex_expression_block_stack_op2 op2;
+        ex_expression_block_stack_op3 op3;
+    };
+};
+
+static_assert(sizeof(ex_expression_block_stack) == 0x28, "\"ex_expression_block_stack\" struct should have a size of 0x28");
+
+class ExExpressionBlock : public ExNodeBlock {
+public:
+    float_t* values[9];
+    ex_expression_block_stack_type types[9];
+    ex_expression_block_stack* expressions[9];
+    ex_expression_block_stack stack_data[384];
+    struct obj_skin_block_expression* exp_data;
+    bool field_3D20;
+    void(*field_3D28)(bone_node_expression_data*);
+    float_t frame;
+    bool step;
+};
+
+static_assert(sizeof(ExExpressionBlock) == 0x3D38, "\"ExExpressionBlock\" struct should have a size of 0x3D38");
+
 struct rob_chara_item_equip;
 
 struct rob_chara_item_equip_object {
@@ -1353,10 +1452,10 @@ struct rob_chara_item_equip_object {
     prj::vector<mat4> ex_data_mats;
     prj::vector_pair<const char*, uint32_t> ex_bones;
     int64_t field_138;
-    prj::vector<struct ExNullBlock*> null_blocks;
+    prj::vector<ExNullBlock*> null_blocks;
     prj::vector<ExOsageBlock*> osage_blocks;
-    prj::vector<struct ExConstraintBlock*> constraint_blocks;
-    prj::vector<struct ExExpressionBlock*> expression_blocks;
+    prj::vector<ExConstraintBlock*> constraint_blocks;
+    prj::vector<ExExpressionBlock*> expression_blocks;
     prj::vector<ExClothBlock*> cloth_blocks;
     bool osage_depends_on_others;
     int32_t auth_obj_index; // RobTexAnim
