@@ -43,11 +43,11 @@ struct struc_8 {
 static_assert(sizeof(struc_8) == 0x90, "\"struc_8\" struct should have a size of 0x90");
 
 static void(FASTCALL* auth_3d_rgba__free)(auth_3d_rgba* rgba)
-= (void(FASTCALL*)(auth_3d_rgba * rgba))0x00000001401B8900;
+    = (void(FASTCALL*)(auth_3d_rgba * rgba))0x00000001401B8900;
 static void (FASTCALL* auth_3d_rgba__ctrl)(auth_3d_rgba* rgba, float_t frame)
     = (void (FASTCALL*)(auth_3d_rgba * rgba, float_t frame))0x00000001401D4070;
 static bool (FASTCALL* auth_3d_key__parse)(auth_3d_key* k, struc_8* a2, prj::string_range_capacity str_rng_cap)
-= (bool (FASTCALL*)(auth_3d_key * k, struc_8 * a2, prj::string_range_capacity str_rng_cap))0x00000001401DB1A0;
+    = (bool (FASTCALL*)(auth_3d_key * k, struc_8 * a2, prj::string_range_capacity str_rng_cap))0x00000001401DB1A0;
 static bool (FASTCALL* auth_3d_rgba__parse)(auth_3d_rgba* rgba, struc_8* a2, prj::string_range_capacity str_rng_cap)
     = (bool (FASTCALL*)(auth_3d_rgba * rgba, struc_8 * a2, prj::string_range_capacity str_rng_cap))0x00000001401DB520;
 
@@ -59,56 +59,55 @@ HOOK(void, FASTCALL, auth_3d_parse, 0x00000001401C15B0, auth_3d* auth) {
     const int32_t state_before = auth->state;
     originalauth_3d_parse(auth);
     const int32_t state_after = auth->state;
+    if (state_before != 1 || state_after != 2)
+        return;
+
     extern bool reflect_full;
-    if (!reflect_full || state_before != 1 || state_after != 2)
-        return;
-
     extern const firstread* firstread_ptr;
-    if (!firstread_ptr || !firstread_ptr->auth_3d_array)
-        return;
+    if (reflect_full && firstread_ptr && firstread_ptr->auth_3d_array) {
+        const firstread_auth_3d_array* auth_3d_array = firstread_ptr->auth_3d_array;
 
-    const firstread_auth_3d_array* auth_3d_array = firstread_ptr->auth_3d_array;
+        for (uint32_t i = 0; i < auth_3d_array->num_auth_3d; i++) {
+            if (auth_3d_array->auth_3d_array[i].uid != auth->uid)
+                continue;
 
-    for (uint32_t i = 0; i < auth_3d_array->num_auth_3d; i++) {
-        if (auth_3d_array->auth_3d_array[i].uid != auth->uid)
-            continue;
+            const firstread_auth_3d* frg_auth_3d = &auth_3d_array->auth_3d_array[i];
 
-        const firstread_auth_3d* frg_auth_3d = &auth_3d_array->auth_3d_array[i];
+            auto obj_begin = auth->object.begin();
+            auto obj_end = auth->object.end();
+            const uint32_t num_object = frg_auth_3d->num_object;
+            for (uint32_t j = 0; j < num_object; j++) {
+                const uint64_t name_hash = hash_utf8_xxh3_64bits(frg_auth_3d->object_array[j].name);
+                for (auth_3d_object& k : auth->object) {
+                    if (name_hash != hash_utf8_xxh3_64bits(k.name.c_str()))
+                        continue;
 
-        auto obj_begin = auth->object.begin();
-        auto obj_end = auth->object.end();
-        const uint32_t num_object = frg_auth_3d->num_object;
-        for (uint32_t j = 0; j < num_object; j++) {
-            const uint64_t name_hash = hash_utf8_xxh3_64bits(frg_auth_3d->object_array[j].name);
-            for (auth_3d_object& k : auth->object) {
-                if (name_hash != hash_utf8_xxh3_64bits(k.name.c_str()))
-                    continue;
+                    const firstread_auth_3d_object* frg_a3d_obj = &frg_auth_3d->object_array[j];
+                    k.uid_name.assign(frg_a3d_obj->uid_name);
+                    k.object_info = object_database_get_object_info(frg_a3d_obj->uid_name);
 
-                const firstread_auth_3d_object* frg_a3d_obj = &frg_auth_3d->object_array[j];
-                k.uid_name.assign(frg_a3d_obj->uid_name);
-                k.object_info = object_database_get_object_info(frg_a3d_obj->uid_name);
-
-                k.reflect = k.uid_name.find("_REFLECT") != -1;
-                k.refract = k.uid_name.find("_REFRACT") != -1;
-                break;
-            }
-        }
-
-        auto obj_list_begin = auth->object_list.begin();
-        auto obj_list_end = auth->object_list.end();
-        const uint32_t num_object_list = frg_auth_3d->num_object_list;
-        for (uint32_t j = 0; j < num_object_list; j++) {
-            const uint64_t name_hash = hash_utf8_xxh3_64bits(frg_auth_3d->object_list_array[j].name);
-            for (auto obj_list = obj_list_begin; obj_list != obj_list_end; )
-                if (name_hash == hash_utf8_xxh3_64bits((*obj_list)->name.c_str())) {
-                    auth->object_list.erase(obj_list);
-                    obj_list_end = auth->object_list.end();
+                    k.reflect = k.uid_name.find("_REFLECT") != -1;
+                    k.refract = k.uid_name.find("_REFRACT") != -1;
                     break;
                 }
-                else
-                    obj_list++;
+            }
+
+            auto obj_list_begin = auth->object_list.begin();
+            auto obj_list_end = auth->object_list.end();
+            const uint32_t num_object_list = frg_auth_3d->num_object_list;
+            for (uint32_t j = 0; j < num_object_list; j++) {
+                const uint64_t name_hash = hash_utf8_xxh3_64bits(frg_auth_3d->object_list_array[j].name);
+                for (auto obj_list = obj_list_begin; obj_list != obj_list_end; )
+                    if (name_hash == hash_utf8_xxh3_64bits((*obj_list)->name.c_str())) {
+                        auth->object_list.erase(obj_list);
+                        obj_list_end = auth->object_list.end();
+                        break;
+                    }
+                    else
+                        obj_list++;
+            }
+            break;
         }
-        break;
     }
 }
 
