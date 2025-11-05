@@ -63,8 +63,7 @@ int32_t shader::bind(p_gl_rend_state& p_gl_rend_st,
 
 static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::string>& samplers,
     prj::vector_pair<int32_t, std::string>& uniforms, bool apple_fix) {
-    std::string temp;
-    temp.assign(data);
+    std::string temp(data);
     free_def(data);
 
     size_t version_pos = temp.find("#version 430 core");
