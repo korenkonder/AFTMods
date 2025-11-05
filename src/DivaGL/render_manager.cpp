@@ -1044,7 +1044,7 @@ namespace rndr {
             rend_data_ctx.state.begin_event("screen");
 
             cam_data screen_cam = cam;
-            screen_cam.set_fov(32.2673416137695f);
+            screen_cam.set_fov(32.2673416137695f * DEG_TO_RAD_FLOAT);
             screen_cam.calc_persp_proj_mat_offset(1.0f, render_get()->get_taa_offset());
             screen_cam.calc_view_proj_mat();
             rend_data_ctx.set_batch_scene_camera(screen_cam);
