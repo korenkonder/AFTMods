@@ -2562,6 +2562,8 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
         DIVA_GL_VERSION_4_5 = (major == 4 && minor >= 5) || major > 4;
         DIVA_GL_VERSION_4_6 = (major == 4 && minor >= 6) || major > 4;
 
+        printf_divagl("Using OpenGL %d.%d", major, minor);
+
         extern bool sv_shared_storage_uniform_buffer;
         if (sv_shared_storage_uniform_buffer)
             printf_divagl("Enabled Shared Storage/Uniform Buffer");
