@@ -316,6 +316,7 @@ void render_data::set_skinning_data(p_gl_rend_state& p_gl_rend_st, const mat4* m
             vec2i_to_vec2(offset, *(vec2*)&buffer_batch_data.g_bump_depth.z);
             enum_or(flags, RENDER_DATA_BATCH_UPDATE);
             p_gl_rend_st.active_bind_texture_2d(21, texture);
+            p_gl_rend_st.bind_sampler(21, rctx->render_samplers[1]);
         }
     }
     else if (sv_shared_storage_uniform_buffer) {
@@ -1480,10 +1481,16 @@ void render_context::pre_proc() {
             if (align_x)
                 memset((void*)((size_t)i.data + (sizeof(vec4) * i.width * i.y
                     + sizeof(vec4) * i.x)), 0, sizeof(vec4) * align_x);
-            gl_state.bind_texture_2d(i.texture);
-            glTexSubImage2DDLL(GL_TEXTURE_2D, 0, 0, 0, i.width, i.y + 1, GL_RGBA, GL_FLOAT, i.data);
+            if (DIVA_GL_VERSION_4_5)
+                glTextureSubImage2D(i.texture, 0, 0, 0, i.width, i.y + 1, GL_RGBA, GL_FLOAT, i.data);
+            else {
+                gl_state.bind_texture_2d(i.texture);
+                glTexSubImage2DDLL(GL_TEXTURE_2D, 0, 0, 0, i.width, i.y + 1, GL_RGBA, GL_FLOAT, i.data);
+            }
         }
-        gl_state.bind_texture_2d(0);
+
+        if (!DIVA_GL_VERSION_4_5)
+            gl_state.bind_texture_2d(0);
     }
 }
 

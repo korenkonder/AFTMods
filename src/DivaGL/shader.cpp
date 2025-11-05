@@ -79,45 +79,6 @@ static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::str
             temp.replace(result_pos, 7, "frg_", 4);
     }
 
-    if (sv_texture_skinning_buffer) {
-        size_t buffer_skinning_pos = temp.find(
-            "layout(std430, set = 2, binding = 0) readonly buffer Skinning");
-        if (buffer_skinning_pos != -1) {
-            size_t apply_skinning_pos = temp.find("vec4 apply_skinning(in const vec3 a_data,"
-                " in const ivec4 mtxidx, in const vec4 weight)", buffer_skinning_pos);
-            if (apply_skinning_pos != -1) {
-                const char replacement[] =
-                    "#define skinning_offset ivec2(g_bump_depth.zw)\n"
-                    "uniform sampler2D g_skinning;\n"
-                    "\n"
-                    "vec3 apply_skinning(in const vec4 data, in const int mtxidx_comp) {\n"
-                    "    const ivec3 mtxidx_row = ivec3(mtxidx_comp * 3) + ivec3(0, 1, 2);\n"
-                    "\n"
-                    "    return vec3(\n"
-                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.x, 0) + skinning_offset, 0)),\n"
-                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.y, 0) + skinning_offset, 0)),\n"
-                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.z, 0) + skinning_offset, 0))\n"
-                    "    );\n"
-                    "}\n"
-                    "\n"
-                    "vec3 apply_skinning_rotation(in const vec3 data, in const int mtxidx_comp) {\n"
-                    "    const ivec3 mtxidx_row = ivec3(mtxidx_comp * 3) + ivec3(0, 1, 2);\n"
-                    "\n"
-                    "    return vec3(\n"
-                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.x, 0) + skinning_offset, 0).xyz),\n"
-                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.y, 0) + skinning_offset, 0).xyz),\n"
-                    "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.z, 0) + skinning_offset, 0).xyz)\n"
-                    "    );\n"
-                    " }\n"
-                    "\n";
-                temp.replace(buffer_skinning_pos, apply_skinning_pos - buffer_skinning_pos,
-                    replacement, sizeof(replacement) - 1);
-
-                samplers.push_back({ 21, "g_skinning" });
-            }
-        }
-    }
-
     size_t binding_pos = 0;
     size_t binding_end_pos = 0;
     while ((binding_pos = temp.find("layout(set = 0, binding = ", binding_pos)) != -1
@@ -327,6 +288,56 @@ static char* get_uniform_location(char* data, prj::vector_pair<int32_t, std::str
         temp.replace(use_vertex_attrib_pos, 17, "(1)", 3);
 
     return str_utils_copy(temp.c_str());
+}
+
+static char* replace_skinning_with_g_skinning(char* data) {
+    char* buffer_skinning_ptr = strstr(data,
+        "layout(std430, set = 2, binding = 0) readonly buffer Skinning");
+    if (!buffer_skinning_ptr)
+        return data;
+
+    char* apply_skinning_ptr = strstr(buffer_skinning_ptr, "vec4 apply_skinning(in const vec3 a_data,"
+        " in const ivec4 mtxidx, in const vec4 weight)");
+    if (!apply_skinning_ptr)
+        return data;
+
+    size_t buffer_skinning_pos = buffer_skinning_ptr - data;
+    size_t apply_skinning_pos = apply_skinning_ptr - data;
+
+    const char replacement[] =
+        "#define skinning_offset ivec2(g_bump_depth.zw)\n"
+        "layout(binding = 21) uniform sampler2D g_skinning;\n"
+        "\n"
+        "vec3 apply_skinning(in const vec4 data, in const int mtxidx_comp) {\n"
+        "    const ivec3 mtxidx_row = ivec3(mtxidx_comp * 3) + ivec3(0, 1, 2);\n"
+        "\n"
+        "    return vec3(\n"
+        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.x, 0) + skinning_offset, 0)),\n"
+        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.y, 0) + skinning_offset, 0)),\n"
+        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.z, 0) + skinning_offset, 0))\n"
+        "    );\n"
+        "}\n"
+        "\n"
+        "vec3 apply_skinning_rotation(in const vec3 data, in const int mtxidx_comp) {\n"
+        "    const ivec3 mtxidx_row = ivec3(mtxidx_comp * 3) + ivec3(0, 1, 2);\n"
+        "\n"
+        "    return vec3(\n"
+        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.x, 0) + skinning_offset, 0).xyz),\n"
+        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.y, 0) + skinning_offset, 0).xyz),\n"
+        "        dot(data, texelFetch(g_skinning, ivec2(mtxidx_row.z, 0) + skinning_offset, 0).xyz)\n"
+        "    );\n"
+        "}\n"
+        "\n";
+    const size_t replacement_len = sizeof(replacement) - 1;
+
+    size_t data_len = utf8_length(data);
+    char* p = force_malloc<char>(data_len - (apply_skinning_pos - buffer_skinning_pos) + replacement_len + 1);
+    memcpy(p, data, buffer_skinning_pos);
+    memcpy(p + buffer_skinning_pos, replacement, replacement_len);
+    memcpy(p + buffer_skinning_pos + replacement_len,
+        data + apply_skinning_pos, data_len - apply_skinning_pos);
+    free_def(data);
+    return p;
 }
 
 static void parse_define_inner(std::string& temp) {
@@ -695,6 +706,11 @@ void shader_set_data::load(farc* f, bool ignore_cache,
 
             vert_data = shader::parse_include(vert_data, f);
             frag_data = shader::parse_include(frag_data, f);
+
+            if (sv_texture_skinning_buffer) {
+                vert_data = replace_skinning_with_g_skinning(vert_data);
+                frag_data = replace_skinning_with_g_skinning(frag_data);
+            }
 
             prj::vector_pair<int32_t, std::string> samplers;
             prj::vector_pair<int32_t, std::string> uniforms;

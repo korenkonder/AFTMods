@@ -177,7 +177,7 @@ PluginConfig::PluginConfigOption config[] = {
             L"experimentals",
             CONFIG_FILE,
             L"Texture Skinning Buffer",
-            L"If Shared Storage/Uniform Buffer isn't working for you.\nWorks only when driver doesn't support OpenGL 4.3.",
+            L"If Shared Storage/Uniform Buffer isn't working for you.\nTry this option if you experience frame drops with multiple characters on screen.",
             false,
             false,
         }

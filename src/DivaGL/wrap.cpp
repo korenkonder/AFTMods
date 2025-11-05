@@ -2567,7 +2567,6 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
             printf_divagl("Enabled Shared Storage/Uniform Buffer");
 
         extern bool sv_texture_skinning_buffer;
-        sv_texture_skinning_buffer &= !DIVA_GL_VERSION_4_3;
         if (sv_texture_skinning_buffer)
             printf_divagl("Enabled Texture Skinning Buffer");
     }
