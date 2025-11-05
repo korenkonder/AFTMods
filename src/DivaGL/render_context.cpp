@@ -760,20 +760,22 @@ void render_data_context::set_skinning_data(p_gl_rend_state& p_gl_rend_st, const
     data.set_skinning_data(p_gl_rend_st, mats, count);
 }
 
-bool render_context::shared_storage_buffer::can_fill_data(size_t size) {
-    return (size + align_val(offset, sv_min_storage_buffer_alignment)) <= this->size;
+bool render_context::shared_storage_buffer::can_fill_data(size_t buffer_size) {
+    return (buffer_size + align_val(offset, sv_min_storage_buffer_alignment)) <= this->size;
 }
 
 void render_context::shared_storage_buffer::create(size_t size) {
     if (buffer)
         return;
 
+    size = min_def(size, sv_max_storage_buffer_size);
     size = size / sv_min_storage_buffer_alignment * sv_min_storage_buffer_alignment;
 
     buffer.Create(gl_state, size);
     data = _operator_new(size);
     memset(data, 0, size);
     offset = 0;
+    end = 0;
     this->size = size;
 }
 
@@ -786,29 +788,32 @@ void render_context::shared_storage_buffer::destroy() {
     }
 }
 
-size_t render_context::shared_storage_buffer::fill_data(const void* data, size_t size) {
+size_t render_context::shared_storage_buffer::fill_data(const void* data, size_t size, size_t buffer_size) {
     size_t offset = align_val(this->offset, sv_min_storage_buffer_alignment);
     if (offset != this->offset)
         memset((void*)((size_t)this->data + this->offset), 0, offset - this->offset);
     memcpy((void*)((size_t)this->data + offset), data, size);
     this->offset = offset + size;
+    end = max_def(end, offset + buffer_size);
     return offset;
 }
 
-bool render_context::shared_uniform_buffer::can_fill_data(size_t size) {
-    return (size + align_val(offset, sv_min_uniform_buffer_alignment)) <= this->size;
+bool render_context::shared_uniform_buffer::can_fill_data(size_t buffer_size) {
+    return (buffer_size + align_val(offset, sv_min_uniform_buffer_alignment)) <= this->size;
 }
 
 void render_context::shared_uniform_buffer::create(size_t size) {
     if (buffer)
         return;
 
+    size = min_def(size, sv_max_uniform_buffer_size);
     size = size / sv_min_uniform_buffer_alignment * sv_min_uniform_buffer_alignment;
 
     buffer.Create(gl_state, size);
     data = _operator_new(size);
     memset(data, 0, size);
     offset = 0;
+    end = 0;
     this->size = size;
 }
 
@@ -821,12 +826,13 @@ void render_context::shared_uniform_buffer::destroy() {
     }
 }
 
-size_t render_context::shared_uniform_buffer::fill_data(const void* data, size_t size) {
+size_t render_context::shared_uniform_buffer::fill_data(const void* data, size_t size, size_t buffer_size) {
     size_t offset = align_val(this->offset, sv_min_uniform_buffer_alignment);
     if (offset != this->offset)
         memset((void*)((size_t)this->data + this->offset), 0, offset - this->offset);
     memcpy((void*)((size_t)this->data + offset), data, size);
     this->offset = offset + size;
+    end = max_def(end, offset + buffer_size);
     return offset;
 }
 
@@ -1154,7 +1160,8 @@ void render_context::ctrl(bool change_res) {
 
     int32_t width = rect.right - rect.left;
     int32_t height = rect.bottom - rect.top;
-    if (!width || !height || screen_width == width && screen_height == height)
+    if (!width || !height || screen_width == width && screen_height == height
+        || width < 0 || width >= 0x8000 || height < 0 || height >= 0x8000)
         return;
 
     /*static const double_t aspect = 16.0 / 9.0;
@@ -1284,7 +1291,7 @@ void render_context::add_shared_storage_uniform_buffer_data(size_t index,
             buffer->create(max_storage_block_size);
         }
 
-        size_t offset = buffer->fill_data(data, size);
+        size_t offset = buffer->fill_data(data, size, buffer_size);
         shared_storage_buffer_entries.insert({ index, { buffer->buffer, offset, buffer_size } });
     }
     else {
@@ -1301,7 +1308,7 @@ void render_context::add_shared_storage_uniform_buffer_data(size_t index,
             buffer->create(max_uniform_block_size);
         }
 
-        size_t offset = buffer->fill_data(data, size);
+        size_t offset = buffer->fill_data(data, size, buffer_size);
         shared_uniform_buffer_entries.insert({ index, { buffer->buffer, offset, buffer_size } });
     }
 }
@@ -1365,19 +1372,19 @@ void render_context::pre_proc() {
                 return;
 
             if (sv_texture_skinning_buffer) {
-                if (rctx->texture_skinning_buffer_entries.find((size_t)args->mats)
-                    != rctx->texture_skinning_buffer_entries.end())
+                auto elem = rctx->texture_skinning_buffer_entries.find((size_t)args->mats);
+                if (elem != rctx->texture_skinning_buffer_entries.end())
                     return;
             }
             else {
                 if (DIVA_GL_VERSION_4_3) {
-                    if (rctx->shared_storage_buffer_entries.find((size_t)args->mats)
-                        != rctx->shared_storage_buffer_entries.end())
+                    auto elem = rctx->shared_storage_buffer_entries.find((size_t)args->mats);
+                    if (elem != rctx->shared_storage_buffer_entries.end())
                         return;
                 }
                 else {
-                    if (rctx->shared_uniform_buffer_entries.find((size_t)args->mats)
-                        != rctx->shared_uniform_buffer_entries.end())
+                    auto elem = rctx->shared_uniform_buffer_entries.find((size_t)args->mats);
+                    if (elem != rctx->shared_uniform_buffer_entries.end())
                         return;
                 }
             }
@@ -1447,7 +1454,7 @@ void render_context::pre_proc() {
                 if (!i.offset)
                     continue;
 
-                const size_t size = align_val(i.offset, sv_min_uniform_buffer_alignment);
+                const size_t size = align_val(i.end, sv_min_storage_buffer_alignment);
                 const size_t align = size - i.offset;
                 if (align)
                     memset((void*)((size_t)i.data + i.offset), 0, align);
@@ -1458,7 +1465,7 @@ void render_context::pre_proc() {
             if (!i.offset)
                 continue;
 
-            const size_t size = align_val(i.offset, sv_min_uniform_buffer_alignment);
+            const size_t size = align_val(i.end, sv_min_uniform_buffer_alignment);
             const size_t align = size - i.offset;
             if (align)
                 memset((void*)((size_t)i.data + i.offset), 0, align);
@@ -1483,14 +1490,18 @@ void render_context::pre_proc() {
 void render_context::post_proc() {
     if (sv_shared_storage_uniform_buffer) {
         if (DIVA_GL_VERSION_4_3) {
-            for (render_context::shared_storage_buffer& i : shared_storage_buffers)
+            for (render_context::shared_storage_buffer& i : shared_storage_buffers) {
                 i.offset = 0;
+                i.end = 0;
+            }
 
             shared_storage_buffer_entries.clear();
         }
 
-        for (render_context::shared_uniform_buffer& i : shared_uniform_buffers)
+        for (render_context::shared_uniform_buffer& i : shared_uniform_buffers) {
             i.offset = 0;
+            i.end = 0;
+        }
 
         shared_uniform_buffer_entries.clear();
     }

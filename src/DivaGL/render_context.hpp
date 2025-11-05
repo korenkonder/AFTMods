@@ -485,25 +485,27 @@ struct render_context {
     struct shared_storage_buffer {
         void* data;
         size_t offset;
+        size_t end;
         size_t size;
         GL::ShaderStorageBuffer buffer;
 
-        bool can_fill_data(size_t size);
+        bool can_fill_data(size_t buffer_size);
         void create(size_t size);
         void destroy();
-        size_t fill_data(const void* data, size_t size);
+        size_t fill_data(const void* data, size_t size, size_t buffer_size);
     };
 
     struct shared_uniform_buffer {
         void* data;
         size_t offset;
+        size_t end;
         size_t size;
         GL::UniformBuffer buffer;
 
-        bool can_fill_data(size_t size);
+        bool can_fill_data(size_t buffer_size);
         void create(size_t size);
         void destroy();
-        size_t fill_data(const void* data, size_t size);
+        size_t fill_data(const void* data, size_t size, size_t buffer_size);
     };
 
     struct shared_buffer_entry {
