@@ -290,6 +290,33 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
     buffer.UnmapMemory(gl_state);
 }
 
+HOOK(void, FASTCALL, RobCloth__InitDataParent, 0x000000014021EEB0, RobCloth* This, obj_skin_block_cloth* cls_data, rob_chara_item_equip_object* itm_eq_obj) {
+    originalRobCloth__InitDataParent(This, cls_data, itm_eq_obj);
+
+    obj* obj = objset_info_storage_get_obj(itm_eq_obj->obj_info);
+    if (!obj)
+        return;
+
+    for (int32_t i = 0; i < 2; i++){
+        if (!This->mesh[i].num_vertex || !This->mesh[i].vertex_array.position || !This->index_buffer[i].buffer)
+            continue;
+
+        obj_mesh_vertex_buffer* obj_vert_buf = &This->vertex_buffer[i];
+        obj_mesh_index_buffer* obj_index_buf = &This->index_buffer[i];
+
+        obj_mesh* mesh = &This->mesh[i];
+        for (int32_t j = 0; j < mesh->num_submesh; j++) {
+            obj_material_data* material = &obj->material_array[mesh->submesh_array[j].material_index];
+            for (int32_t k = 0; k < (mesh->attrib.m.double_buffer ? 2 : 1); k++) {
+                disp_manager->add_vertex_array(mesh, &mesh->submesh_array[j], material,
+                    obj_vert_buf->get_buffer(), 0, obj_index_buf->buffer, 0, 0);
+
+                obj_vert_buf->cycle_index();
+            }
+        }
+    }
+}
+
 HOOK(void, FASTCALL, sub_1405044B0, 0x00000001405044B0, rob_chara* rob_chr) {
     rob_chara_item_adjust_x& item_adjust = rob_chara_item_adjust_x_array[rob_chr - rob_chara_array];
     rob_chara_arm_adjust_x& arm_adjust = rob_chara_arm_adjust_x_array[rob_chr - rob_chara_array];
@@ -726,9 +753,10 @@ HOOK(void, FASTCALL, rob_chara_item_equip_object_disp, 0x00000001405F2700, rob_c
 
 void rob_patch() {
     INSTALL_HOOK(RobCloth__UpdateVertexBuffer);
+    INSTALL_HOOK(RobCloth__InitDataParent);
+    INSTALL_HOOK(sub_1405044B0);
     INSTALL_HOOK(rob_chara_set_data_adjust_mat);
     INSTALL_HOOK(rob_chara_reset_data);
-    INSTALL_HOOK(sub_1405044B0);
     INSTALL_HOOK(rob_chara_item_equip_disp);
     INSTALL_HOOK(rob_chara_set_chara_size);
     INSTALL_HOOK(sub_140526FD0);
@@ -945,6 +973,14 @@ void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
     sub_mesh.index_offset = 0;
 
     axis_aligned_bounding_box = *sm->axis_aligned_bounding_box;
+
+    if (mesh.num_vertex && mesh.vertex_array.position)
+        for (int32_t i = 0; i < 2; i++) {
+            disp_manager->add_vertex_array(&mesh, &sub_mesh, material,
+                obj_vert_buf.get_buffer(), 0, obj_index_buf.buffer, 0, 0);
+
+            obj_vert_buf.cycle_index();
+        }
 }
 
 void rob_chara_age_age::disp(size_t chara_id,

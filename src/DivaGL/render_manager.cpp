@@ -325,7 +325,6 @@ namespace rndr {
             rend_data_ctx.state.finish();
         }
 
-        disp_manager->check_vertex_arrays();
         mdl::etc_obj_manager->post_draw();
         sprite_manager_post_draw();
 

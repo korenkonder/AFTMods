@@ -109,6 +109,93 @@ HOOK(void, FASTCALL, auth_3d_parse, 0x00000001401C15B0, auth_3d* auth) {
             break;
         }
     }
+
+    for (auth_3d_object& i : auth->object) {
+        auth_3d_object* o = &i;
+        auth_3d_object_curve* oc = &o->morph;
+        if (!oc->curve || oc->curve->curve.keys_vec.size() < 2)
+            continue;
+
+        float_t min_value = FLT_MAX;
+        float_t max_value = -FLT_MAX;
+
+        float_t first_frame = oc->curve->curve.keys_vec.front().frame;
+        float_t last_frame = oc->curve->curve.keys_vec.back().frame;
+
+        static void(FASTCALL * auth_3d_object_curve__ctrl)(auth_3d_object_curve * This, float_t framea)
+            = (void(FASTCALL*)(auth_3d_object_curve * This, float_t frame))0x00000001401D4160;
+        for (float_t i = first_frame; i <= last_frame; i += 1.0f) {
+            auth_3d_object_curve__ctrl(oc, i);
+            min_value = fminf(min_value, oc->value);
+            max_value = fmaxf(max_value, oc->value);
+        }
+        auth_3d_object_curve__ctrl(oc, 0.0f);
+
+        int32_t min = (int32_t)prj::floorf(min_value);
+        int32_t max = (int32_t)prj::ceilf(max_value);
+        if (min >= max)
+            return;
+
+        const char* uid_name = o->uid_name.c_str();
+        int32_t uid_name_length = (int32_t)o->uid_name.size();
+
+        char buf[0x80];
+        for (int32_t i = min; i < max; i++) {
+            sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, i + 1);
+            object_info morph_obj_info = object_database_get_object_info(buf);
+            if (morph_obj_info.is_null())
+                morph_obj_info = o->object_info;
+
+            sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, i);
+            object_info obj_info = object_database_get_object_info(buf);
+
+            ::obj* obj = objset_info_storage_get_obj(obj_info);
+            if (!obj)
+                continue;
+
+            obj_mesh_vertex_buffer_divagl* obj_vert_buf = (obj_mesh_vertex_buffer_divagl*)
+                objset_info_storage_get_obj_mesh_vertex_buffer(obj_info, 0);
+            obj_mesh_index_buffer* obj_index_buf = objset_info_storage_get_obj_mesh_index_buffer(obj_info, 0);
+
+            obj_mesh_vertex_buffer_divagl* obj_morph_vert_buf = 0;
+            if (morph_obj_info.set_id != -1)
+                obj_morph_vert_buf = (obj_mesh_vertex_buffer_divagl*)
+                    objset_info_storage_get_obj_mesh_vertex_buffer(morph_obj_info, 0);
+
+            for (int32_t i = 0; i < obj->num_mesh; i++) {
+                const obj_mesh* mesh = &obj->mesh_array[i];
+                for (int32_t j = 0; j < mesh->num_submesh; j++) {
+                    const obj_sub_mesh* sub_mesh = &mesh->submesh_array[j];
+                    if (sub_mesh->attrib.m.cloth)
+                        continue;
+
+                    obj_material_data* material = &obj->material_array[sub_mesh->material_index];
+
+                    GLuint morph_vertex_buffer = 0;
+                    size_t morph_vertex_buffer_offset = 0;
+                    if (obj_morph_vert_buf) {
+                        morph_vertex_buffer = obj_morph_vert_buf[i].get_buffer();
+                        morph_vertex_buffer_offset = obj_morph_vert_buf[i].get_offset();
+                    }
+
+                    GLuint index_buffer = 0;
+                    if (obj_index_buf)
+                        index_buffer = obj_index_buf[i].buffer;
+
+                    GLuint vertex_buffer = 0;
+                    size_t vertex_buffer_offset = 0;
+                    if (obj_vert_buf) {
+                        vertex_buffer = obj_vert_buf[i].get_buffer();
+                        vertex_buffer_offset = obj_vert_buf[i].get_offset();
+                    }
+
+                    if (vertex_buffer && index_buffer && (!obj_morph_vert_buf || morph_vertex_buffer))
+                        disp_manager->add_vertex_array(mesh, sub_mesh, material, vertex_buffer,
+                            vertex_buffer_offset, index_buffer, morph_vertex_buffer, morph_vertex_buffer_offset);
+                }
+            }
+        }
+    }
 }
 
 HOOK(void, FASTCALL, auth_3d_curve_array_free, 0x00000001401C2E30,

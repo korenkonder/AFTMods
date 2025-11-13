@@ -72,6 +72,8 @@ static void free_vertex_buffer(GLuint buffer);
 static int32_t remove_degenerate_triangle_indices(
     uint16_t* dst_index_array, const int32_t num_index, uint16_t* src_index_array);
 
+static void ObjsetInfo_vertex_array_load(ObjsetInfo* info);
+
 static void obj_vertex_add_bone_weight(vec4& bone_weight, vec4i16& bone_index, int16_t index, float_t weight);
 static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i16& bone_index);
 static uint32_t obj_vertex_format_get_vertex_size(obj_vertex_format format);
@@ -852,6 +854,11 @@ HOOK(bool, FASTCALL, obj_mesh_vertex_buffer__load, 0x0000000140458280, obj_mesh_
     return objvb->load(mesh, GL::BUFFER_USAGE_STREAM);
 }
 
+HOOK(void, FASTCALL, ObjsetInfo__calc_axis_aligned_bounding_box, 0x00000001404588A0, ObjsetInfo* info) {
+    ObjsetInfo_vertex_array_load(info);
+    originalObjsetInfo__calc_axis_aligned_bounding_box(info);
+}
+
 HOOK(bool, FASTCALL, ObjsetInfo__index_buffer_load, 0x00000001404588F0, ObjsetInfo* info) {
     return info->index_buffer_load();
 }
@@ -1100,6 +1107,7 @@ void object_patch() {
 #endif
 
     INSTALL_HOOK(obj_mesh_vertex_buffer__load);
+    INSTALL_HOOK(ObjsetInfo__calc_axis_aligned_bounding_box);
     INSTALL_HOOK(ObjsetInfo__index_buffer_load);
     INSTALL_HOOK(ObjsetInfo__vertex_buffer_load);
     INSTALL_HOOK(ObjsetInfo__index_buffer_free);
@@ -1212,7 +1220,7 @@ static void free_index_buffer(GLuint buffer) {
     if (!buffer)
         return;
 
-    disp_manager->check_index_buffer(buffer);
+    disp_manager->remove_index_buffer(buffer);
 
     GLint size = 0;
     if (DIVA_GL_VERSION_4_5)
@@ -1233,7 +1241,7 @@ static void free_vertex_buffer(GLuint buffer) {
     if (!buffer)
         return;
 
-    disp_manager->check_vertex_buffer(buffer);
+    disp_manager->remove_vertex_buffer(buffer);
 
     GLint size = 0;
     if (DIVA_GL_VERSION_4_5)
@@ -1307,6 +1315,63 @@ static int32_t remove_degenerate_triangle_indices(
             *dst_index_array++ = *src_index_array++;
     }
     return dst_index;
+}
+
+static void ObjsetInfo_vertex_array_load(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
+    obj_vertex_buffer* obj_vert_buf = info->objvb;
+    obj_index_buffer* obj_index_buf = info->objib;
+    for (int32_t i = 0; i < set->obj_num; i++) {
+        obj* obj = set->obj_data[i];
+
+#if SHARED_OBJECT_BUFFER
+        bool double_buffer = false;
+        for (int32_t i = 0; i < obj->num_mesh; i++) {
+            obj_mesh& mesh = obj->mesh_array[i];
+            if (!mesh.num_vertex || !mesh.vertex_array.position)
+                continue;
+
+            double_buffer |= !!mesh.attrib.m.double_buffer;
+        }
+#endif
+
+        for (int32_t j = 0; j < obj->num_mesh; j++) {
+            obj_mesh* mesh = &obj->mesh_array[j];
+            if (!mesh->num_vertex || !mesh->vertex_array.position)
+                continue;
+
+            for (int32_t k = 0; k < mesh->num_submesh; k++) {
+                obj_sub_mesh* sub_mesh = &mesh->submesh_array[k];
+                if (sub_mesh->attrib.m.cloth)
+                    continue;
+
+                obj_material_data* material = &obj->material_array[sub_mesh->material_index];
+
+#if SHARED_OBJECT_BUFFER
+                for (int32_t l = 0; l < (double_buffer ? 2 : 1); l++) {
+#else
+                for (int32_t l = 0; l < (mesh->attrib.m.double_buffer ? 2 : 1); l++) {
+#endif
+                    GLuint vertex_buffer = 0;
+                    size_t vertex_buffer_offset = 0;
+                    if (obj_vert_buf && obj_vert_buf[i].mesh_data) {
+                        vertex_buffer = obj_vert_buf[i].mesh_data[j].get_buffer();
+                        vertex_buffer_offset = obj_vert_buf[i].mesh_data[j].get_offset();
+                    }
+
+                    GLuint index_buffer = 0;
+                    if (obj_index_buf && obj_index_buf[i].mesh_data)
+                        index_buffer = obj_index_buf[i].mesh_data[j].buffer;
+
+                    disp_manager->add_vertex_array(mesh, sub_mesh, material,
+                        vertex_buffer, vertex_buffer_offset, index_buffer, 0, 0);
+
+                    if (obj_vert_buf && obj_vert_buf[i].mesh_data)
+                        obj_vert_buf[i].mesh_data[j].cycle_index();
+                }
+            }
+        }
+    }
 }
 
 static void obj_vertex_add_bone_weight(vec4& bone_weight, vec4i16& bone_index, int16_t index, float_t weight) {
