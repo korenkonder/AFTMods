@@ -7,6 +7,7 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../wrap.hpp"
+#include "buffer.hpp"
 
 struct gl_state_struct;
 struct p_gl_rend_state;
@@ -29,13 +30,13 @@ namespace GL {
 
         }
 
-        void Create(gl_state_struct& gl_st, size_t size);
-        void Create(gl_state_struct& gl_st, size_t size, const void* data, bool dynamic = false);
+        void Create(gl_state_struct& gl_st, size_t size, BufferUsage usage = BUFFER_USAGE_STREAM);
+        void Create(gl_state_struct& gl_st, size_t size, const void* data, BufferUsage usage = BUFFER_USAGE_STATIC);
         void Destroy();
         void* MapMemory(gl_state_struct& gl_st);
         void* MapMemory(p_gl_rend_state& p_gl_rend_st);
-        void Recreate(gl_state_struct& gl_st, size_t size);
-        void Recreate(gl_state_struct& gl_st, size_t size, const void* data, bool dynamic = false);
+        void Recreate(gl_state_struct& gl_st, size_t size, BufferUsage usage = BUFFER_USAGE_STREAM);
+        void Recreate(gl_state_struct& gl_st, size_t size, const void* data, BufferUsage usage = BUFFER_USAGE_STATIC);
         void UnmapMemory(gl_state_struct& gl_st);
         void UnmapMemory(p_gl_rend_state& p_gl_rend_st);
         void WriteMemory(gl_state_struct& gl_st, size_t offset, size_t size, const void* data);

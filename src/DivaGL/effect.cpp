@@ -437,9 +437,9 @@ struct EffectStorage {
     }
 
     void Create(gl_state_struct& gl_st, size_t size, size_t count,
-        const EffectStorageAttrib* attribs);
+        const EffectStorageAttrib* attribs, GL::BufferUsage usage = GL::BUFFER_USAGE_STREAM);
     void Create(gl_state_struct& gl_st, size_t size, size_t count,
-        const EffectStorageAttrib* attribs, const void* data, bool dynamic = false);
+        const EffectStorageAttrib* attribs, const void* data, GL::BufferUsage usage = GL::BUFFER_USAGE_STATIC);
     void Destroy();
 
     inline void Bind(p_gl_rend_state& p_gl_rend_st, int32_t index) {
@@ -2117,9 +2117,9 @@ void water_particle::draw(render_data_context& rend_data_ctx, const cam_data& ca
 }
 
 void EffectStorage::Create(gl_state_struct& gl_st, size_t size, size_t count,
-    const EffectStorageAttrib* attribs) {
+    const EffectStorageAttrib* attribs, GL::BufferUsage usage) {
     if (DIVA_GL_VERSION_4_3) {
-        ssbo.Create(gl_st, size * count);
+        ssbo.Create(gl_st, size * count, usage);
         return;
     }
     else if (vao || !attribs)
@@ -2128,7 +2128,7 @@ void EffectStorage::Create(gl_state_struct& gl_st, size_t size, size_t count,
     glGenVertexArrays(1, &vao);
     gl_st.bind_vertex_array(vao, true);
 
-    vbo.Create(gl_st, size * count);
+    vbo.Create(gl_st, size * count, usage);
     gl_st.bind_array_buffer(vbo, true);
 
     const EffectStorageAttrib* attrib = attribs;
@@ -2145,9 +2145,9 @@ void EffectStorage::Create(gl_state_struct& gl_st, size_t size, size_t count,
 }
 
 void EffectStorage::Create(gl_state_struct& gl_st, size_t size, size_t count,
-    const EffectStorageAttrib* attribs, const void* data, bool dynamic) {
+    const EffectStorageAttrib* attribs, const void* data, GL::BufferUsage usage) {
     if (DIVA_GL_VERSION_4_3) {
-        ssbo.Create(gl_st, size * count, data, dynamic);
+        ssbo.Create(gl_st, size * count, data, usage);
         return;
     }
     else if (vao || !attribs)
@@ -2156,7 +2156,7 @@ void EffectStorage::Create(gl_state_struct& gl_st, size_t size, size_t count,
     glGenVertexArrays(1, &vao);
     gl_st.bind_vertex_array(vao, true);
 
-    vbo.Create(gl_st, size * count, data, true);
+    vbo.Create(gl_st, size * count, data, usage);
     gl_st.bind_array_buffer(vbo, true);
 
     const EffectStorageAttrib* attrib = attribs;

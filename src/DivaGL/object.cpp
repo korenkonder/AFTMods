@@ -65,7 +65,7 @@ static BufObjMgr& bufobj_mgr = *(BufObjMgr*)0x00000001411A34D0;
 static int32_t load_set_id;
 
 static GLuint create_index_buffer(size_t size, const void* data);
-static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic = false);
+static GLuint create_vertex_buffer(size_t size, const void* data, GL::BufferUsage usage = GL::BUFFER_USAGE_STATIC);
 static void free_index_buffer(GLuint buffer);
 static void free_vertex_buffer(GLuint buffer);
 
@@ -215,7 +215,7 @@ GLsizeiptr obj_mesh_vertex_buffer_divagl::get_size() {
     return 0;
 }
 
-bool obj_mesh_vertex_buffer_divagl::load(obj_mesh* mesh, bool dynamic) {
+bool obj_mesh_vertex_buffer_divagl::load(obj_mesh* mesh, GL::BufferUsage usage) {
     if (!mesh->num_vertex)
         return false;
 
@@ -239,19 +239,19 @@ bool obj_mesh_vertex_buffer_divagl::load(obj_mesh* mesh, bool dynamic) {
     obj_mesh_vertex_buffer_divagl::fill_data(vertex, mesh);
 
     bool ret = load_data((size_t)size_vertex * mesh->num_vertex,
-        vertex, mesh->attrib.m.double_buffer ? 2 : 1, dynamic);
+        vertex, mesh->attrib.m.double_buffer ? 2 : 1, usage);
     free_def(vertex);
     return ret;
 }
 
-bool obj_mesh_vertex_buffer_divagl::load_data(size_t size, const void* data, int32_t count, bool dynamic) {
+bool obj_mesh_vertex_buffer_divagl::load_data(size_t size, const void* data, int32_t count, GL::BufferUsage usage) {
     if (!size || count > 3)
         return false;
 
     this->count = count;
 
     for (int32_t i = 0; i < count; i++) {
-        buffers[i] = create_vertex_buffer(size, data, dynamic);
+        buffers[i] = create_vertex_buffer(size, data, usage);
         if (!buffers[i]) {
             unload();
             return false;
@@ -849,7 +849,7 @@ void obj_vertex_buffer::unload() {
 }
 
 HOOK(bool, FASTCALL, obj_mesh_vertex_buffer__load, 0x0000000140458280, obj_mesh_vertex_buffer_divagl* objvb, obj_mesh* mesh) {
-    return objvb->load(mesh, true);
+    return objvb->load(mesh, GL::BUFFER_USAGE_STREAM);
 }
 
 HOOK(bool, FASTCALL, ObjsetInfo__index_buffer_load, 0x00000001404588F0, ObjsetInfo* info) {
@@ -1087,7 +1087,7 @@ HOOK(bool, FASTCALL, _objset_info_storage_load_obj_set_check_not_read, 0x0000000
 
 HOOK(int32_t, FASTCALL, obj_mesh_vertex_buffer__load_data, 0x0000000140461650,
     obj_mesh_vertex_buffer_divagl* objvb, uint32_t size, void* data, uint32_t count) {
-    return objvb->load_data(size, data, count, true);
+    return objvb->load_data(size, data, count, GL::BUFFER_USAGE_STREAM);
 }
 
 HOOK(void, FASTCALL, obj_mesh_vertex_buffer__unload, 0x0000000140461870, obj_mesh_vertex_buffer_divagl* objvb) {
@@ -1185,16 +1185,17 @@ static GLuint create_index_buffer(size_t size, const void* data) {
     return buffer;
 }
 
-static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic) {
+static GLuint create_vertex_buffer(size_t size, const void* data, GL::BufferUsage usage) {
     GLuint buffer = 0;
     glGenBuffers(1, &buffer);
     gl_state.bind_array_buffer(buffer);
-    if (DIVA_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
-            dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
+    if (DIVA_GL_VERSION_4_4 && usage != GL::BUFFER_USAGE_STREAM) {
+        GLbitfield flags = usage == GL::BUFFER_USAGE_DYNAMIC
+            ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0;
+        glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, flags);
+    }
     else
-        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
-            dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, BufferUsageToGLenum(usage));
     gl_state.bind_array_buffer(0);
 
     if (glGetErrorDLL()) {

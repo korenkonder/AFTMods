@@ -8,43 +8,66 @@
 #include "../gl_state.hpp"
 
 namespace GL {
-    void ArrayBuffer::Create(gl_state_struct& gl_st, size_t size) {
-        if (buffer)
+    void ArrayBuffer::Create(gl_state_struct& gl_st, size_t size, BufferUsage usage) {
+        if (buffer || !BufferUsageCheck(usage, false))
             return;
+
+        if (usage != BUFFER_USAGE_STREAM) {
+            if (DIVA_GL_VERSION_4_4) {
+                GLbitfield flags = GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT;
+                if (DIVA_GL_VERSION_4_5) {
+                    glCreateBuffers(1, &buffer);
+                    glNamedBufferStorage(buffer, (GLsizeiptr)size, 0, flags);
+                }
+                else {
+                    glGenBuffers(1, &buffer);
+                    gl_st.bind_array_buffer(buffer, true);
+                    glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, 0, flags);
+                }
+                return;
+            }
+        }
 
         if (DIVA_GL_VERSION_4_5) {
             glCreateBuffers(1, &buffer);
-            glNamedBufferStorage(buffer, (GLsizeiptr)size, 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+            glNamedBufferData(buffer, (GLsizeiptr)size, 0, BufferUsageToGLenum(usage));
         }
         else {
             glGenBuffers(1, &buffer);
-            gl_st.bind_array_buffer(buffer);
-            if (DIVA_GL_VERSION_4_4)
-                glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size,
-                    0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-            else
-                glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, 0, GL_DYNAMIC_DRAW);
+            gl_st.bind_array_buffer(buffer, true);
+            glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, 0, BufferUsageToGLenum(usage));
         }
     }
 
-    void ArrayBuffer::Create(gl_state_struct& gl_st, size_t size, const void* data, bool dynamic) {
-        if (buffer)
+    void ArrayBuffer::Create(gl_state_struct& gl_st, size_t size, const void* data, BufferUsage usage) {
+        if (buffer || !BufferUsageCheck(usage))
             return;
+
+        if (usage != BUFFER_USAGE_STREAM) {
+            if (DIVA_GL_VERSION_4_4) {
+                GLbitfield flags = usage == BUFFER_USAGE_DYNAMIC
+                    ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0;
+                if (DIVA_GL_VERSION_4_5) {
+                    glCreateBuffers(1, &buffer);
+                    glNamedBufferStorage(buffer, (GLsizeiptr)size, data, flags);
+                }
+                else {
+                    glGenBuffers(1, &buffer);
+                    gl_st.bind_array_buffer(buffer, true);
+                    glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, flags);
+                }
+                return;
+            }
+        }
 
         if (DIVA_GL_VERSION_4_5) {
             glCreateBuffers(1, &buffer);
-            glNamedBufferStorage(buffer, (GLsizeiptr)size, data,
-                dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
+            glNamedBufferData(buffer, (GLsizeiptr)size, data, BufferUsageToGLenum(usage));
         }
         else {
             glGenBuffers(1, &buffer);
-            gl_st.bind_array_buffer(buffer);
-            if (DIVA_GL_VERSION_4_4)
-                glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
-                    dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
-            else
-                glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
-                    dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+            gl_st.bind_array_buffer(buffer, true);
+            glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, BufferUsageToGLenum(usage));
         }
     }
 
@@ -103,32 +126,39 @@ namespace GL {
         return 0;
     }
 
-    void ArrayBuffer::Recreate(gl_state_struct& gl_st, size_t size) {
-        if (DIVA_GL_VERSION_4_4) {
+    void ArrayBuffer::Recreate(gl_state_struct& gl_st, size_t size, BufferUsage usage) {
+        if (DIVA_GL_VERSION_4_4 && usage != BUFFER_USAGE_STREAM) {
             Destroy();
-            Create(gl_st, size);
+            Create(gl_st, size, usage);
         }
         else {
             if (!buffer)
-                Create(gl_st, size);
+                Create(gl_st, size, usage);
 
-            gl_st.bind_array_buffer(buffer);
-            glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, 0, GL_DYNAMIC_DRAW);
+            if (DIVA_GL_VERSION_4_5)
+                glNamedBufferData(buffer, (GLsizeiptr)size, 0, BufferUsageToGLenum(usage));
+            else {
+                gl_st.bind_array_buffer(buffer);
+                glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, 0, BufferUsageToGLenum(usage));
+            }
         }
     }
 
-    void ArrayBuffer::Recreate(gl_state_struct& gl_st, size_t size, const void* data, bool dynamic) {
-        if (DIVA_GL_VERSION_4_4) {
+    void ArrayBuffer::Recreate(gl_state_struct& gl_st, size_t size, const void* data, BufferUsage usage) {
+        if (DIVA_GL_VERSION_4_4 && usage != BUFFER_USAGE_STREAM) {
             Destroy();
-            Create(gl_st, size, data, dynamic);
+            Create(gl_st, size, data, usage);
         }
         else {
             if (!buffer)
-                Create(gl_st, size, data, dynamic);
+                Create(gl_st, size, data, usage);
 
-            gl_st.bind_array_buffer(buffer);
-            glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
-                dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+            if (DIVA_GL_VERSION_4_5)
+                glNamedBufferData(buffer, (GLsizeiptr)size, data, BufferUsageToGLenum(usage));
+            else {
+                gl_st.bind_array_buffer(buffer);
+                glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, BufferUsageToGLenum(usage));
+            }
         }
     }
 
