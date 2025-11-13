@@ -23,6 +23,10 @@ bool cpu_caps_f16c;
 
 static std::wstring GetDirPath();
 
+static bool parse_bool(const char* str, size_t length, int32_t& value);
+static bool parse_int(const char* str, int32_t& value);
+static void trim_space(const char*& str, size_t& length);
+
 std::wstring CONFIG_FILE_STRING = GetDirPath() + L"\\plugins\\DivaGL.ini";
 LPCWSTR CONFIG_FILE = CONFIG_FILE_STRING.c_str();
 
@@ -87,7 +91,60 @@ extern "C" __declspec(dllexport) LPCWSTR GetBuildDate(void) {
     return L"v0.8.2.1 (Build date: " __DATE__ ")";
 }
 
-extern "C" __declspec(dllexport) BOOL SetOption(const char* name, int value) {
+extern "C" __declspec(dllexport) BOOL SetOption(const char* str) {
+    if (!str)
+        return FALSE;
+
+    size_t str_len = strlen(str);
+
+    const char* div = strchr(str, '=');
+    if (!div)
+        return FALSE;
+
+    const char* name = str;
+    size_t name_len = div - str;
+    trim_space(name, name_len);
+    if (!*name || !name_len)
+        return FALSE;
+
+    const char* val = div + 1;
+    size_t val_len = str_len - (val - str);
+    trim_space(val, val_len);
+    if (!*val || !val_len)
+        return FALSE;
+
+    if (!strncmp(str, "reflect_full", name_len)) {
+        int32_t value = 0;
+        if (parse_bool(val, val_len, value))
+            sv_reflect_full = !!value;
+    }
+    else if (!strncmp(name, "reflect_res_scale", name_len)) {
+        int32_t value = 0;
+        if (parse_int(val, value))
+            sv_reflect_res_scale = value > 0 ? clamp_def(value, 25, 100) : 100;
+    }
+    else if (!strncmp(name, "shared_storage_uniform_buffer", name_len)) {
+        int32_t value = 0;
+        if (parse_bool(val, val_len, value))
+            sv_shared_storage_uniform_buffer = !!value;
+    }
+    else if (!strncmp(name, "task_movie_player_no_interop", name_len)) {
+        int32_t value = 0;
+        if (parse_bool(val, val_len, value))
+            sv_task_movie_player_no_interop = !!value;
+    }
+    else if (!strncmp(name, "texture_skinning_buffer", name_len)) {
+        int32_t value = 0;
+        if (parse_bool(val, val_len, value))
+            sv_texture_skinning_buffer = !!value;
+    }
+    else
+        return FALSE;
+
+    return TRUE;
+}
+
+extern "C" __declspec(dllexport) BOOL SetOptionInt(const char* name, int value) {
     if (!strcmp(name, "reflect_full"))
         sv_reflect_full = !!value;
     else if (!strcmp(name, "reflect_res_scale"))
@@ -118,6 +175,36 @@ static std::wstring GetDirPath() {
     WCHAR buffer[MAX_PATH];
     GetModuleFileNameW(NULL, buffer, MAX_PATH);
     return std::wstring(exe_file_path, exe_file_name - exe_file_path);
+}
+
+static bool parse_bool(const char* str, size_t length, int32_t& value) {
+    if (sscanf_s(str, "%d", &value) == 1)
+        return true;
+    else if (!strncmp(str, "true", length)) {
+        value = 1;
+        return true;
+    }
+    else if (!strncmp(str, "false", length)) {
+        value = 0;
+        return true;
+    }
+    return false;
+}
+
+static bool parse_int(const char* str, int32_t& value) {
+    if (sscanf_s(str, "%d", &value) == 1)
+        return true;
+    return false;
+}
+
+static void trim_space(const char*& str, size_t& length) {
+    while (*str && isspace(*str)) {
+        str++;
+        length--;
+    }
+
+    while (length && isspace(str[length - 1]))
+        length--;
 }
 
 PluginConfig::PluginConfigOption config[] = {
