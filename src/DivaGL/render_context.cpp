@@ -267,6 +267,14 @@ void render_data::obj_batch_data::reset() {
     g_reflect_uv_scale = 0.0f;
 }
 
+void render_data::obj_skinning_data::reset() {
+    for (size_t i = 0; i < sizeof(g_joint_transforms) / sizeof(vec4); i += 3) {
+        g_joint_transforms[i + 0] = mat4_identity.row0;
+        g_joint_transforms[i + 1] = mat4_identity.row1;
+        g_joint_transforms[i + 2] = mat4_identity.row2;
+    }
+}
+
 void render_data::init() {
     buffer_shader.Create(gl_state, sizeof(obj_shader_data));
     buffer_scene.Create(gl_state, sizeof(obj_scene_data));
@@ -282,7 +290,15 @@ void render_data::init() {
     enum_or(flags, RENDER_DATA_SCENE_UPDATE);
     buffer_batch_data.reset();
     enum_or(flags, RENDER_DATA_BATCH_UPDATE);
+    buffer_skinning_data.reset();
     inv_view_mat = mat4_identity;
+
+    if (DIVA_GL_VERSION_4_3)
+        buffer_skinning.WriteMemory(gl_state,
+            0, sizeof(obj_skinning_data), &buffer_skinning_data);
+    else
+        buffer_skinning_ubo.WriteMemory(gl_state,
+            0, sizeof(obj_skinning_data), &buffer_skinning_data);
 }
 
 void render_data::free() {

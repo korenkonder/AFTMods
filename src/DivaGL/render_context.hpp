@@ -391,6 +391,8 @@ struct render_data {
 
     struct obj_skinning_data {
         vec4 g_joint_transforms[768];
+
+        void reset();
     };
 
     render_data_flags flags;
