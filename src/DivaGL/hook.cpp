@@ -404,11 +404,15 @@ void hook_funcs() {
     buf[0x0A] = 0xFF; // jmp rax
     buf[0x0B] = 0xE0;
 
+#if 0
+    // auth_3d_event_printf
     *(uint64_t*)&buf[0x02] = (uint64_t)&printf_proxy;
     WRITE_MEMORY_STRING(0x00000001401D3860, buf, 0x0C);
 
+    // Debug printf I think?
     *(uint64_t*)&buf[0x02] = (uint64_t)&printf_proxy;
     WRITE_MEMORY_STRING(0x00000001400DE640, buf, 0x0C);
+#endif
 
     extern size_t glut_handle;
     *(uint64_t*)&buf[0x02] = (uint64_t)&glut_create_context;
