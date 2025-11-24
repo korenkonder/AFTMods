@@ -566,6 +566,8 @@ struct render_context {
     GL::UniformBuffer tone_map_ubo;
     GL::UniformBuffer transparency_batch_ubo;
 
+    GL::ArrayBuffer dummy_vbo;
+
     render_data data[GL_REND_STATE_COUNT];
     draw_state_struct::render_data draw_state_rend_data[GL_REND_STATE_COUNT];
     cam_data render_manager_cam;

@@ -72,6 +72,9 @@ namespace mdl {
 
     bool obj_reflect_enable;
 
+    static void bind_dummy_vertex_attrib_array(uint32_t index,
+        bool* vertex_attrib_array = 0, const int32_t value = 1);
+
     static void gen_capsule_indices(std::vector<uint32_t>& indices,
         int32_t slices, int32_t stacks, float_t length, bool wire, size_t start);
     static void gen_capsule_vertices(etc_obj_vertex_data* data,
@@ -86,8 +89,6 @@ namespace mdl {
         int32_t slices, int32_t stacks, bool wire, size_t start);
     static void gen_sphere_vertices(etc_obj_vertex_data* data,
         int32_t slices, int32_t stacks, float_t radius);
-
-    static void set_default_vertex_attrib();
 
     ObjSubMeshArgs::ObjSubMeshArgs() : sub_mesh(), mesh(), material(), textures(), mat_count(), mats(),
         vertex_buffer(), vertex_buffer_offset(), index_buffer(), set_blend_color(), chara_color(), self_shadow(),
@@ -1004,8 +1005,6 @@ namespace mdl {
             gl_state.bind_array_buffer(vbo, true);
             gl_state.bind_element_array_buffer(ebo, true);
 
-            set_default_vertex_attrib();
-
             glEnableVertexAttribArray(POSITION_INDEX);
             glVertexAttribPointer(POSITION_INDEX, 3, GL_FLOAT, GL_FALSE, buffer_size,
                 (void*)offsetof(etc_obj_vertex_data, position));
@@ -1095,11 +1094,12 @@ namespace mdl {
         memcpy(&vertex_array->texcoord_array, texcoord_array, sizeof(texcoord_array));
 
         gl_state.bind_vertex_array(vertex_array->vertex_array, true);
-        set_default_vertex_attrib();
 
         gl_state.bind_array_buffer(vertex_buffer, true);
         if (index_buffer)
             gl_state.bind_element_array_buffer(index_buffer, true);
+
+        bool vertex_attrib_array[16] = {};
 
         size_t offset = vertex_buffer_offset;
         if (vertex_format & OBJ_VERTEX_POSITION) {
@@ -1107,6 +1107,7 @@ namespace mdl {
             glVertexAttribPointer(POSITION_INDEX,
                 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
             offset += 12;
+            vertex_attrib_array[POSITION_INDEX] = true;
         }
 
         if (vertex_format & OBJ_VERTEX_NORMAL) {
@@ -1129,6 +1130,7 @@ namespace mdl {
                 offset += 4;
                 break;
             }
+            vertex_attrib_array[NORMAL_INDEX] = true;
         }
 
         if (vertex_format & OBJ_VERTEX_TANGENT) {
@@ -1151,6 +1153,7 @@ namespace mdl {
                 offset += 4;
                 break;
             }
+            vertex_attrib_array[TANGENT_INDEX] = true;
         }
 
         if (!compression && (vertex_format & OBJ_VERTEX_BINORMAL))
@@ -1175,6 +1178,7 @@ namespace mdl {
                         size_vertex, (void*)(offset + 4ULL * texcoord_index));
                     break;
                 }
+                vertex_attrib_array[TEXCOORD0_INDEX + i] = true;
             }
         }
 
@@ -1219,6 +1223,7 @@ namespace mdl {
                 offset += 8;
                 break;
             }
+            vertex_attrib_array[COLOR0_INDEX] = true;
         }
 
         if (!compression && (vertex_format & OBJ_VERTEX_COLOR1))
@@ -1244,6 +1249,7 @@ namespace mdl {
                 offset += 4;
                 break;
             }
+            vertex_attrib_array[BONE_WEIGHT_INDEX] = true;
 
             glEnableVertexAttribArray(BONE_INDEX_INDEX);
             switch (compression) {
@@ -1260,6 +1266,7 @@ namespace mdl {
                 offset += 4;
                 break;
             }
+            vertex_attrib_array[BONE_INDEX_INDEX] = true;
         }
 
         if (!compression && (vertex_format & OBJ_VERTEX_UNKNOWN)) {
@@ -1267,6 +1274,7 @@ namespace mdl {
             glVertexAttribPointer(UNKNOWN_INDEX,
                 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
             offset += 16;
+            vertex_attrib_array[UNKNOWN_INDEX] = true;
         }
 
         if (morph_vertex_buffer) {
@@ -1278,6 +1286,7 @@ namespace mdl {
                 glVertexAttribPointer(MORPH_POSITION_INDEX,
                     3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 12;
+                vertex_attrib_array[MORPH_POSITION_INDEX] = true;
             }
 
             if (vertex_format & OBJ_VERTEX_NORMAL) {
@@ -1300,6 +1309,7 @@ namespace mdl {
                     offset += 4;
                     break;
                 }
+                vertex_attrib_array[MORPH_NORMAL_INDEX] = true;
             }
 
             if (vertex_format & OBJ_VERTEX_TANGENT) {
@@ -1322,6 +1332,7 @@ namespace mdl {
                     offset += 4;
                     break;
                 }
+                vertex_attrib_array[MORPH_TANGENT_INDEX] = true;
             }
 
             if (!compression && (vertex_format & OBJ_VERTEX_BINORMAL))
@@ -1343,6 +1354,7 @@ namespace mdl {
                     offset += 4;
                     break;
                 }
+                vertex_attrib_array[MORPH_TEXCOORD0_INDEX] = true;
             }
 
             if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
@@ -1361,6 +1373,7 @@ namespace mdl {
                     offset += 4;
                     break;
                 }
+                vertex_attrib_array[MORPH_TEXCOORD1_INDEX] = true;
             }
 
             switch (compression) {
@@ -1396,6 +1409,7 @@ namespace mdl {
                     offset += 8;
                     break;
                 }
+                vertex_attrib_array[MORPH_COLOR_INDEX] = true;
             }
 
             switch (compression) {
@@ -1420,6 +1434,12 @@ namespace mdl {
                 break;
             }
         }
+
+        if (vertex_attrib_array[POSITION_INDEX])
+            bind_dummy_vertex_attrib_array(COLOR0_INDEX, vertex_attrib_array, 2);
+
+        if (vertex_attrib_array[MORPH_POSITION_INDEX])
+            bind_dummy_vertex_attrib_array(MORPH_COLOR_INDEX, vertex_attrib_array, 2);
 
         gl_state.bind_array_buffer(0);
         gl_state.bind_vertex_array(0);
@@ -3701,6 +3721,29 @@ namespace mdl {
         INSTALL_HOOK(DispManager__entry_obj_by_object_info_object_skin);
     }
 
+    inline static void bind_dummy_vertex_attrib_array(uint32_t index,
+        bool* vertex_attrib_array, const int32_t value) {
+        if (vertex_attrib_array && vertex_attrib_array[index])
+            return;
+
+        size_t offset;
+        if (value == 0)
+            offset = sizeof(float_t) * 4 * 0; // (0, 0, 0, 0)
+        else if (value == 2)
+            offset = sizeof(float_t) * 4 * 2; // (1, 1, 1, 1)
+        else
+            return;
+
+        gl_state.bind_array_buffer(rctx->dummy_vbo);
+
+        glEnableVertexAttribArray(index);
+        glVertexAttribPointer(index, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 4, (void*)offset);
+        glVertexAttribDivisor(index, 1);
+
+        if (vertex_attrib_array)
+            vertex_attrib_array[index] = true;
+    };
+
     static void gen_capsule_indices(std::vector<uint32_t>& indices,
         int32_t slices, int32_t stacks, float_t length, bool wire, size_t start) {
         if (slices < 2 || stacks < 2)
@@ -4130,25 +4173,6 @@ namespace mdl {
         }
 
         *data++ = { { 0.0f, 0.0f, -radius }, { 0.0f, 0.0f, -1.0f } };
-    }
-
-    inline static void set_default_vertex_attrib() {
-        glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
-        glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f(         COLOR0_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
-        glVertexAttrib4f(         COLOR1_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
-        glVertexAttrib4f(    MORPH_COLOR_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
-        glVertexAttrib4f(        TANGENT_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f(        UNKNOWN_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f(      TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f(      TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f( MORPH_POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f(   MORPH_NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f(  MORPH_TANGENT_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f(MORPH_TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f(MORPH_TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
-        glVertexAttrib4f(     BONE_INDEX_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
     }
 }
 

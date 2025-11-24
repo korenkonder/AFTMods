@@ -996,6 +996,14 @@ samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height(
     tone_map_ubo.Create(gl_state, sizeof(tone_map_shader_data));
     transparency_batch_ubo.Create(gl_state, sizeof(transparency_batch_shader_data));
 
+    const float_t dummy_data[] = {
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
+    };
+
+    dummy_vbo.Create(gl_state, sizeof(dummy_data), dummy_data);
+
     for (render_data& i : data) {
         i = {};
         i.init();
@@ -1130,6 +1138,8 @@ render_context::~render_context() {
 
     for (render_data& i : data)
         i.free();
+
+    dummy_vbo.Destroy();
 
     transparency_batch_ubo.Destroy();
     tone_map_ubo.Destroy();
