@@ -207,10 +207,10 @@ namespace rndr {
         rend_data_ctx.state.bind_framebuffer(0);
     }
 
-    void Render::bind_render_texture(p_gl_rend_state& p_gl_rend_st, bool aet_back) {
-        if (aet_back) {
-            aet_back_texture.Bind(p_gl_rend_st);
-            this->aet_back = 1;
+    void Render::bind_render_texture(p_gl_rend_state& p_gl_rend_st, bool composite_back) {
+        if (composite_back) {
+            composite_back_texture.Bind(p_gl_rend_st);
+            this->composite_back = 1;
         }
         else
             rend_texture[0].Bind(p_gl_rend_st);
@@ -582,11 +582,11 @@ namespace rndr {
             }
         }
 
-        aet_back_texture.Free();
+        composite_back_texture.Free();
 
-        if (aet_back_tex) {
-            texture_release(aet_back_tex);
-            aet_back_tex = 0;
+        if (composite_back_tex) {
+            texture_release(composite_back_tex);
+            composite_back_tex = 0;
             texture_counter--;
         }
 
@@ -702,9 +702,9 @@ namespace rndr {
             taa_buffer[i].SetColorDepthTextures(taa_tex[i]->glid, 0, rend_texture[0].GetDepthTex());
         }
 
-        aet_back_tex = texture_load_tex_2d(0x25000000 | texture_counter++,
+        composite_back_tex = texture_load_tex_2d(0x25000000 | texture_counter++,
             GL_RGBA8, render_post_width[0], render_post_height[0], 0, 0, 0);
-        aet_back_texture.SetColorDepthTextures(aet_back_tex->glid, 0, rend_texture[0].GetDepthTex());
+        composite_back_texture.SetColorDepthTextures(composite_back_tex->glid, 0, rend_texture[0].GetDepthTex());
 
         mlaa_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
         temp_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_ZERO);
@@ -827,7 +827,7 @@ namespace rndr {
 
     void Render::post_proc() {
         lens_flare_texture = 0;
-        aet_back = 0;
+        composite_back = 0;
     }
 
     void Render::pre_proc(render_data_context& rend_data_ctx) {
@@ -962,11 +962,11 @@ namespace rndr {
             taa_buffer[i].SetColorDepthTextures(taa_tex[i]->glid, 0, rend_texture[0].GetDepthTex());
         }
 
-        texture_id aet_back_tex_id = aet_back_tex->id;
-        texture_release(aet_back_tex);
-        aet_back_tex = texture_load_tex_2d(aet_back_tex_id, GL_RGBA8,
+        texture_id composite_back_tex_id = composite_back_tex->id;
+        texture_release(composite_back_tex);
+        composite_back_tex = texture_load_tex_2d(composite_back_tex_id, GL_RGBA8,
             render_post_width[0], render_post_height[0], 0, 0, 0);
-        aet_back_texture.SetColorDepthTextures(aet_back_tex->glid, 0, rend_texture[0].GetDepthTex());
+        composite_back_texture.SetColorDepthTextures(composite_back_tex->glid, 0, rend_texture[0].GetDepthTex());
 
         mlaa_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
         temp_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_ZERO);
@@ -1240,7 +1240,7 @@ namespace rndr {
 
         rend_data_ctx.shader_flags.arr[U_TONE_MAP] = (int32_t)tone_map;
         rend_data_ctx.shader_flags.arr[U_FLARE] = 0;
-        rend_data_ctx.shader_flags.arr[U_AET_BACK] = 0;
+        rend_data_ctx.shader_flags.arr[U_COMPOSITE_BACK] = 0;
         rend_data_ctx.shader_flags.arr[U_LIGHT_PROJ] = 0;
 
         int32_t scene_fade_blend_func = this->scene_fade_blend_func[scene_fade_index];
@@ -1332,10 +1332,10 @@ namespace rndr {
             shader_data.g_texcoord_transforms[7] = { 0.0f, 1.0f, 0.0f, 0.0f };
         }
 
-        if (aet_back) {
-            rend_data_ctx.state.active_bind_texture_2d(6, aet_back_tex->glid);
+        if (composite_back) {
+            rend_data_ctx.state.active_bind_texture_2d(6, composite_back_tex->glid);
             rend_data_ctx.state.bind_sampler(6, rctx->render_samplers[2]);
-            rend_data_ctx.shader_flags.arr[U_AET_BACK] = 1;
+            rend_data_ctx.shader_flags.arr[U_COMPOSITE_BACK] = 1;
         }
 
         if (light_proj_tex) {
@@ -1350,7 +1350,7 @@ namespace rndr {
             rend_data_ctx.state.bind_sampler(7, rctx->render_samplers[2]);
         }
 
-        if (aet_back && npr_param == 1) {
+        if (composite_back && npr_param == 1) {
             rend_data_ctx.state.active_bind_texture_2d(14, rend_texture[0].GetDepthTex());
             rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[1]);
         }

@@ -1037,7 +1037,7 @@ static const uniform_name CONSTANT_uniform[] = {
 
 static const uniform_name TONEMAP_uniform[] = {
     U_TONE_MAP,
-    U_AET_BACK,
+    U_COMPOSITE_BACK,
 };
 
 static const uniform_name REDUCE_uniform[] = {

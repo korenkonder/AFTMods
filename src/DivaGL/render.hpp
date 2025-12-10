@@ -74,8 +74,8 @@ namespace rndr {
         RenderTexture rend_texture[5];
         RenderTexture taa_buffer[3];
         texture* taa_tex[3];
-        RenderTexture aet_back_texture;
-        texture* aet_back_tex;
+        RenderTexture composite_back_texture;
+        texture* composite_back_tex;
         RenderTexture downsample_texture;
         RenderTexture reduce_texture[5];
         texture* reduce_tex[5];
@@ -144,7 +144,7 @@ namespace rndr {
         RenderTexture render_textures[16];
         texture* movie_textures_data[1];
         RenderTexture movie_textures[1];
-        int32_t aet_back;
+        int32_t composite_back;
         renderer::DOF3* dof;
         texture* transparency_tex[1];
         renderer::Transparency* transparency;
@@ -179,7 +179,7 @@ namespace rndr {
 
         void apply_post_process(render_data_context& rend_data_ctx,
             const cam_data& cam, texture* light_proj_tex, int32_t npr_param);
-        void bind_render_texture(p_gl_rend_state& p_gl_rend_st, bool aet_back = false);
+        void bind_render_texture(p_gl_rend_state& p_gl_rend_st, bool composite_back = false);
         void calc_exposure_chara_data(render_data_context& rend_data_ctx, const cam_data& cam);
         void draw_quad(render_data_context& rend_data_ctx,
             int32_t width, int32_t height, float_t s0, float_t t0, float_t s1, float_t t1,
