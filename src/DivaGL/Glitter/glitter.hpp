@@ -244,8 +244,8 @@ namespace Glitter {
     };
 
     enum ParticleDrawFlag {
-        PARTICLE_DRAW_NONE              = 0x0,
-        PARTICLE_DRAW_NO_BILLBOARD_CULL = 0x1,
+        PARTICLE_DRAW_NONE              = 0x00,
+        PARTICLE_DRAW_NO_BILLBOARD_CULL = 0x01,
     };
 
     enum ParticleFlag {

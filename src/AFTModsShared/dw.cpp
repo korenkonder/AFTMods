@@ -1606,7 +1606,7 @@ namespace dw {
                     field_100 = (field_100 & ~0x02) | 0x100;
             }
             else if (data.input & 0x10)
-                field_100 |= 0x2;
+                field_100 |= 0x02;
         }
 
         if (field_100 & 0x100) {

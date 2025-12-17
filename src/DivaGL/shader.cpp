@@ -672,13 +672,13 @@ void shader_set_data::load(farc* f, bool ignore_cache,
             char uniform_vert_flags_buf[9];
             char uniform_frag_flags_buf[9];
             for (int32_t k = 0, l = 7; k < 32; k += 4, l--) {
-                int32_t vert_flags_digit = (uniform_vert_flags >> k) & 0xF;
+                int32_t vert_flags_digit = (uniform_vert_flags >> k) & 0x0F;
                 if (vert_flags_digit >= 0x00 && vert_flags_digit <= 0x09)
                     uniform_vert_flags_buf[l] = (char)('0' + vert_flags_digit);
                 else
                     uniform_vert_flags_buf[l] = (char)('A' + (vert_flags_digit - 0x0A));
 
-                int32_t frag_flags_digit = (uniform_frag_flags >> k) & 0xF;
+                int32_t frag_flags_digit = (uniform_frag_flags >> k) & 0x0F;
                 if (frag_flags_digit >= 0x00 && frag_flags_digit <= 0x09)
                     uniform_frag_flags_buf[l] = (char)('0' + frag_flags_digit);
                 else
@@ -1218,7 +1218,7 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
     else {
         gl_get_error_all_print();
 
-        GLenum binary_format = 0x0;
+        GLenum binary_format = 0x00;
         GLsizei length = 0;
         while (*buffer_size < 0x7FFFFFF) {
             glGetProgramBinary(program, *buffer_size, &length, &binary_format, *binary);
