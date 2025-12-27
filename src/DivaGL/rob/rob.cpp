@@ -508,7 +508,7 @@ HOOK(void, FASTCALL, rob_chara_item_equip_disp, 0x0000000140512950,
 
     disp_manager.set_texture_color_coefficients(rob_item_equip->texture_color_coefficients);
     disp_manager.set_wet_param(rob_item_equip->wet);
-    render_manager.field_31C |= rob_item_equip->npr_flag;
+    render_manager.npr_mask |= rob_item_equip->npr_flag;
     sub_140512C20(rob_item_equip);
     rob_chara_age_age_array_disp(chara_id, chara_reflect, rob_item_equip->chara_color);
 

@@ -217,7 +217,7 @@ HOOK(void, FASTCALL, rndr__RenderManager__rndpass_post_proc, 0x0000000140502C70)
     rend_data_ctx.state.begin_event("rndpass_post_proc");
     rctx->post_proc();
     render_manager.render->post_proc();
-    render_manager.field_31C = false;
+    render_manager.npr_mask = false;
     rend_data_ctx.state.end_event();
 }
 

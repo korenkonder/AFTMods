@@ -180,7 +180,7 @@ namespace rndr {
         reflect = false;
         refract = false;
         npr_param = 0;
-        field_31C = false;
+        npr_mask = false;
         reflect_texture_mask = false;
         reflect_tone_curve = false;
         field_31F = false;
