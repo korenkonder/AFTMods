@@ -166,9 +166,8 @@ struct EffectRipple {
     int32_t current_stage_index;
     prj::vector<int32_t> stage_indices;
 
+    void copy_to_ripple_tex(render_data_context& rend_data_ctx, RenderTexture* rt);
     void draw(render_data_context& rend_data_ctx, const cam_data& cam);
-
-    void sub_1403584A0(render_data_context& rend_data_ctx, RenderTexture* rt);
 };
 
 static_assert(sizeof(EffectRipple) == 0xC20, "\"EffectRipple\" struct should have a size of 0xC20");
@@ -607,6 +606,11 @@ static int32_t leaf_particle_disp(render_data_context& rend_data_ctx);
 static int32_t particle_disp(particle_vertex_data* vtx_data, particle_rot_data* data, int32_t count);
 
 static void rain_particle_free();
+
+static void ripple_propagate(render_data_context& rend_data_ctx,
+    RenderTexture* dst, RenderTexture* curr, RenderTexture* prev, const EffectRipple::Params& params);
+static void ripple_propagate_sub(render_data_context& rend_data_ctx,
+    texture* dst_tex, texture* curr_tex, texture* prev_tex, const EffectRipple::Params& params);
 
 static void ripple_emit_init();
 static void ripple_emit_free();
@@ -1554,52 +1558,19 @@ void EffectFogRing::draw(render_data_context& rend_data_ctx, const cam_data& cam
     gl_get_error_print();
 }
 
-static void sub_1403B6F60(render_data_context& rend_data_ctx,
-    texture* a1, texture* a2, texture* a3, EffectRipple::Params& params) {
-    if (!a1 || !a1->glid || !a2 || !a2->glid || !a3 || !a3->glid)
+// 0x00000001403584A0
+void EffectRipple::copy_to_ripple_tex(render_data_context& rend_data_ctx, RenderTexture* rt) {
+    if (ripple_tex_id == -1)
         return;
 
-    int32_t width = a2->width;
-    int32_t height = a2->height;
+    texture* ripple_tex = texture_manager_get_texture(ripple_tex_id);
+    if (!ripple_tex)
+        return;
 
-    gl_rend_state_rect viewport_rect = rend_data_ctx.state.get_viewport();
-    rend_data_ctx.state.set_viewport(1, 1, width - 2, height - 2);
+    field_BB8.SetColorDepthTextures(ripple_tex->glid);
+    field_BB8.Bind(rend_data_ctx.state);
 
-    ripple_scene_shader_data ripple_scene = {};
-    ripple_scene.g_transform = {
-        params.speed / (float_t)width, params.speed / (float_t)height,
-        (float_t)width / (float_t)(width - 2), (float_t)height / (float_t)(height - 2)
-    };
-    ripple_scene.g_texcoord = { 1.0f, 0.0f, 0.0f, 0.0f };
-    ripple_scene_ubo.WriteMemory(rend_data_ctx.state, ripple_scene);
-
-    ripple_batch_shader_data ripple_batch = {};
-    ripple_batch.g_params = { params.wake_attn, params.speed, params.field_8, params.field_C };
-    ripple_batch_ubo.WriteMemory(rend_data_ctx.state, ripple_batch);
-
-    rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
-    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_RIPPLE);
-    rend_data_ctx.state.bind_uniform_buffer_base(0, ripple_scene_ubo);
-    rend_data_ctx.state.bind_uniform_buffer_base(1, ripple_batch_ubo);
-    rend_data_ctx.state.active_bind_texture_2d(0, a2->glid);
-    rend_data_ctx.state.active_bind_texture_2d(1, a3->glid);
-    rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-    rend_data_ctx.state.active_bind_texture_2d(1, 0);
-    rend_data_ctx.state.active_bind_texture_2d(0, 0);
-    rend_data_ctx.state.bind_vertex_array(0);
-
-    rend_data_ctx.state.set_viewport(viewport_rect);
-}
-
-static void sub_1403B6ED0(render_data_context& rend_data_ctx, RenderTexture* a1,
-    RenderTexture* a2, RenderTexture* a3, EffectRipple::Params& params) {
-    a1->Bind(rend_data_ctx.state);
-    if (a1->color_texture->internal_format == GL_RGBA32F
-        || a1->color_texture->internal_format == GL_RGBA16F)
-        rend_data_ctx.shader_flags.arr[U_RIPPLE] = 1;
-    else
-        rend_data_ctx.shader_flags.arr[U_RIPPLE] = 0;
-    sub_1403B6F60(rend_data_ctx, a1->color_texture, a2->color_texture, a3->color_texture, params);
+    image_filter_scale(rend_data_ctx, &field_BB8, rt->color_texture);
     rend_data_ctx.state.bind_framebuffer(0);
 }
 
@@ -1645,11 +1616,11 @@ void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam)
             params.field_C = 0.999f;
         }
 
-        sub_1403B6ED0(rend_data_ctx, rt[(counter + 2) % 3], rt[(counter + 1) % 3], rt[counter % 3], params);
+        ripple_propagate(rend_data_ctx, rt[(counter + 2) % 3], rt[(counter + 1) % 3], rt[counter % 3], params);
 
         rend_data_ctx.state.set_viewport(viewport_rect);
 
-        sub_1403584A0(rend_data_ctx, rt[(counter + 2) % 3]);
+        copy_to_ripple_tex(rend_data_ctx, rt[(counter + 2) % 3]);
 
         this->counter = counter;
     }
@@ -1664,21 +1635,6 @@ void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam)
     update = false;
 
     rend_data_ctx.state.enable_cull_face();
-}
-
-void EffectRipple::sub_1403584A0(render_data_context& rend_data_ctx, RenderTexture* rt) {
-    if (ripple_tex_id == -1)
-        return;
-
-    texture* ripple_tex = texture_manager_get_texture(ripple_tex_id);
-    if (!ripple_tex)
-        return;
-
-    field_BB8.SetColorDepthTextures(ripple_tex->glid);
-    field_BB8.Bind(rend_data_ctx.state);
-
-    image_filter_scale(rend_data_ctx, &field_BB8, rt->color_texture);
-    rend_data_ctx.state.bind_framebuffer(0);
 }
 
 void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scale_u, float_t uv_rec_scale_v,
@@ -2468,6 +2424,57 @@ static void rain_particle_free() {
 
     rain_particle_scene_ubo.Destroy();
     rain_particle_batch_ubo.Destroy();
+}
+
+// 0x00000001403B6ED0
+static void ripple_propagate(render_data_context& rend_data_ctx,
+    RenderTexture* dst, RenderTexture* curr, RenderTexture* prev, const EffectRipple::Params& params) {
+    dst->Bind(rend_data_ctx.state);
+    if (dst->color_texture->internal_format == GL_RGBA32F
+        || dst->color_texture->internal_format == GL_RGBA16F)
+        rend_data_ctx.shader_flags.arr[U_RIPPLE] = 1;
+    else
+        rend_data_ctx.shader_flags.arr[U_RIPPLE] = 0;
+    ripple_propagate_sub(rend_data_ctx, dst->color_texture, curr->color_texture, prev->color_texture, params);
+    rend_data_ctx.state.bind_framebuffer(0);
+}
+
+// 0x00000001403B6F60
+static void ripple_propagate_sub(render_data_context& rend_data_ctx,
+    texture* dst_tex, texture* curr_tex, texture* prev_tex, const EffectRipple::Params& params) {
+    if (!dst_tex || !dst_tex->glid || !curr_tex || !curr_tex->glid || !prev_tex || !prev_tex->glid)
+        return;
+
+    int32_t width = curr_tex->width;
+    int32_t height = curr_tex->height;
+
+    gl_rend_state_rect viewport_rect = rend_data_ctx.state.get_viewport();
+    rend_data_ctx.state.set_viewport(1, 1, width - 2, height - 2);
+
+    ripple_scene_shader_data ripple_scene = {};
+    ripple_scene.g_transform = {
+        params.speed / (float_t)width, params.speed / (float_t)height,
+        (float_t)width / (float_t)(width - 2), (float_t)height / (float_t)(height - 2)
+    };
+    ripple_scene.g_texcoord = { 1.0f, 0.0f, 0.0f, 0.0f };
+    ripple_scene_ubo.WriteMemory(rend_data_ctx.state, ripple_scene);
+
+    ripple_batch_shader_data ripple_batch = {};
+    ripple_batch.g_params = { params.wake_attn, params.speed, params.field_8, params.field_C };
+    ripple_batch_ubo.WriteMemory(rend_data_ctx.state, ripple_batch);
+
+    rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_RIPPLE);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, ripple_scene_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(1, ripple_batch_ubo);
+    rend_data_ctx.state.active_bind_texture_2d(0, curr_tex->glid);
+    rend_data_ctx.state.active_bind_texture_2d(1, prev_tex->glid);
+    rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+    rend_data_ctx.state.active_bind_texture_2d(1, 0);
+    rend_data_ctx.state.active_bind_texture_2d(0, 0);
+    rend_data_ctx.state.bind_vertex_array(0);
+
+    rend_data_ctx.state.set_viewport(viewport_rect);
 }
 
 static void ripple_emit_init() {
