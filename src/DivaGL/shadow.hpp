@@ -61,6 +61,7 @@ struct Shadow {
     float_t get_shadow_range();
     int32_t init();
     void reset();
+    void set_curr_render_textures(int32_t index[2]);
 };
 
 static_assert(sizeof(Shadow) == 0x2F8, "\"Shadow\" struct should have a size of 0x2F8");

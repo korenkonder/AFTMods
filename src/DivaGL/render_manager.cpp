@@ -443,33 +443,29 @@ namespace rndr {
         }
         rend_data_ctx.state.end_event();
 
-        bool v3 = false;
-        int32_t v10[2];
+        bool make_shadowmap = false;
+        int32_t obj_shadow_count[2];
         for (int32_t i = 0; i < 2; i++) {
-            v10[i] = disp_manager->get_obj_count((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + i));
-            if (v10[i])
-                v3 = true;
+            obj_shadow_count[i] = disp_manager->get_obj_count((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + i));
+            if (obj_shadow_count[i])
+                make_shadowmap = true;
         }
 
         Shadow* shad = shadow_ptr;
-        if (shadow && v3) {
+        if (shadow && make_shadowmap) {
             int32_t index[2];
-            index[0] = shad->index[0];
-            index[1] = shad->index[1];
-            shad->curr_render_textures[0] = &shad->render_textures[0];
-            shad->curr_render_textures[1] = &shad->render_textures[1];
-            shad->curr_render_textures[2] = &shad->render_textures[2];
+            shad->set_curr_render_textures(index);
 
             cam_data cam;
             for (int32_t i = 0, j = 0; i < 2; i++) {
-                if (!v10[i])
+                if (!obj_shadow_count[i])
                     continue;
 
                 draw_pass_shadow_begin_make_shadowmap(shad, rend_data_ctx, cam, index[i], j);
                 rend_data_ctx.set_batch_scene_camera(cam);
-                disp_manager->draw(rend_data_ctx,
-                    (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + index[i]), cam);
-                if (disp_manager->get_obj_count((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + index[i])) > 0) {
+                disp_manager->draw(rend_data_ctx, (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + index[i]), cam);
+                if (disp_manager->get_obj_count(
+                    (mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + index[i])) > 0) {
                     rend_data_ctx.state.set_color_mask(show_stage_shadow
                         ? GL_TRUE : GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
                     disp_manager->draw(rend_data_ctx,
@@ -481,9 +477,7 @@ namespace rndr {
             }
         }
         else {
-            shad->curr_render_textures[0] = &shad->render_textures[0];
-            shad->curr_render_textures[1] = &shad->render_textures[1];
-            shad->curr_render_textures[2] = &shad->render_textures[2];
+            shad->set_curr_render_textures(0);
             shad->clear_textures(rend_data_ctx.state);
         }
         shader::unbind(rend_data_ctx.state);
