@@ -157,6 +157,7 @@
     <ClCompile Include="pv_game\pvpp.cpp" />
     <ClCompile Include="pv_game\pvsr.cpp" />
     <ClCompile Include="pv_game\pv_game.cpp" />
+    <ClCompile Include="reflect_full.cpp" />
     <ClCompile Include="renderer\dof.cpp" />
     <ClCompile Include="renderer\fbo.cpp" />
     <ClCompile Include="renderer\transparency.cpp" />
@@ -182,6 +183,7 @@
     <ClCompile Include="shadow.cpp" />
     <ClCompile Include="shared.cpp" />
     <ClCompile Include="sprite.cpp" />
+    <ClCompile Include="sss.cpp" />
     <ClCompile Include="stage.cpp" />
     <ClCompile Include="stage_param.cpp" />
     <ClCompile Include="static_var.cpp" />
@@ -209,6 +211,7 @@
     <ClInclude Include="pv_game\pvpp.hpp" />
     <ClInclude Include="pv_game\pvsr.hpp" />
     <ClInclude Include="pv_game\pv_game.hpp" />
+    <ClInclude Include="reflect_full.hpp" />
     <ClInclude Include="renderer\dof.hpp" />
     <ClInclude Include="renderer\fbo.hpp" />
     <ClInclude Include="renderer\transparency.hpp" />
@@ -235,6 +238,7 @@
     <ClInclude Include="shadow.hpp" />
     <ClInclude Include="shared.hpp" />
     <ClInclude Include="sprite.hpp" />
+    <ClInclude Include="sss.hpp" />
     <ClInclude Include="stage.hpp" />
     <ClInclude Include="stage_param.hpp" />
     <ClInclude Include="static_var.hpp" />

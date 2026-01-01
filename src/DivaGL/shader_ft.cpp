@@ -247,11 +247,11 @@ static const int32_t lit_proj_fpt_unival_max[] = {
 };
 
 static const int32_t simple_vpt_unival_max[] = {
-    1,
+    1, 0,
 };
 
 static const int32_t simple_fpt_unival_max[] = {
-    0,
+    0, 1,
 };
 
 static const int32_t silhouette_vpt_unival_max[] = {
@@ -567,11 +567,11 @@ static const int32_t puddle_fpt_unival_max[] = {
 };
 
 static const int32_t simple_reflect_vpt_unival_max[] = {
-    1, 1, 0,
+    1, 1, 0, 0,
 };
 
 static const int32_t simple_reflect_fpt_unival_max[] = {
-    0, 0, 1,
+    0, 0, 1, 1,
 };
 
 static const int32_t simple_refract_vpt_unival_max[] = {
@@ -1015,6 +1015,7 @@ static const uniform_name LITPROJ_uniform[] = {
 
 static const uniform_name SIMPLE_uniform[] = {
     U_SKINNING,
+    U_ALPHA_TEST,
 };
 
 static const uniform_name SIL_uniform[] = {
@@ -1110,6 +1111,7 @@ static const uniform_name S_REFL_uniform[] = {
     U_SKINNING,
     U_MORPH,
     U_ALPHA_TEST,
+    U_CLIP_PLANE,
 };
 
 static const uniform_name S_REFR_uniform[] = {

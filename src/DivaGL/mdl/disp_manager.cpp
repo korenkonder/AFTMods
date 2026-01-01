@@ -12,6 +12,7 @@
 #include "../gl_rend_state.hpp"
 #include "../gl_state.hpp"
 #include "../object.hpp"
+#include "../reflect_full.hpp"
 #include "../render_manager.hpp"
 #include "../shader_ft.hpp"
 #include "../sprite.hpp"
@@ -48,9 +49,6 @@ static void rob_chara_item_cos_data_disp_item_object(rob_chara_item_cos_data* it
 static void rob_chara_item_cos_data_set_chara_index(rob_chara_item_cos_data* item_cos_data, ::chara_index chara_index);
 
 static void sub_140436760(const cam_data& cam);
-
-extern bool reflect_draw;
-extern mat4 reflect_mat;
 
 material_list_struct::material_list_struct() : blend_color(), has_blend_color(), emission(), has_emission() {
     hash = (uint64_t)-1;

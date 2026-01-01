@@ -10,9 +10,6 @@
 #include "../shader_ft.hpp"
 #include "../wrap.hpp"
 
-extern bool reflect_draw;
-extern mat4 reflect_mat;
-
 namespace Glitter {
     void RenderScene::CalcDisp() {
         disp_quad = 0;

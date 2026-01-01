@@ -7,6 +7,7 @@
 #include "../../KKdLib/hash.hpp"
 #include "../../AFTModsShared/light_param/light.hpp"
 #include "../shader_ft.hpp"
+#include "../sss.hpp"
 #include "../texture.hpp"
 
 static bool draw_object_blend_set(render_data_context& rend_data_ctx,

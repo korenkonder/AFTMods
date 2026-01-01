@@ -7,7 +7,7 @@
 #include "rob/rob.hpp"
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
-#include "render_context.hpp"
+#include "reflect_full.hpp"
 #include "render_context.hpp"
 #include "shader_ft.hpp"
 #include "texture.hpp"
@@ -283,26 +283,6 @@ namespace rndr {
         rend_data_ctx.state.enable_cull_face();
     }
 
-    void Render::draw_quad(render_data_context& rend_data_ctx,
-        int32_t width, int32_t height, float_t s0, float_t t0, float_t s1, float_t t1,
-        float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
-        s0 -= s1;
-        t0 -= t1;
-
-        const float_t w = (float_t)max_def(width, 1);
-        const float_t h = (float_t)max_def(height, 1);
-        quad_shader_data quad = {};
-        quad.g_texcoord_modifier = { 0.5f * s0, 0.5f * t0, 0.5f * s0 + s1, 0.5f * t0 + t1 }; // x * 0.5 * y0 + 0.5 * y0 + y1
-        quad.g_texel_size = { scale / w, scale / h, w, h };
-        quad.g_color = { param_x, param_y, param_z, param_w };
-        quad.g_texture_lod = 0.0f;
-
-        rctx->quad_ubo.WriteMemory(rend_data_ctx.state, quad);
-        rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->quad_ubo);
-        rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
-        rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-    }
-
     void Render::draw_lens_flare(render_data_context& rend_data_ctx, const cam_data& cam) {
         static float_t flt_1411ACB84 = sinf(0.01365909819f);
         static float_t flt_1411ACB8C = tanf(0.01365909819f) * 2.0f * 0.94f;
@@ -508,6 +488,90 @@ namespace rndr {
         }
     }
 
+    void Render::draw_quad(render_data_context& rend_data_ctx,
+        int32_t width, int32_t height, float_t s0, float_t t0, float_t s1, float_t t1,
+        float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
+        s0 -= s1;
+        t0 -= t1;
+
+        const float_t w = (float_t)max_def(width, 1);
+        const float_t h = (float_t)max_def(height, 1);
+        quad_shader_data quad = {};
+        quad.g_texcoord_modifier = { 0.5f * s0, 0.5f * t0, 0.5f * s0 + s1, 0.5f * t0 + t1 }; // x * 0.5 * y0 + 0.5 * y0 + y1
+        quad.g_texel_size = { scale / w, scale / h, w, h };
+        quad.g_color = { param_x, param_y, param_z, param_w };
+        quad.g_texture_lod = 0.0f;
+
+        rctx->quad_ubo.WriteMemory(rend_data_ctx.state, quad);
+        rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->quad_ubo);
+        rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
+        rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+
+    void Render::draw_sss_contour(render_data_context& rend_data_ctx, const cam_data& cam) {
+        if (reflect_draw)
+            reflect_full_ptr->reflect_buffer_texture.Bind(rend_data_ctx.state);
+        else
+            sss_contour_texture->Bind(rend_data_ctx.state);
+
+        rend_data_ctx.state.enable_depth_test();
+        rend_data_ctx.state.set_depth_func(GL_ALWAYS);
+        rend_data_ctx.state.set_depth_mask(GL_TRUE);
+        if (reflect_draw) {
+            RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
+            rend_data_ctx.state.set_viewport(0, 0, refl_tex.GetWidth(), refl_tex.GetHeight());
+            rend_data_ctx.state.active_bind_texture_2d(0, refl_tex.GetColorTex());
+            rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
+            rend_data_ctx.state.active_bind_texture_2d(1, refl_tex.GetDepthTex());
+            rend_data_ctx.state.bind_sampler(1, rctx->render_samplers[1]);
+        }
+        else {
+            rend_data_ctx.state.set_viewport(0, 0, render_width[0], render_height[0]);
+            rend_data_ctx.state.active_bind_texture_2d(0, rend_texture[0].GetColorTex());
+            rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
+            rend_data_ctx.state.active_bind_texture_2d(1, rend_texture[0].GetDepthTex());
+            rend_data_ctx.state.bind_sampler(1, rctx->render_samplers[1]);
+        }
+        rend_data_ctx.state.active_texture(0);
+
+        float_t v3 = 1.0f / tanf(cam.get_fov() * 0.5f);
+
+        vec3 direction = cam.get_interest() - cam.get_view_point();
+        float_t length = vec3::length(direction);
+        float_t v7 = direction.y;
+        if (length != 0.0f)
+            v7 /= length;
+
+        float_t v9 = fabsf(v7) - 0.1f;
+        if (v9 < 0.0f)
+            v9 = 0.0f;
+
+        contour_coef_shader_data shader_data = {};
+        shader_data.g_contour = { v9 * 0.004f + 0.0027f, 0.003f, v3 * 0.35f, 0.0008f };
+        const double_t max_distance = cam.get_max_distance();
+        const double_t min_distance = cam.get_min_distance();
+        shader_data.g_near_far = {
+            (float_t)(max_distance * (1.0 / (max_distance - min_distance))),
+            (float_t)(-(max_distance * min_distance) * (1.0 / (max_distance - min_distance))),
+            (float_t)min_distance, (float_t)max_distance
+        };
+        rctx->contour_coef_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+
+        shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_CONTOUR);
+        rend_data_ctx.state.bind_uniform_buffer_base(2, rctx->contour_coef_ubo);
+
+        if (reflect_draw) {
+            RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
+            draw_quad(rend_data_ctx, refl_tex.GetWidth(), refl_tex.GetHeight(),
+                1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+        }
+        else
+            draw_quad(rend_data_ctx,
+                render_post_width[0], render_post_height[0],
+                render_post_width_scale, render_post_height_scale,
+                0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
     void Render::frame_texture_free() {
         for (Render::FrameTexture& i : frame_texture) {
             for (Render::FrameTextureData& j : i.data) {
@@ -637,6 +701,18 @@ namespace rndr {
             glDeleteQueries(3, i.query);
             i.query[0] = 0;
         }
+    }
+
+    void Render::get_render_resolution(float_t* render_width, float_t* render_height,
+        float_t* render_post_width, float_t* render_post_height) {
+        if (render_width)
+            *render_width = (float_t)this->render_width[0];
+        if (render_height)
+            *render_height = (float_t)this->render_height[0];
+        if (render_post_width)
+            *render_post_width = (float_t)this->render_post_width[0];
+        if (render_post_height)
+            *render_post_height = (float_t)this->render_post_height[0];
     }
 
     vec2 Render::get_taa_offset() {

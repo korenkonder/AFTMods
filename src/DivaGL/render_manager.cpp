@@ -15,11 +15,13 @@
 #include "effect.hpp"
 #include "gl_state.hpp"
 #include "light_param.hpp"
+#include "reflect_full.hpp"
 #include "render.hpp"
 #include "render_context.hpp"
 #include "render_texture.hpp"
 #include "shader_ft.hpp"
 #include "sprite.hpp"
+#include "sss.hpp"
 #include "stage_param.hpp"
 #include "static_var.hpp"
 #include "texture.hpp"
@@ -31,47 +33,24 @@ struct light_data_color {
     vec4 specular;
 };
 
-struct reflect_full_struct {
-    RenderTexture reflect_texture;
-    RenderTexture reflect_buffer_texture;
-    RenderTexture reflect_contour_texture;
-    renderer::DOF3* dof;
-
-    reflect_full_struct();
-    ~reflect_full_struct();
-
-    void free();
-    void init();
-};
-
 extern render_context* rctx;
-
-vec4 reflect_clip_plane = 0.0f;
-bool reflect_draw = false;
-mat4 reflect_mat = mat4_identity;
-reflect_full_struct* reflect_full_ptr = 0;
-
-vec4 sss_param = 0.0f;
-vec4 sss_param_reflect = 0.0f;
 
 RenderTexture* litproj_shadow = (RenderTexture*)0x0000000141194DA0;
 RenderTexture* litproj_texture = (RenderTexture*)0x0000000141194E00;
 rndr::RenderManager& render_manager = *(rndr::RenderManager*)0x00000001411AD320;
 
+static void apply_esm_filter(render_data_context& rend_data_ctx,
+    RenderTexture* dst, RenderTexture* buf, RenderTexture* src,
+    float_t sigma, float_t far_texel_offset, bool enable_lit_proj);
 static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad,
     render_data_context& rend_data_ctx, cam_data& cam, int32_t index, int32_t a3);
 static void draw_pass_shadow_end_make_shadowmap(Shadow* shad,
     render_data_context& rend_data_ctx, int32_t index, int32_t a3);
-static void draw_pass_shadow_filter(render_data_context& rend_data_ctx,
-    RenderTexture* a1, RenderTexture* a2, RenderTexture* a3,
-    float_t sigma, float_t far_texel_offset, bool enable_lit_proj);
-static void draw_pass_shadow_esm_filter(render_data_context& rend_data_ctx,
+static void apply_esm_min_filter(render_data_context& rend_data_ctx,
     RenderTexture* dst, RenderTexture* buf, RenderTexture* src);
-static bool draw_pass_shadow_litproj(render_data_context& rend_data_ctx, cam_data& cam);
-static bool draw_pass_shadow_litproj_set(render_data_context& rend_data_ctx, cam_data& cam);
-static bool draw_pass_shadow_litproj_set_mat(render_data_context& rend_data_ctx, cam_data& cam, bool set_mat);
-static void draw_pass_sss_contour(render_data_context& rend_data_ctx, rndr::Render* rend, cam_data& cam);
-static void draw_pass_sss_filter(render_data_context& rend_data_ctx, sss_data* sss);
+static bool litproj_clear(render_data_context& rend_data_ctx, cam_data& cam);
+static bool litproj_set(render_data_context& rend_data_ctx, cam_data& cam);
+static bool litproj_set_mat(render_data_context& rend_data_ctx, cam_data& cam, bool set_mat);
 static int32_t draw_pass_3d_get_translucent_count();
 static void draw_pass_3d_shadow_reset(render_data_context& rend_data_ctx);
 static void draw_pass_3d_shadow_set(render_data_context& rend_data_ctx, Shadow* shad);
@@ -91,7 +70,7 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
 static bool draw_pass_reflect_get_obj_reflect_surface();
 static bool draw_pass_reflect_get_obj_reflect_surface(mdl::ObjType type);
 
-static void blur_filter_apply(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
+static void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
     blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
 
 static void fog_set(render_data_context& rend_data_ctx, fog_id id);
@@ -413,7 +392,7 @@ namespace rndr {
         rend_data_ctx.state.begin_event("pass_shadow");
         rend_data_ctx.state.begin_event("texproj");
         cam_data texproj_cam;
-        if (draw_pass_shadow_litproj_set(rend_data_ctx, texproj_cam)) {
+        if (litproj_set(rend_data_ctx, texproj_cam)) {
             rend_data_ctx.set_batch_scene_camera(texproj_cam);
             disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_OPAQUE, texproj_cam);
             disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_TRANSPARENT, texproj_cam);
@@ -421,18 +400,17 @@ namespace rndr {
 
             rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
             rend_data_ctx.shader_flags.arr[U_DEPTH] = 0;
-            draw_pass_shadow_filter(rend_data_ctx, &litproj_shadow[0],
+            apply_esm_filter(rend_data_ctx, &litproj_shadow[0],
                 &litproj_shadow[1], 0, 1.5f, 0.01f, true);
 
-            if (draw_pass_shadow_litproj(rend_data_ctx, texproj_cam)) {
+            if (litproj_clear(rend_data_ctx, texproj_cam)) {
                 for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
                     lighting_set(rend_data_ctx, (light_set_id)i);
 
                 rend_data_ctx.set_batch_scene_camera(cam);
                 disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_OPAQUE, cam);
                 disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_TRANSPARENT, cam);
-                disp_manager->obj_sort(rend_data_ctx,
-                    mdl::OBJ_TYPE_TRANSLUCENT, 1, cam);
+                disp_manager->obj_sort(rend_data_ctx, mdl::OBJ_TYPE_TRANSLUCENT, 1, cam);
                 rend_data_ctx.state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                 rend_data_ctx.state.enable_blend();
                 disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_TRANSLUCENT, cam);
@@ -503,23 +481,63 @@ namespace rndr {
             rend_data_ctx.state.begin_event("reflect");
             reflect_draw = true;
 
-            rndr::Render* rend = render;
             RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
-            //if (refl_tex.GetWidth() > 1280.0)
-            //    sss->npr_contour = false;
+            if (sss->set(rend_data_ctx, refl_tex)) {
+                rndr::Render* rend = render;
 
-            //if (sss->npr_contour) {
-                refl_tex.Bind(rend_data_ctx.state);
-                refl_tex.SetViewport(rend_data_ctx.state);
-            //}
-            //else {
-            //    sss->textures[0].Bind(rend_data_ctx.state);
-            //    rend_data_ctx.state.set_viewport(0, 0, 640, 360);
-            //}
+                for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
+                    lighting_set(rend_data_ctx, (light_set_id)i);
 
-            rend_data_ctx.state.clear_color(sss->param.x, sss->param.y, sss->param.z, 0.0f);
-            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                if (shadow)
+                    draw_pass_3d_shadow_set(rend_data_ctx, shadow_ptr);
+                else
+                    draw_pass_3d_shadow_reset(rend_data_ctx);
 
+                cam_data reflect_cam = cam;
+                set_reflect_mat(rend_data_ctx, reflect_cam);
+                rend_data_ctx.set_batch_scene_camera(reflect_cam);
+
+                rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
+                rend_data_ctx.state.enable_depth_test();
+                rend_data_ctx.state.set_depth_func(GL_LEQUAL);
+                rend_data_ctx.state.set_depth_mask(GL_TRUE);
+                disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, reflect_cam);
+                rend_data_ctx.state.disable_depth_test();
+                rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
+                draw_pass_3d_shadow_reset(rend_data_ctx);
+                rend_data_ctx.shader_flags.arr[U_NPR] = 0;
+
+                if (npr_param == 1) {
+                    if (sss->enable && sss->downsample) {
+                        rend_data_ctx.shader_flags.arr[U_NPR] = 1;
+                        rend->draw_sss_contour(rend_data_ctx, reflect_cam);
+                    }
+                    else if (npr) {
+                        refl_tex.Bind(rend_data_ctx.state);
+                        refl_tex.SetViewport(rend_data_ctx.state);
+                        rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
+                        rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
+                        rend_data_ctx.state.enable_depth_test();
+                        rend_data_ctx.state.set_depth_mask(GL_TRUE);
+                        disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, reflect_cam);
+                        rend_data_ctx.state.disable_depth_test();
+                        rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
+                        rend_data_ctx.state.bind_framebuffer(0);
+                        rend_data_ctx.shader_flags.arr[U_NPR] = 1;
+                        rend->draw_sss_contour(rend_data_ctx, reflect_cam);
+                    }
+                }
+
+                sss->apply_filter(rend_data_ctx);
+                sss->reset(rend_data_ctx);
+            }
+
+            rend_data_ctx.set_npr(this);
+            reflect_draw = false;
+            rend_data_ctx.state.end_event();
+        }
+
+        if (sss->set(rend_data_ctx)) {
             for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
                 lighting_set(rend_data_ctx, (light_set_id)i);
 
@@ -528,156 +546,44 @@ namespace rndr {
             else
                 draw_pass_3d_shadow_reset(rend_data_ctx);
 
-            cam_data reflect_cam = cam;
-            set_reflect_mat(rend_data_ctx, reflect_cam);
-            rend_data_ctx.set_batch_scene_camera(reflect_cam);
+            rend_data_ctx.set_batch_scene_camera(cam);
 
             rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
             rend_data_ctx.state.enable_depth_test();
             rend_data_ctx.state.set_depth_func(GL_LEQUAL);
             rend_data_ctx.state.set_depth_mask(GL_TRUE);
-            disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, reflect_cam);
+            disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, cam);
             rend_data_ctx.state.disable_depth_test();
             rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
             draw_pass_3d_shadow_reset(rend_data_ctx);
             rend_data_ctx.shader_flags.arr[U_NPR] = 0;
 
             if (npr_param == 1) {
-                if (sss->enable && sss->npr_contour) {
+                if (sss->enable && sss->downsample) {
                     rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                    draw_pass_sss_contour(rend_data_ctx, rend, reflect_cam);
+                    rend->draw_sss_contour(rend_data_ctx, cam);
                 }
                 else if (npr) {
-                    refl_tex.Bind(rend_data_ctx.state);
-                    refl_tex.SetViewport(rend_data_ctx.state);
+                    rend->rend_texture[0].Bind(rend_data_ctx.state);
+                    rend->rend_texture[0].SetViewport(rend_data_ctx.state);
                     rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
                     rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
                     rend_data_ctx.state.enable_depth_test();
                     rend_data_ctx.state.set_depth_mask(GL_TRUE);
-                    disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, reflect_cam);
+                    disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, cam);
                     rend_data_ctx.state.disable_depth_test();
                     rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
                     rend_data_ctx.state.bind_framebuffer(0);
                     rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                    draw_pass_sss_contour(rend_data_ctx, rend, reflect_cam);
+                    rend->draw_sss_contour(rend_data_ctx, cam);
                 }
             }
 
-            if (!sss->npr_contour) {
-                sss->textures[0].Bind(rend_data_ctx.state);
-                rend_data_ctx.state.set_viewport(0, 0, 640, 360);
-
-                filter_scene_shader_data filter_scene = {};
-                filter_scene.g_transform = { 1.0f, 1.0f, 0.0f, 0.0f };
-                filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
-                rctx->filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
-
-                imgfilter_batch_shader_data imgfilter_batch = {};
-                imgfilter_batch.g_color_scale = 1.0f;
-                imgfilter_batch.g_color_offset = 0.0f;
-                imgfilter_batch.g_texture_lod = 0.0f;
-                rctx->imgfilter_batch_ubo.WriteMemory(rend_data_ctx.state, imgfilter_batch);
-
-                rend_data_ctx.shader_flags.arr[U_IMAGE_FILTER] = 5;
-                shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_IMGFILT);
-                rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->filter_scene_ubo);
-                rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->imgfilter_batch_ubo);
-                rend_data_ctx.state.active_bind_texture_2d(0, refl_tex.GetColorTex());
-                rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
-                rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
-                rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-
-            draw_pass_sss_filter(rend_data_ctx, sss);
-            rend_data_ctx.set_npr(this);
-            reflect_draw = false;
-            rend_data_ctx.state.end_event();
+            sss->apply_filter(rend_data_ctx);
+            sss->reset(rend_data_ctx);
         }
 
-        //if (rend->render_width > 1280.0)
-        //    sss->npr_contour = false;
-
-        //if (sss->npr_contour) {
-            rend->rend_texture[0].Bind(rend_data_ctx.state);
-            rend->rend_texture[0].SetViewport(rend_data_ctx.state);
-        //}
-        //else {
-        //    sss->textures[0].Bind(rend_data_ctx.state);
-        //    rend_data_ctx.state.set_viewport(0, 0, 640, 360);
-        //}
-
-        rend_data_ctx.state.clear_color(sss->param.x, sss->param.y, sss->param.z, 0.0f);
-        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
-            lighting_set(rend_data_ctx, (light_set_id)i);
-
-        if (shadow)
-            draw_pass_3d_shadow_set(rend_data_ctx, shadow_ptr);
-        else
-            draw_pass_3d_shadow_reset(rend_data_ctx);
-
-        rend_data_ctx.set_batch_scene_camera(cam);
-
-        rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
-        rend_data_ctx.state.enable_depth_test();
-        rend_data_ctx.state.set_depth_func(GL_LEQUAL);
-        rend_data_ctx.state.set_depth_mask(GL_TRUE);
-        disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, cam);
-        rend_data_ctx.state.disable_depth_test();
-        rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
-        draw_pass_3d_shadow_reset(rend_data_ctx);
-        rend_data_ctx.shader_flags.arr[U_NPR] = 0;
-
-        if (npr_param == 1) {
-            if (sss->enable && sss->npr_contour) {
-                rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                draw_pass_sss_contour(rend_data_ctx, rend, cam);
-            }
-            else if (npr) {
-                rend->rend_texture[0].Bind(rend_data_ctx.state);
-                rend->rend_texture[0].SetViewport(rend_data_ctx.state);
-                rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
-                rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
-                rend_data_ctx.state.enable_depth_test();
-                rend_data_ctx.state.set_depth_mask(GL_TRUE);
-                disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_SSS, cam);
-                rend_data_ctx.state.disable_depth_test();
-                rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
-                rend_data_ctx.state.bind_framebuffer(0);
-                rend_data_ctx.shader_flags.arr[U_NPR] = 1;
-                draw_pass_sss_contour(rend_data_ctx, rend, cam);
-            }
-        }
-
-        if (!sss->npr_contour) {
-            sss->textures[0].Bind(rend_data_ctx.state);
-            rend_data_ctx.state.set_viewport(0, 0, 640, 360);
-
-            filter_scene_shader_data filter_scene = {};
-            filter_scene.g_transform = { 1.0f, 1.0f, 0.0f, 0.0f };
-            filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
-            rctx->filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
-
-            imgfilter_batch_shader_data imgfilter_batch = {};
-            imgfilter_batch.g_color_scale = 1.0f;
-            imgfilter_batch.g_color_offset = 0.0f;
-            imgfilter_batch.g_texture_lod = 0.0f;
-            rctx->imgfilter_batch_ubo.WriteMemory(rend_data_ctx.state, imgfilter_batch);
-
-            rend_data_ctx.shader_flags.arr[U_IMAGE_FILTER] = 5;
-            shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_IMGFILT);
-            rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->filter_scene_ubo);
-            rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->imgfilter_batch_ubo);
-            rend_data_ctx.state.active_bind_texture_2d(0, rend->rend_texture[0].GetColorTex());
-            rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
-            rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
-            rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-        }
-
-        draw_pass_sss_filter(rend_data_ctx, sss);
         rend_data_ctx.set_npr(this);
-        rend_data_ctx.state.bind_framebuffer(0);
         rend_data_ctx.state.end_event();
     }
 
@@ -740,7 +646,7 @@ namespace rndr {
             rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
 
             for (int32_t i = reflect_blur_num, j = 0; i > 0; i--, j++) {
-                blur_filter_apply(rend_data_ctx, &refl_buf_tex, &refl_tex,
+                apply_blur_filter_sub(rend_data_ctx, &refl_buf_tex, &refl_tex,
                     reflect_blur_filter, 1.0f, 1.0f, 0.0f);
                 image_filter_scale(rend_data_ctx, &refl_tex, refl_buf_tex.color_texture);
             }
@@ -822,7 +728,7 @@ namespace rndr {
         }
 
         rndr::Render* rend = render;
-        if (!sss_data_get()->enable || !sss_data_get()->npr_contour) {
+        if (!sss_data_get()->enable || !sss_data_get()->downsample) {
             rend->bind_render_texture(rend_data_ctx.state);
             if (sprite_manager_get_reqlist_count(2)) {
                 rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
@@ -888,7 +794,7 @@ namespace rndr {
     void RenderManager::pass_3d(render_data_context& rend_data_ctx) {
         cam_data& cam = rctx->render_manager_cam;
         render->bind_render_texture(rend_data_ctx.state);
-        if (!sss_data_get()->enable || !sss_data_get()->npr_contour
+        if (!sss_data_get()->enable || !sss_data_get()->downsample
             || draw_pass_3d_get_translucent_count()) {
             rend_data_ctx.state.set_depth_mask(GL_TRUE);
             rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
@@ -1328,47 +1234,6 @@ void render_manager_patch() {
     INSTALL_HOOK(render_manager_init_data);
 }
 
-reflect_full_struct::reflect_full_struct() : dof() {
-
-}
-
-reflect_full_struct::~reflect_full_struct() {
-    free();
-}
-
-void reflect_full_struct::free() {
-    if (dof) {
-        delete dof;
-        dof = 0;
-    }
-
-    reflect_contour_texture.Free();
-
-    reflect_buffer_texture.Free();
-    reflect_texture.Free();
-}
-
-void reflect_full_struct::init() {
-    rndr::Render* render = render_manager.render;
-
-    const float_t res_scale = clamp_def((float_t)((double_t)sv_reflect_res_scale / 100.0), 0.25f, 1.0f);
-
-    int32_t render_width = (int32_t)prj::roundf((float_t)render->render_width[0] * res_scale);
-    render_width = min_def(max_def(render_width, 128), render->render_width[0]);
-    int32_t render_height = (int32_t)prj::roundf((float_t)render->render_height[0] * res_scale);
-    render_height = min_def(max_def(render_height, 72), render->render_height[0]);
-
-    reflect_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
-    reflect_buffer_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
-
-    reflect_contour_texture.SetColorDepthTextures(reflect_texture.GetColorTex());
-
-    if (dof)
-        dof->resize(render_width, render_height);
-    else
-        dof = new renderer::DOF3(render_width, render_height);
-}
-
 void get_reflect_mat() {
     vec4 reflect_clip_plane;
     const light_set* set = &light_set_data[LIGHT_SET_MAIN];
@@ -1443,10 +1308,10 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad,
 
     rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
     if (a3 == shad->num_shadow - 1) {
-        draw_pass_shadow_filter(rend_data_ctx, &shad->render_textures[3],
+        apply_esm_filter(rend_data_ctx, &shad->render_textures[3],
             &shad->render_textures[4], shad->curr_render_textures[0],
             shad->field_2DC, shad->field_2E0 / (shad->z_half_range * 2.0f), false);
-        draw_pass_shadow_esm_filter(rend_data_ctx, &shad->render_textures[5],
+        apply_esm_min_filter(rend_data_ctx, &shad->render_textures[5],
             &shad->render_textures[6], &shad->render_textures[3]);
     }
 
@@ -1458,7 +1323,7 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad,
 
     if (shad->blur_filter_enable[index]) {
         for (int32_t i = shad->near_blur, j = 0; i > 0; i--, j++) {
-            blur_filter_apply(rend_data_ctx, &rend_buf_tex, rend_tex,
+            apply_blur_filter_sub(rend_data_ctx, &rend_buf_tex, rend_tex,
                 shad->blur_filter, 1.0f, 1.0f, 0.0f);
             image_filter_scale(rend_data_ctx, rend_tex, rend_buf_tex.color_texture);
         }
@@ -1479,16 +1344,16 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad,
     }
 }
 
-static void draw_pass_shadow_filter(render_data_context& rend_data_ctx,
-    RenderTexture* a1, RenderTexture* a2, RenderTexture* a3,
+static void apply_esm_filter(render_data_context& rend_data_ctx,
+    RenderTexture* dst, RenderTexture* buf, RenderTexture* src,
     float_t sigma, float_t far_texel_offset, bool enable_lit_proj) {
-    texture* v7 = a1->color_texture;
-    texture* v9 = a2->color_texture;
-    texture* v11 = v7;
-    if (a3)
-        v11 = a3->depth_texture;
+    texture* dst_tex = dst->color_texture;
+    texture* buf_tex = buf->color_texture;
+    texture* src_tex = dst->color_texture;
+    if (src)
+        src_tex = src->depth_texture;
 
-    if (!v7 || !v9 || !v11 || v7->width != v9->width || v7->height != v9->height)
+    if (!dst_tex || !buf_tex || !src_tex || dst_tex->width != buf_tex->width || dst_tex->height != buf_tex->height)
         return;
 
     rend_data_ctx.state.begin_event("`anonymous-namespace'::Impl::apply_esm_filter");
@@ -1498,7 +1363,6 @@ static void draw_pass_shadow_filter(render_data_context& rend_data_ctx,
     rctx->filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
 
     esm_filter_batch_shader_data esm_filter_batch = {};
-    esm_filter_batch.g_params = { 1.0f / (float_t)v7->width, 0.0f, far_texel_offset, far_texel_offset };
     double_t v6 = 1.0 / (sqrt(M_PI * 2.0) * sigma);
     double_t v8 = -1.0 / (2.0 * sigma * sigma);
     for (int32_t i = 0; i < 8; i++)
@@ -1509,23 +1373,22 @@ static void draw_pass_shadow_filter(render_data_context& rend_data_ctx,
     rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->filter_scene_ubo);
     rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->esm_filter_batch_ubo);
 
-    rend_data_ctx.state.set_viewport(0, 0, v7->width, v7->height);
+    rend_data_ctx.state.set_viewport(0, 0, dst_tex->width, dst_tex->height);
 
-    a2->Bind(rend_data_ctx.state);
-    esm_filter_batch.g_params = { 1.0f / (float_t)v7->width, 0.0f, far_texel_offset, far_texel_offset };
+    buf->Bind(rend_data_ctx.state);
+    esm_filter_batch.g_params = { 1.0f / (float_t)dst_tex->width, 0.0f, far_texel_offset, far_texel_offset };
     rctx->esm_filter_batch_ubo.WriteMemory(rend_data_ctx.state, esm_filter_batch);
 
-    rend_data_ctx.state.active_bind_texture_2d(0, v11->glid);
+    rend_data_ctx.state.active_bind_texture_2d(0, src_tex->glid);
     rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
     rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
     rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    a1->Bind(rend_data_ctx.state);
-
-    esm_filter_batch.g_params = { 0.0f, 1.0f / (float_t)v7->height, far_texel_offset, far_texel_offset };
+    dst->Bind(rend_data_ctx.state);
+    esm_filter_batch.g_params = { 0.0f, 1.0f / (float_t)dst_tex->height, far_texel_offset, far_texel_offset };
     rctx->esm_filter_batch_ubo.WriteMemory(rend_data_ctx.state, esm_filter_batch);
 
-    rend_data_ctx.state.active_bind_texture_2d(0, v9->glid);
+    rend_data_ctx.state.active_bind_texture_2d(0, buf_tex->glid);
     rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
     rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
     rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1533,7 +1396,7 @@ static void draw_pass_shadow_filter(render_data_context& rend_data_ctx,
     rend_data_ctx.state.end_event();
 }
 
-static void draw_pass_shadow_esm_filter(render_data_context& rend_data_ctx,
+static void apply_esm_min_filter(render_data_context& rend_data_ctx,
     RenderTexture* dst, RenderTexture* buf, RenderTexture* src) {
     texture* dst_tex = dst->color_texture;
     texture* buf_tex = buf->color_texture;
@@ -1588,7 +1451,7 @@ static void draw_pass_shadow_esm_filter(render_data_context& rend_data_ctx,
     rend_data_ctx.state.end_event();
 }
 
-static bool draw_pass_shadow_litproj(render_data_context& rend_data_ctx, cam_data& cam) {
+static bool litproj_clear(render_data_context& rend_data_ctx, cam_data& cam) {
     if (!stage_param_data_litproj_current)
         return false;
 
@@ -1603,7 +1466,7 @@ static bool draw_pass_shadow_litproj(render_data_context& rend_data_ctx, cam_dat
     rend_data_ctx.state.clear_depth(1.0f);
     rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (!draw_pass_shadow_litproj_set_mat(rend_data_ctx, cam, true)) {
+    if (!litproj_set_mat(rend_data_ctx, cam, true)) {
         rend_data_ctx.state.bind_framebuffer(0);
         return false;
     }
@@ -1617,7 +1480,7 @@ static bool draw_pass_shadow_litproj(render_data_context& rend_data_ctx, cam_dat
     return true;
 }
 
-static bool draw_pass_shadow_litproj_set(render_data_context& rend_data_ctx, cam_data& cam) {
+static bool litproj_set(render_data_context& rend_data_ctx, cam_data& cam) {
     if (!stage_param_data_litproj_current)
         return 0;
 
@@ -1631,7 +1494,7 @@ static bool draw_pass_shadow_litproj_set(render_data_context& rend_data_ctx, cam
     rend_data_ctx.state.clear_buffer(GL_COLOR, 0, (float_t*)&color_clear);
     rend_data_ctx.state.clear_buffer(GL_DEPTH, 0, &depth_clear);
 
-    if (draw_pass_shadow_litproj_set_mat(rend_data_ctx, cam, false)) {
+    if (litproj_set_mat(rend_data_ctx, cam, false)) {
         rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
         rend_data_ctx.shader_flags.arr[U_DEPTH] = 1;
         return true;
@@ -1668,7 +1531,7 @@ static void light_proj_get_view_proj_mat(cam_data& cam, const vec3& view_point, 
     }
 }
 
-static bool draw_pass_shadow_litproj_set_mat(render_data_context& rend_data_ctx, cam_data& cam, bool set_mat) {
+static bool litproj_set_mat(render_data_context& rend_data_ctx, cam_data& cam, bool set_mat) {
     light_set* set = &light_set_data[LIGHT_SET_MAIN];
     light_data* data = &set->lights[LIGHT_PROJECTION];
     if (data->get_type() != LIGHT_SPOT)
@@ -1696,199 +1559,6 @@ static bool draw_pass_shadow_litproj_set_mat(render_data_context& rend_data_ctx,
         light_proj_get_view_proj_mat(cam, position, interest,
             fov * RAD_TO_DEG_FLOAT, 4.0f, 0.1f, 10.0f, 0);
     return true;
-}
-
-static void draw_pass_sss_contour(render_data_context& rend_data_ctx, rndr::Render* rend, cam_data& cam) {
-    if (reflect_draw)
-        reflect_full_ptr->reflect_buffer_texture.Bind(rend_data_ctx.state);
-    else
-        rend->sss_contour_texture->Bind(rend_data_ctx.state);
-
-    rend_data_ctx.state.enable_depth_test();
-    rend_data_ctx.state.set_depth_func(GL_ALWAYS);
-    rend_data_ctx.state.set_depth_mask(GL_TRUE);
-    if (reflect_draw) {
-        RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
-        rend_data_ctx.state.set_viewport(0, 0, refl_tex.GetWidth(), refl_tex.GetHeight());
-        rend_data_ctx.state.active_bind_texture_2d(0, refl_tex.GetColorTex());
-        rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
-        rend_data_ctx.state.active_bind_texture_2d(1, refl_tex.GetDepthTex());
-        rend_data_ctx.state.bind_sampler(1, rctx->render_samplers[1]);
-    }
-    else {
-        rend_data_ctx.state.set_viewport(0, 0, rend->render_width[0], rend->render_height[0]);
-        rend_data_ctx.state.active_bind_texture_2d(0, rend->rend_texture[0].GetColorTex());
-        rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
-        rend_data_ctx.state.active_bind_texture_2d(1, rend->rend_texture[0].GetDepthTex());
-        rend_data_ctx.state.bind_sampler(1, rctx->render_samplers[1]);
-    }
-    rend_data_ctx.state.active_texture(0);
-
-    float_t v3 = 1.0f / tanf(cam.get_fov() * 0.5f);
-
-    vec3 direction = cam.get_interest() - cam.get_view_point();
-    float_t length = vec3::length(direction);
-    float_t v7 = direction.y;
-    if (length != 0.0f)
-        v7 /= length;
-
-    float_t v9 = fabsf(v7) - 0.1f;
-    if (v9 < 0.0f)
-        v9 = 0.0f;
-
-    contour_coef_shader_data shader_data = {};
-    shader_data.g_contour = { v9 * 0.004f + 0.0027f, 0.003f, v3 * 0.35f, 0.0008f };
-    const double_t max_distance = cam.get_max_distance();
-    const double_t min_distance = cam.get_min_distance();
-    shader_data.g_near_far = {
-        (float_t)(max_distance * (1.0 / (max_distance - min_distance))),
-        (float_t)(-(max_distance * min_distance) * (1.0 / (max_distance - min_distance))),
-        (float_t)min_distance, (float_t)max_distance
-    };
-    rctx->contour_coef_ubo.WriteMemory(rend_data_ctx.state, shader_data);
-
-    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_CONTOUR);
-    rend_data_ctx.state.bind_uniform_buffer_base(2, rctx->contour_coef_ubo);
-
-    if (reflect_draw) {
-        RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
-        render_get()->draw_quad(rend_data_ctx, refl_tex.GetWidth(), refl_tex.GetHeight(),
-            1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-    }
-    else
-        render_get()->draw_quad(rend_data_ctx,
-            rend->render_post_width[0], rend->render_post_height[0],
-            rend->render_post_width_scale, rend->render_post_height_scale,
-            0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-}
-
-static void draw_pass_sss_filter_calc_coef(const double_t step, const int32_t size,
-    const double_t inverse_scale, const int32_t iterations, const double_t* weights,
-    const double_t* r_radius, const double_t* g_radius, const double_t* b_radius, vec4 coef[64]) {
-    if (size > 8)
-        return;
-
-    for (int32_t it = 0; it < iterations; it++) {
-        const double_t it_weight = weights[it];
-        const double_t ch_radius[] = { r_radius[it], g_radius[it], b_radius[it] };
-
-        for (int32_t ch = 0; ch < 3; ch++) {
-            double_t kernel[8];
-            double_t pos = 0.0;
-            double_t kernel_sum = 0.0;
-            double_t scale = 1.0 / (inverse_scale * ch_radius[ch]);
-            for (int32_t k = 0; k < size; k++) {
-                double_t weight = exp(-0.5 * (scale * pos) * (scale * pos));
-                kernel[k] = weight;
-                pos += step;
-                kernel_sum += weight;
-            }
-
-            double_t inv_sum = 1.0 / kernel_sum;
-            for (int32_t k = 0; k < size; k++)
-                kernel[k] *= inv_sum;
-
-            float_t* ptr = (float_t*)coef + ch;
-            for (int32_t k = 0; k < size; k++)
-                for (size_t l = 0; l < size; l++) {
-                    *ptr = (float_t)(kernel[k] * it_weight * kernel[l] + *ptr);
-                    ptr += 4;
-                }
-        }
-    }
-}
-
-static void draw_pass_sss_filter(render_data_context& rend_data_ctx, sss_data* sss) {
-    const int32_t sss_count = 6;
-    vec3 interest = camera_data.interest;
-    vec3 view_point = camera_data.view_point;
-
-    vec3 chara_position[2];
-    chara_position[0] = 0.0f;
-    chara_position[1] = 0.0f;
-    float_t chara_distance[2];
-    size_t rob_chara_smth = get_rob_chara_smth();
-    for (int32_t i = 0; i < 2; i++) {
-        chara_position[i] = interest;
-        chara_distance[i] = 999999.0f;
-        size_t rob_bone_data = rob_chara_array_get_bone_data(rob_chara_smth, i);
-        if (rob_chara_pv_data_array_check_chara_id(rob_chara_smth, i)
-            && rob_chara_array_check_visibility(rob_chara_smth, i)) {
-            const mat4* mat = rob_chara_bone_data_get_mats_mat(rob_bone_data, 0);
-            if (mat) {
-                mat4 temp;
-                mat4_transpose(mat, &temp);
-                mat4_get_translation(&temp, &chara_position[i]);
-                if (reflect_draw)
-                    mat4_transform_point(&reflect_mat, &chara_position[i], &chara_position[i]);
-                chara_distance[i] = vec3::distance(view_point, chara_position[i]);
-            }
-        }
-    }
-
-    vec3 closest_chara_position = chara_distance[0] <= chara_distance[1]
-        ? chara_position[0] : chara_position[1];
-
-    float_t length = vec3::distance(interest, closest_chara_position);
-    if (length > 1.25f)
-        interest = chara_position[0];
-
-    float_t distance_to_interest = max_def(vec3::distance(view_point, interest), 0.25f);
-    float_t fov_scale = max_def(tanf(camera_data.fov * 0.5f * DEG_TO_RAD_FLOAT) * 5.0f, 0.25f);
-    float_t sss_strength = 0.6f;
-    float_t inverse_scale = (float_t)(1.0 / clamp_def(fov_scale * distance_to_interest, 0.25f, 100.0f));
-    if (inverse_scale < 0.145f)
-        sss_strength = max_def(inverse_scale - 0.02f, 0.0f) * 8.0f * 0.6f;
-    if (reflect_draw)
-        sss_param_reflect = { sss_strength, 0.0f, 0.0f, 0.0f };
-    else
-        sss_param = { sss_strength, 0.0f, 0.0f, 0.0f };
-
-    rend_data_ctx.state.active_texture(0);
-    if (sss->npr_contour) {
-        sss->textures[0].Bind(rend_data_ctx.state);
-        rend_data_ctx.state.set_viewport(0, 0, 640, 360);
-        rndr::Render* rend = render_get();
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
-        shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
-        RenderTexture& rt = reflect_draw
-            ? reflect_full_ptr->reflect_texture
-            : rend->rend_texture[0];
-        rend_data_ctx.state.bind_texture_2d(rt.GetColorTex());
-        rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
-        render_get()->draw_quad(rend_data_ctx, rt.GetWidth(), rt.GetHeight(),
-            1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
-    }
-    sss->textures[2].Bind(rend_data_ctx.state);
-    rend_data_ctx.state.set_viewport(0, 0, 320, 180);
-    rend_data_ctx.shader_flags.arr[U_SSS_FILTER] = 0;
-    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SSS_FILT);
-    rend_data_ctx.state.bind_texture_2d(sss->textures[0].GetColorTex());
-    rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
-    render_get()->draw_quad(rend_data_ctx, sss->textures[0].GetWidth(), sss->textures[0].GetHeight(),
-        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
-
-    sss_filter_gaussian_coef_shader_data shader_data = {};
-    shader_data.g_param = { (float_t)(sss_count - 1), 0.0f, 1.0f, 1.0f };
-
-    const double_t weights[] = { 0.4, 0.3, 0.3 };
-    const double_t r_radius[] = { 1.0, 2.0, 5.0 };
-    const double_t g_radius[] = { 0.2, 0.4, 1.2 };
-    const double_t b_radius[] = { 0.3, 0.7, 2.0 };
-    draw_pass_sss_filter_calc_coef(1.0, sss_count, inverse_scale,
-        3, weights, r_radius, g_radius, b_radius, shader_data.g_coef);
-
-    rctx->sss_filter_gaussian_coef_ubo.WriteMemory(rend_data_ctx.state, shader_data);
-    sss->textures[reflect_draw ? 3 : 1].Bind(rend_data_ctx.state);
-    rend_data_ctx.state.set_viewport(0, 0, 320, 180);
-    rend_data_ctx.shader_flags.arr[U_SSS_FILTER] = 3;
-    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SSS_FILT);
-    rend_data_ctx.state.bind_texture_2d(sss->textures[2].GetColorTex());
-    rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
-    rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->sss_filter_gaussian_coef_ubo);
-    render_get()->draw_quad(rend_data_ctx, sss->textures[2].GetWidth(), sss->textures[2].GetHeight(),
-        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
-    rend_data_ctx.state.bind_texture_2d(0);
 }
 
 static int32_t draw_pass_3d_get_translucent_count() {
@@ -2160,7 +1830,7 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         || disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT))) {
         refl_tex.SetViewport(rend_data_ctx.state);
 
-        if (!sss_data_get()->enable || !sss_data_get()->npr_contour
+        if (!sss_data_get()->enable || !sss_data_get()->downsample
             || draw_pass_3d_get_translucent_count()) {
             rend_data_ctx.state.set_depth_mask(GL_TRUE);
             rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
@@ -2308,7 +1978,7 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         rend_data_ctx.shader_flags.arr[U_REFLECT] = 0;
 
         for (int32_t i = render_manager.reflect_blur_num, j = 0; i > 0; i--, j++) {
-            blur_filter_apply(rend_data_ctx, &refl_buf_tex, &refl_tex,
+            apply_blur_filter_sub(rend_data_ctx, &refl_buf_tex, &refl_tex,
                 render_manager.reflect_blur_filter, 1.0f, 1.0f, 0.0f);
             image_filter_scale(rend_data_ctx, &refl_tex, refl_buf_tex.color_texture);
         }
@@ -2362,7 +2032,7 @@ static bool draw_pass_reflect_get_obj_reflect_surface(mdl::ObjType type) {
     return false;
 }
 
-static void blur_filter_apply(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
+static void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderTexture* dst, RenderTexture* src,
     blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset) {
     if (!dst || !src)
         return;

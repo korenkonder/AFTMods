@@ -43,20 +43,6 @@ struct draw_state_stats {
 
 static_assert(sizeof(draw_state_stats) == 0x20, "\"draw_state_stats\" struct should have a size of 0x20");
 
-struct sss_data {
-    bool init_data;
-    bool enable;
-    bool npr_contour;
-    RenderTexture textures[4];
-    vec4 param;
-
-    void free();
-    void init();
-    void set_texture(struct p_gl_rend_state& p_gl_rend_st, int32_t texture_index);
-};
-
-static_assert(sizeof(sss_data) == 0xD8, "\"sss_data\" struct should have a size of 0xD8");
-
 struct global_material_struct {
     float_t bump_depth;
     float_t intensity;
@@ -615,5 +601,3 @@ struct render_context {
 extern draw_state_struct& draw_state;
 
 extern render_context* rctx;
-
-extern sss_data* sss_data_get();

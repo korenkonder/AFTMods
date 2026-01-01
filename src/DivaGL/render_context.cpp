@@ -13,8 +13,6 @@
 
 draw_state_struct& draw_state = *(draw_state_struct*)0x00000001411A32B0;
 
-sss_data& _sss_data = *(sss_data*)0x000000014CC924E0;
-
 render_context* rctx;
 
 draw_state_stats::draw_state_stats() : sub_mesh_count(), sub_mesh_no_mat_count(),
@@ -31,30 +29,6 @@ void draw_state_stats::reset() {
     draw_count = 0;
     draw_triangle_count = 0;
     field_1C = 0;
-}
-
-void sss_data::free() {
-    if (init_data)
-        for (RenderTexture& i : textures)
-            i.Free();
-}
-
-void sss_data::init() {
-    if (init_data)
-        return;
-
-    textures[0].Init(640, 360, 0, GL_RGBA16F, GL_ZERO /*GL_DEPTH_COMPONENT32F*/);
-    textures[1].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
-    textures[2].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
-    textures[3].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
-
-    param = { 0.0f, 0.0f, 0.0f, 1.0f };
-    init_data = true;
-}
-
-void sss_data::set_texture(struct p_gl_rend_state& p_gl_rend_st, int32_t texture_index) {
-    p_gl_rend_st.active_bind_texture_2d(16, textures[texture_index].GetColorTex());
-    p_gl_rend_st.active_texture(0);
 }
 
 draw_state_struct::render_data::render_data() : self_shadow(), shadow(), blend(), cull_front(), field_8() {
@@ -1547,8 +1521,4 @@ void render_context::post_proc() {
 
         texture_skinning_buffer_entries.clear();
     }
-}
-
-sss_data* sss_data_get() {
-    return &_sss_data;
 }
