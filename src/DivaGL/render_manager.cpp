@@ -1140,21 +1140,21 @@ void image_filter_scale(render_data_context& rend_data_ctx,
     dst->Bind(rend_data_ctx.state);
     dst->SetViewport(rend_data_ctx.state);
 
-    filter_scene_shader_data filter_scene = {};
+    image_filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = { 1.0f, 1.0f, 0.0f, 0.0f };
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
-    rctx->filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
+    rctx->image_filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
 
-    imgfilter_batch_shader_data imgfilter_batch = {};
-    imgfilter_batch.g_color_scale = scale;
-    imgfilter_batch.g_color_offset = 0.0f;
-    imgfilter_batch.g_texture_lod = 0.0f;
-    rctx->imgfilter_batch_ubo.WriteMemory(rend_data_ctx.state, imgfilter_batch);
+    image_filter_batch_shader_data image_filter_batch = {};
+    image_filter_batch.g_color_scale = scale;
+    image_filter_batch.g_color_offset = 0.0f;
+    image_filter_batch.g_texture_lod = 0.0f;
+    rctx->image_filter_batch_ubo.WriteMemory(rend_data_ctx.state, image_filter_batch);
 
     rend_data_ctx.shader_flags.arr[U_IMAGE_FILTER] = 5;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_IMGFILT);
-    rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->filter_scene_ubo);
-    rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->imgfilter_batch_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->image_filter_scene_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->image_filter_batch_ubo);
     rend_data_ctx.state.active_bind_texture_2d(0, src->glid);
     rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
     rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
@@ -1357,10 +1357,10 @@ static void apply_esm_filter(render_data_context& rend_data_ctx,
         return;
 
     rend_data_ctx.state.begin_event("`anonymous-namespace'::Impl::apply_esm_filter");
-    filter_scene_shader_data filter_scene = {};
+    esm_filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = 0.0f;
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
-    rctx->filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
+    rctx->esm_filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
 
     esm_filter_batch_shader_data esm_filter_batch = {};
     double_t v6 = 1.0 / (sqrt(M_PI * 2.0) * sigma);
@@ -1370,7 +1370,7 @@ static void apply_esm_filter(render_data_context& rend_data_ctx,
 
     rend_data_ctx.shader_flags.arr[U_LIGHT_PROJ] = enable_lit_proj ? 1 : 0;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_ESMGAUSS);
-    rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->filter_scene_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->esm_filter_scene_ubo);
     rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->esm_filter_batch_ubo);
 
     rend_data_ctx.state.set_viewport(0, 0, dst_tex->width, dst_tex->height);
@@ -1408,16 +1408,16 @@ static void apply_esm_min_filter(render_data_context& rend_data_ctx,
     }
 
     rend_data_ctx.state.begin_event("minimize");
-    filter_scene_shader_data filter_scene = {};
+    esm_filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = 0.0f;
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
-    rctx->filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
+    rctx->esm_filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
 
     esm_filter_batch_shader_data esm_filter_batch = {};
     esm_filter_batch.g_gauss[0] = 0.0f;
     esm_filter_batch.g_gauss[1] = 0.0f;
 
-    rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->filter_scene_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->esm_filter_scene_ubo);
     rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->esm_filter_batch_ubo);
 
     rend_data_ctx.state.set_viewport(0, 0, dst_tex->width, dst_tex->height);
@@ -2042,27 +2042,27 @@ static void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderText
     dst->Bind(rend_data_ctx.state);
     dst->SetViewport(rend_data_ctx.state);
 
-    filter_scene_shader_data filter_scene = {};
+    image_filter_scene_shader_data filter_scene = {};
     float_t w = res_scale.x / (float_t)src->GetWidth();
     float_t h = res_scale.y / (float_t)src->GetHeight();
     filter_scene.g_transform = { w, h, 0.0f, 0.0f };
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
-    rctx->filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
+    rctx->image_filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
 
-    imgfilter_batch_shader_data imgfilter_batch = {};
+    image_filter_batch_shader_data image_filter_batch = {};
     if (filter == BLUR_FILTER_32)
-        imgfilter_batch.g_color_scale = scale * (float_t)(1.0 / 8.0);
+        image_filter_batch.g_color_scale = scale * (float_t)(1.0 / 8.0);
     else
-        imgfilter_batch.g_color_scale = scale * (float_t)(1.0 / 4.0);
-    imgfilter_batch.g_color_offset = offset;
-    imgfilter_batch.g_texture_lod = 0.0f;
-    rctx->imgfilter_batch_ubo.WriteMemory(rend_data_ctx.state, imgfilter_batch);
+        image_filter_batch.g_color_scale = scale * (float_t)(1.0 / 4.0);
+    image_filter_batch.g_color_offset = offset;
+    image_filter_batch.g_texture_lod = 0.0f;
+    rctx->image_filter_batch_ubo.WriteMemory(rend_data_ctx.state, image_filter_batch);
 
     rend_data_ctx.shader_flags.arr[U_IMAGE_FILTER] = filter == BLUR_FILTER_32 ? 1 : 0;
     rend_data_ctx.state.bind_vertex_array(rctx->box_vao);
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_IMGFILT);
-    rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->filter_scene_ubo);
-    rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->imgfilter_batch_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->image_filter_scene_ubo);
+    rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->image_filter_batch_ubo);
     rend_data_ctx.state.active_bind_texture_2d(0, src->GetColorTex());
     rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
     rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, (GLint)(filter * 4LL), 4);

@@ -1292,7 +1292,7 @@ static void shader_bind_snow_particle(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad);
 static void shader_bind_star(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad);
-static void shader_bind_imgfilter(p_gl_rend_state& p_gl_rend_st,
+static void shader_bind_image_filter(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad);
 static void shader_bind_dof(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad);
@@ -1356,7 +1356,7 @@ const shader_bind_func shader_ft_bind_func_table[] = {
     },
     {
         SHADER_FT_IMGFILT,
-        shader_bind_imgfilter,
+        shader_bind_image_filter,
     },
     {
         SHADER_FT_DOF,
@@ -1754,7 +1754,7 @@ static void shader_bind_star(p_gl_rend_state& p_gl_rend_st,
     }
 }
 
-static void shader_bind_imgfilter(p_gl_rend_state& p_gl_rend_st,
+static void shader_bind_image_filter(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad) {
     switch (shader_flags.arr[U_IMAGE_FILTER]) {
     case 0:

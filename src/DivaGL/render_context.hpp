@@ -104,11 +104,6 @@ struct contour_params_shader_data {
     vec4 g_near_far;
 };
 
-struct filter_scene_shader_data {
-    vec4 g_transform;
-    vec4 g_texcoord;
-};
-
 struct exposure_measure_shader_data {
     vec4 g_spot_weight;
     vec4 g_spot_coefficients[32];
@@ -118,12 +113,22 @@ struct gaussian_coef_shader_data {
     vec4 g_coef[8];
 };
 
+struct esm_filter_scene_shader_data {
+    vec4 g_transform;
+    vec4 g_texcoord;
+};
+
 struct esm_filter_batch_shader_data {
     vec4 g_params;
     vec4 g_gauss[2];
 };
 
-struct imgfilter_batch_shader_data {
+struct image_filter_scene_shader_data {
+    vec4 g_transform;
+    vec4 g_texcoord;
+};
+
+struct image_filter_batch_shader_data {
     vec4 g_texture_lod;
     vec4 g_color_scale;
     vec4 g_color_offset;
@@ -538,9 +543,10 @@ struct render_context {
     GL::UniformBuffer camera_blur_ubo;
     GL::UniformBuffer contour_coef_ubo;
     GL::UniformBuffer contour_params_ubo;
-    GL::UniformBuffer filter_scene_ubo;
+    GL::UniformBuffer esm_filter_scene_ubo;
     GL::UniformBuffer esm_filter_batch_ubo;
-    GL::UniformBuffer imgfilter_batch_ubo;
+    GL::UniformBuffer image_filter_scene_ubo;
+    GL::UniformBuffer image_filter_batch_ubo;
     GL::UniformBuffer exposure_measure_ubo;
     GL::UniformBuffer gaussian_coef_ubo;
     GL::UniformBuffer glass_eye_batch_ubo;

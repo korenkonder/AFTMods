@@ -956,9 +956,10 @@ samplers(), render_samplers(), sprite_samplers(), screen_width(), screen_height(
     camera_blur_ubo.Create(gl_state, sizeof(camera_blur_shader_data));
     contour_coef_ubo.Create(gl_state, sizeof(contour_coef_shader_data));
     contour_params_ubo.Create(gl_state, sizeof(contour_params_shader_data));
-    filter_scene_ubo.Create(gl_state, sizeof(filter_scene_shader_data));
+    esm_filter_scene_ubo.Create(gl_state, sizeof(esm_filter_scene_shader_data));
     esm_filter_batch_ubo.Create(gl_state, sizeof(esm_filter_batch_shader_data));
-    imgfilter_batch_ubo.Create(gl_state, sizeof(imgfilter_batch_shader_data));
+    image_filter_scene_ubo.Create(gl_state, sizeof(image_filter_scene_shader_data));
+    image_filter_batch_ubo.Create(gl_state, sizeof(image_filter_batch_shader_data));
     exposure_measure_ubo.Create(gl_state, sizeof(exposure_measure_shader_data));
     gaussian_coef_ubo.Create(gl_state, sizeof(gaussian_coef_shader_data));
     glass_eye_batch_ubo.Create(gl_state, sizeof(glass_eye_batch_shader_data));
@@ -1125,9 +1126,10 @@ render_context::~render_context() {
     glass_eye_batch_ubo.Destroy();
     gaussian_coef_ubo.Destroy();
     exposure_measure_ubo.Destroy();
-    imgfilter_batch_ubo.Destroy();
+    image_filter_batch_ubo.Destroy();
+    image_filter_scene_ubo.Destroy();
     esm_filter_batch_ubo.Destroy();
-    filter_scene_ubo.Destroy();
+    esm_filter_scene_ubo.Destroy();
     contour_params_ubo.Destroy();
     contour_coef_ubo.Destroy();
     camera_blur_ubo.Destroy();
