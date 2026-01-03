@@ -347,6 +347,11 @@ static void parse_define_inner(std::string& temp) {
         if (pos_set == -1)
             break;
 
+        if (pos_set > 0 && !(temp.data()[pos_set - 1] == '(' || isspace(temp.data()[pos_set - 1]))) {
+            off = pos_set + 6;
+            continue;
+        }
+
         size_t pos_binding = temp.find("binding = ", pos_set);
         if (pos_binding == -1)
             break;
