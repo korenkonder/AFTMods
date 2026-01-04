@@ -160,10 +160,13 @@ namespace Glitter {
                             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
                                 (void*)(offsetof(Buffer, position) + offset));
                             glEnableVertexAttribArray(1);
-                            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
-                                (void*)(offsetof(Buffer, uv) + offset));
+                            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, buffer_size,
+                                (void*)(offsetof(Buffer, uv[0]) + offset));
                             glEnableVertexAttribArray(2);
-                            glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
+                            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size,
+                                (void*)(offsetof(Buffer, uv[1]) + offset));
+                            glEnableVertexAttribArray(3);
+                            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
                                 (void*)(offsetof(Buffer, color) + offset));
 
                             buffer += k->max_count;

@@ -183,11 +183,14 @@ struct sun_quad_shader_data {
 
 struct tone_map_shader_data {
     vec4 g_exposure;
-    vec4 g_flare_coef; //xy=flare_coef, z=light_proj
     vec4 g_fade_color;
     vec4 g_tone_scale; //xyz=tone_scale, w=fade_func
     vec4 g_tone_offset; //xyz=tone_offset, w=inv_tone
-    vec4 g_texcoord_transforms[8];
+    //[0].xyz=texcoord_transforms[0].xyw, [0].w=lens_flare_coef
+    //[1].xyz=texcoord_transforms[1].xyw, [1].w=litproj_quality
+    //[2].xyz=texcoord_transforms[2].xyw, [2].w=lens_shaft_coef
+    //[3].xyz=texcoord_transforms[3].xyw, [3].w=litproj_enable
+    vec4 g_texcoord_transforms[4];
 };
 
 struct transparency_batch_shader_data {
@@ -306,6 +309,7 @@ struct render_data {
         vec4 g_light_env_chara_specular;
         vec4 g_light_env_reflect_diffuse;
         vec4 g_light_env_reflect_ambient;
+        vec4 g_light_env_reflect_specular;
         vec4 g_light_env_proj_diffuse;
         vec4 g_light_env_proj_specular;
         vec4 g_light_env_proj_position;
@@ -317,7 +321,6 @@ struct render_data {
         vec4 g_light_chara_luce;
         vec4 g_light_chara_back;
         vec4 g_light_face_diff;
-        vec4 g_chara_color_rim;
         vec4 g_chara_color0;
         vec4 g_chara_color1;
         vec4 g_chara_f_dir;
@@ -343,6 +346,7 @@ struct render_data {
         vec4 g_projection_view[4];
         vec4 g_view_position;
         vec4 g_light_projection[4];
+        vec4 g_light_projection_depth[4];
         vec4 g_forward_z_projection_row2;
 
         void reset();
@@ -458,14 +462,15 @@ struct render_data_context {
         const vec4& light_env_stage_specular, const vec4& light_env_chara_diffuse,
         const vec4& light_env_chara_ambient, const vec4& light_env_chara_specular,
         const vec4& light_env_reflect_diffuse, const vec4& light_env_reflect_ambient,
-        const vec4& light_env_proj_diffuse, const vec4& light_env_proj_specular,
-        const vec4& light_env_proj_position, const vec4& light_stage_dir, const vec4& light_stage_diff,
-        const vec4& light_stage_spec, const vec4& light_chara_dir, const vec4& light_chara_spec,
-        const vec4& light_chara_luce, const vec4& light_chara_back, const vec4& light_face_diff,
-        const vec4& chara_color0, const vec4& chara_color1, const vec4& chara_f_dir, const vec4& chara_f_ambient,
+        const vec4& light_env_reflect_specular, const vec4& light_env_proj_diffuse,
+        const vec4& light_env_proj_specular, const vec4& light_env_proj_position,
+        const vec4& light_stage_dir, const vec4& light_stage_diff, const vec4& light_stage_spec,
+        const vec4& light_chara_dir, const vec4& light_chara_spec, const vec4& light_chara_luce,
+        const vec4& light_chara_back, const vec4& light_face_diff, const vec4& chara_color0,
+        const vec4& chara_color1, const vec4& chara_f_dir, const vec4& chara_f_ambient,
         const vec4& chara_f_diffuse, const vec4& chara_tc_param, const mat4& normal_tangent_transforms,
         const vec4& light_reflect_dir, const vec4& clip_plane, const vec4& npr_cloth_spec_color);
-    void set_scene_light_projection(const mat4& light_projection);
+    void set_scene_light_projection(const mat4& light_projection, const mat4& light_projection_depth);
     void set_scene_shadow_params(const float_t esm_param,
         const mat4 mats[2], const vec4& shadow_ambient, const vec4& shadow_ambient1);
     void set_self_shadow(bool value);

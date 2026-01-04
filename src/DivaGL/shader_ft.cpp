@@ -199,11 +199,11 @@ static const int32_t tights_fpt_unival_max[] = {
 };
 
 static const int32_t sky_default_vpt_unival_max[] = {
-    1, 0,
+    1,
 };
 
 static const int32_t sky_default_fpt_unival_max[] = {
-    0, 1,
+    0,
 };
 
 static const int32_t glass_eye_vpt_unival_max[] = {
@@ -255,11 +255,11 @@ static const int32_t simple_fpt_unival_max[] = {
 };
 
 static const int32_t silhouette_vpt_unival_max[] = {
-    1, 1, 0,
+    1, 1, 0, 0,
 };
 
 static const int32_t silhouette_fpt_unival_max[] = {
-    0, 0, 1,
+    0, 0, 1, 1,
 };
 
 static const int32_t lambert_vpt_unival_max[] = {
@@ -993,7 +993,6 @@ static const uniform_name TIGHTS_uniform[] = {
 
 static const uniform_name SKY_uniform[] = {
     U_MORPH,
-    U_ALPHA_TEST,
 };
 
 static const uniform_name GLASEYE_uniform[] = {
@@ -1022,6 +1021,7 @@ static const uniform_name SIL_uniform[] = {
     U_SKINNING,
     U_MORPH,
     U_ALPHA_TEST,
+    U_DEPTH,
 };
 
 static const uniform_name LAMBERT_uniform[] = {

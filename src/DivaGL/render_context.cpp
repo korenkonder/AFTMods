@@ -136,6 +136,7 @@ void render_data::obj_scene_data::reset() {
     g_light_env_chara_specular = 0.0f;
     g_light_env_reflect_diffuse = 1.0f;
     g_light_env_reflect_ambient = 0.0f;
+    g_light_env_reflect_specular = 0.0f;
     g_light_env_proj_diffuse = 1.0f;
     g_light_env_proj_specular = 0.0f;
     g_light_env_proj_position = 0.0f;
@@ -147,7 +148,6 @@ void render_data::obj_scene_data::reset() {
     g_light_chara_luce = 0.0f;
     g_light_chara_back = 0.0f;
     g_light_face_diff = 0.0f;
-    g_chara_color_rim = 0.0f;
     g_chara_color0 = 0.0f;
     g_chara_color1 = 0.0f;
     g_chara_f_dir = { 0.0f, 1.0f, 0.0f, 0.0f };
@@ -190,6 +190,10 @@ void render_data::obj_scene_data::reset() {
     g_light_projection[1] = mat4_identity.row1;
     g_light_projection[2] = mat4_identity.row2;
     g_light_projection[3] = mat4_identity.row3;
+    g_light_projection_depth[0] = mat4_identity.row0;
+    g_light_projection_depth[1] = mat4_identity.row1;
+    g_light_projection_depth[2] = mat4_identity.row2;
+    g_light_projection_depth[3] = mat4_identity.row3;
     g_forward_z_projection_row2 = 0.0f;
 }
 
@@ -651,11 +655,12 @@ void render_data_context::set_scene_light(const mat4& irradiance_r_transforms, c
     const vec4& light_env_stage_specular, const vec4& light_env_chara_diffuse,
     const vec4& light_env_chara_ambient, const vec4& light_env_chara_specular,
     const vec4& light_env_reflect_diffuse, const vec4& light_env_reflect_ambient,
-    const vec4& light_env_proj_diffuse, const vec4& light_env_proj_specular,
-    const vec4& light_env_proj_position, const vec4& light_stage_dir, const vec4& light_stage_diff,
-    const vec4& light_stage_spec, const vec4& light_chara_dir, const vec4& light_chara_spec,
-    const vec4& light_chara_luce, const vec4& light_chara_back, const vec4& light_face_diff,
-    const vec4& chara_color0, const vec4& chara_color1, const vec4& chara_f_dir, const vec4& chara_f_ambient,
+    const vec4& light_env_reflect_specular, const vec4& light_env_proj_diffuse,
+    const vec4& light_env_proj_specular, const vec4& light_env_proj_position,
+    const vec4& light_stage_dir, const vec4& light_stage_diff, const vec4& light_stage_spec,
+    const vec4& light_chara_dir, const vec4& light_chara_spec, const vec4& light_chara_luce,
+    const vec4& light_chara_back, const vec4& light_face_diff, const vec4& chara_color0,
+    const vec4& chara_color1, const vec4& chara_f_dir, const vec4& chara_f_ambient,
     const vec4& chara_f_diffuse, const vec4& chara_tc_param, const mat4& normal_tangent_transforms,
     const vec4& light_reflect_dir, const vec4& clip_plane, const vec4& npr_cloth_spec_color) {
     mat4 temp;
@@ -681,6 +686,7 @@ void render_data_context::set_scene_light(const mat4& irradiance_r_transforms, c
     data.buffer_scene_data.g_light_env_chara_specular = light_env_chara_specular;
     data.buffer_scene_data.g_light_env_reflect_diffuse = light_env_reflect_diffuse;
     data.buffer_scene_data.g_light_env_reflect_ambient = light_env_reflect_ambient;
+    data.buffer_scene_data.g_light_env_reflect_specular = light_env_reflect_specular;
     data.buffer_scene_data.g_light_env_proj_diffuse = light_env_proj_diffuse;
     data.buffer_scene_data.g_light_env_proj_specular = light_env_proj_specular;
     data.buffer_scene_data.g_light_env_proj_position = light_env_proj_position;
@@ -708,13 +714,19 @@ void render_data_context::set_scene_light(const mat4& irradiance_r_transforms, c
     enum_or(data.flags, RENDER_DATA_SCENE_UPDATE);
 }
 
-void render_data_context::set_scene_light_projection(const mat4& light_projection) {
+void render_data_context::set_scene_light_projection(
+    const mat4& light_projection, const mat4& light_projection_depth) {
     mat4 temp;
     mat4_transpose(&light_projection, &temp);
     data.buffer_scene_data.g_light_projection[0] = temp.row0;
     data.buffer_scene_data.g_light_projection[1] = temp.row1;
     data.buffer_scene_data.g_light_projection[2] = temp.row2;
     data.buffer_scene_data.g_light_projection[3] = temp.row3;
+    mat4_transpose(&light_projection_depth, &temp);
+    data.buffer_scene_data.g_light_projection_depth[0] = temp.row0;
+    data.buffer_scene_data.g_light_projection_depth[1] = temp.row1;
+    data.buffer_scene_data.g_light_projection_depth[2] = temp.row2;
+    data.buffer_scene_data.g_light_projection_depth[3] = temp.row3;
     enum_or(data.flags, RENDER_DATA_SCENE_UPDATE);
 }
 

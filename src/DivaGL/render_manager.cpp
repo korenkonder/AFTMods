@@ -1553,7 +1553,9 @@ static bool litproj_set_mat(render_data_context& rend_data_ctx, cam_data& cam, b
         mat4 mat;
         light_proj_get_view_proj_mat(cam, position, interest,
             fov * RAD_TO_DEG_FLOAT, 4.0f, 0.1f, 10.0f, &mat);
-        rend_data_ctx.set_scene_light_projection(mat);
+
+        mat4 mat_depth = mat;
+        rend_data_ctx.set_scene_light_projection(mat, mat_depth);
     }
     else
         light_proj_get_view_proj_mat(cam, position, interest,
@@ -2186,8 +2188,10 @@ static void lighting_set(render_data_context& rend_data_ctx, light_set_id set_id
 
     vec4 light_env_reflect_diffuse;
     vec4 light_env_reflect_ambient;
+    vec4 light_env_reflect_specular;
     set->lights[LIGHT_REFLECT].get_diffuse(light_env_reflect_diffuse);
     set->lights[LIGHT_REFLECT].get_ambient(light_env_reflect_ambient);
+    set->lights[LIGHT_REFLECT].get_specular(light_env_reflect_specular);
 
     vec4 light_env_proj_diffuse;
     vec4 light_env_proj_specular;
@@ -2341,14 +2345,13 @@ static void lighting_set(render_data_context& rend_data_ctx, light_set_id set_id
     static vec4& npr_cloth_spec_color = *(vec4*)0x0000000140C9B2A0;
 
     rend_data_ctx.set_scene_light(irradiance_r_transforms, irradiance_g_transforms, irradiance_b_transforms,
-        light_env_stage_diffuse, light_env_stage_specular, light_env_chara_diffuse,
-        light_env_chara_ambient, light_env_chara_specular,
-        light_env_reflect_diffuse, light_env_reflect_ambient,
-        light_env_proj_diffuse, light_env_proj_specular,
-        light_env_proj_position, light_stage_dir, light_stage_diff,
-        light_stage_spec, light_chara_dir, light_chara_spec,
-        light_chara_luce, light_chara_back, light_face_diff,
-        chara_color0, chara_color1, chara_f_dir, chara_f_ambient,
+        light_env_stage_diffuse, light_env_stage_specular,
+        light_env_chara_diffuse, light_env_chara_ambient, light_env_chara_specular,
+        light_env_reflect_diffuse, light_env_reflect_ambient, light_env_reflect_specular,
+        light_env_proj_diffuse, light_env_proj_specular, light_env_proj_position,
+        light_stage_dir, light_stage_diff, light_stage_spec,
+        light_chara_dir, light_chara_spec, light_chara_luce, light_chara_back,
+        light_face_diff, chara_color0, chara_color1, chara_f_dir, chara_f_ambient,
         chara_f_diffuse, chara_tc_param, normal_tangent_transforms,
         light_reflect_dir, clip_plane, npr_cloth_spec_color);
 

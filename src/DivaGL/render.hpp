@@ -214,6 +214,14 @@ namespace rndr {
         void apply_mlaa(render_data_context& rend_data_ctx,
             int32_t destination, int32_t source, int32_t mlaa);
         void apply_tone_map(render_data_context& rend_data_ctx, texture* light_proj_tex, int32_t npr_param);
+        void apply_tone_map(render_data_context& rend_data_ctx, int64_t a3, int64_t a4,
+            int32_t render_width, int32_t render_height, GLuint color_tex, GLuint bloom_tex,
+            GLuint composite_back_tex, GLuint litproj_tex, float_t litproj_quality, int32_t width, int32_t height,
+            float_t s0, float_t t0, const vec4& exposure, const vec3& tone_scale, const vec3& tone_offset,
+            int32_t fade_func, const vec4& fade_color, int32_t tone_map, float_t gamma,
+            const vec2& lens_flare_pos, float_t lens_shaft_scale, float_t lens_flare_coef, float_t lens_shaft_coef,
+            GLuint contour_color_tex, GLuint contour_depth_tex, GLuint scene_depth_tex,
+            bool npr1, bool a31, bool npr_mask);
         void calc_exposure(render_data_context& rend_data_ctx, const cam_data& cam);
         void calc_gaussian_blur(render_data_context& rend_data_ctx, float_t start, float_t step,
             int32_t kernel_size, float_t radius_scale, float_t intensity_scale);

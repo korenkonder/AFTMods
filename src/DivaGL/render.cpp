@@ -294,7 +294,7 @@ namespace rndr {
         if (!tex)
             return;
 
-        float_t v5 = tanf(cam.get_fov() * 0.5f * DEG_TO_RAD_FLOAT);
+        float_t v5 = tanf(cam.get_fov() * 0.5f);
         light_set* set = &light_set_data[LIGHT_SET_MAIN];
         light_data* data = &set->lights[LIGHT_SUN];
 
@@ -340,7 +340,7 @@ namespace rndr {
         float_t v19 = v5 / (float_t)height * 0.5f;
         float_t v20 = lens_flare_pos.y - (float_t)height * 0.5f;
 
-        float_t v22 = sqrtf(v17 * v19 * v17 * v19 + v20 * v19 * v20 * v19 + 1.0f);
+        float_t v22 = sqrtf((v17 * v19) * (v17 * v19) + (v20 * v19) * (v20 * v19) + 1.0f);
         float_t v23 = ((float_t)render_width[0] * (flt_1411ACB8C / v5)) * (v22 * v22 * 0.5f)
             * ((float_t)render_height[0] * (flt_1411ACB8C / v5));
         float_t v24 = vec3::distance(position, view_point) * flt_1411ACB84;
@@ -1313,48 +1313,111 @@ namespace rndr {
         rend_data_ctx.state.begin_event("PostProcess::tone_map");
 
         update_tone_map_lut(rend_data_ctx.state);
+        int32_t fade_func = scene_fade_blend_func[scene_fade_index];
 
+        vec4 fade_color;
+        *(vec3*)&fade_color = scene_fade_color[scene_fade_index];
+        fade_color.w = scene_fade_alpha[scene_fade_index];
+        if (fade_color.w <= 0.01)
+            fade_color.w = 0.0f;
+        else if (fade_func == 1 || fade_func == 2)
+            *(vec3*)&fade_color *= fade_color.w;
+
+        float_t litproj_quality = 1.0;
+
+        GLuint litproj_tex = 0;
+        if (light_proj_tex)
+            litproj_tex = light_proj_tex->glid;
+
+        GLuint composite_back_tex = 0;
+        if (composite_back)
+            composite_back_tex = this->composite_back_tex->glid;
+
+        vec4 exposure;
+        exposure.x = this->exposure * exposure_rate;
+        exposure.y = 0.0625f;
+        exposure.z = this->exposure * exposure_rate * 0.5f;
+        exposure.w = auto_exposure ? 1.0f : 0.0f;
+
+        float_t lens_flare_coef = (lens_flare * 2.0f) * (lens_flare_appear_power + lens_flare_power);
+        float_t lens_shaft_coef = lens_shaft * 2.0f;
+
+        vec2 lens_flare_pos = *(vec2*)&this->lens_flare_pos;
+
+        apply_tone_map(rend_data_ctx, 0, 0, render_width[0], render_height[0],
+            rend_texture[0].GetColorTex(), reduce_tex_draw, composite_back_tex, litproj_tex, litproj_quality,
+            inner_width, inner_height, render_post_width_scale, render_post_height_scale,
+            exposure, tone_trans_scale[tone_trans_index], tone_trans_offset[tone_trans_index], fade_func, fade_color,
+            tone_map, gamma, lens_flare_pos, lens_shaft_scale, lens_flare_coef, lens_shaft_coef,
+            sss_contour_texture->GetColorTex(), sss_contour_texture->GetDepthTex(), rend_texture[0].GetDepthTex(),
+            npr_param == 1, false, render_manager.npr_mask);
+        rend_data_ctx.state.end_event();
+    }
+
+    void Render::apply_tone_map(render_data_context& rend_data_ctx, int64_t a3, int64_t a4,
+        int32_t render_width, int32_t render_height, GLuint color_tex, GLuint bloom_tex,
+        GLuint composite_back_tex, GLuint litproj_tex, float_t litproj_quality, int32_t width, int32_t height,
+        float_t s0, float_t t0, const vec4& exposure, const vec3& tone_scale, const vec3& tone_offset,
+        int32_t fade_func, const vec4& fade_color, int32_t tone_map, float_t gamma,
+        const vec2& lens_flare_pos, float_t lens_shaft_scale, float_t lens_flare_coef, float_t lens_shaft_coef,
+        GLuint contour_color_tex, GLuint contour_depth_tex, GLuint scene_depth_tex,
+        bool npr1, bool a31, bool npr_mask) {
         rend_data_ctx.shader_flags.arr[U_TONE_MAP] = (int32_t)tone_map;
         rend_data_ctx.shader_flags.arr[U_FLARE] = 0;
         rend_data_ctx.shader_flags.arr[U_COMPOSITE_BACK] = 0;
         rend_data_ctx.shader_flags.arr[U_LIGHT_PROJ] = 0;
 
-        int32_t scene_fade_blend_func = this->scene_fade_blend_func[scene_fade_index];
-
-        tone_map_shader_data shader_data;
-        shader_data.g_exposure.x = exposure * exposure_rate;
-        shader_data.g_exposure.y = 0.0625f;
-        shader_data.g_exposure.z = exposure * exposure_rate * 0.5f;
-        shader_data.g_exposure.w = auto_exposure ? 1.0f : 0.0f;
-        shader_data.g_flare_coef.x = (lens_flare * 2.0f) * (lens_flare_appear_power + lens_flare_power);
-        shader_data.g_flare_coef.y = lens_shaft * 2.0f;
-        shader_data.g_flare_coef.z = 0.0f;
-        shader_data.g_flare_coef.w = 0.0f;
-        *(vec3*)&shader_data.g_fade_color = scene_fade_color[scene_fade_index];
-        shader_data.g_fade_color.w = scene_fade_alpha[scene_fade_index];
-        if (scene_fade_blend_func == 1 || scene_fade_blend_func == 2)
-            *(vec3*)&shader_data.g_fade_color *= shader_data.g_fade_color.w;
-        *(vec3*)&shader_data.g_tone_scale = tone_trans_scale[tone_trans_index];
-        *(vec3*)&shader_data.g_tone_offset = tone_trans_offset[tone_trans_index];
-        shader_data.g_tone_scale.w = (float_t)scene_fade_blend_func;
-        shader_data.g_tone_offset.w = gamma > 0.0f ? 2.0f / (gamma * 3.0f) : 0.0f;
-
-        shader_data.g_texcoord_transforms[0] = { 1.0f, 0.0f, 0.0f, 0.0f };
-        shader_data.g_texcoord_transforms[1] = { 0.0f, 1.0f, 0.0f, 0.0f };
-        shader_data.g_texcoord_transforms[2] = { 1.0f, 0.0f, 0.0f, 0.0f };
-        shader_data.g_texcoord_transforms[3] = { 0.0f, 1.0f, 0.0f, 0.0f };
-
-        rend_data_ctx.state.active_bind_texture_2d(0, rend_texture[0].GetColorTex());
+        rend_data_ctx.state.active_bind_texture_2d(0, color_tex);
         rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
-        rend_data_ctx.state.active_bind_texture_2d(1, reduce_tex_draw);
+        rend_data_ctx.state.active_bind_texture_2d(1, bloom_tex);
         rend_data_ctx.state.bind_sampler(1, rctx->render_samplers[2]);
         rend_data_ctx.state.active_bind_texture_2d(2, tonemap_lut_texture);
         rend_data_ctx.state.bind_sampler(2, rctx->render_samplers[0]);
         rend_data_ctx.state.active_bind_texture_2d(3, exposure_tex);
         rend_data_ctx.state.bind_sampler(3, rctx->render_samplers[3]);
 
+        if (composite_back) {
+            rend_data_ctx.shader_flags.arr[U_COMPOSITE_BACK] = 1;
+            rend_data_ctx.state.active_bind_texture_2d(6, composite_back_tex);
+        }
+        else
+            rend_data_ctx.state.active_bind_texture_2d(6, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.bind_sampler(6, rctx->render_samplers[2]);
+
+        if (litproj_tex) {
+            rend_data_ctx.shader_flags.arr[U_LIGHT_PROJ] = 1;
+            rend_data_ctx.state.active_bind_texture_2d(7, litproj_tex);
+        }
+        else
+            rend_data_ctx.state.active_bind_texture_2d(7, rctx->empty_texture_2d->glid);
+        rend_data_ctx.state.bind_sampler(7, rctx->render_samplers[2]);
+
+        struct tonemap_flare {
+            vec3 transform_x;
+            float_t coef;
+            vec3 transform_y;
+
+            inline tonemap_flare() : coef() {
+
+            }
+        };
+
+        struct tonemap_texcoord_transforms {
+            tonemap_flare flare;
+            float_t param;
+
+            inline tonemap_texcoord_transforms() : param() {
+
+            }
+        };
+
+        float_t v35 = (float_t)render_width / (float_t)render_width * s0;
+        float_t v36 = (float_t)render_height / (float_t)render_height * t0;
+
+        tonemap_texcoord_transforms texcoord_transforms[2];
+
         if (lens_flare_texture) {
-            const float_t aspect = (float_t)height / (float_t)width;
+            const float_t aspect = (float_t)height * (1.0f / (float_t)width);
 
             rend_data_ctx.shader_flags.arr[U_FLARE] = 1;
             rend_data_ctx.state.active_bind_texture_2d(4, lens_flare_texture);
@@ -1363,14 +1426,16 @@ namespace rndr {
             mat4 mat;
             mat4_translate(0.5f, 0.5f, 0.0f, &mat);
             mat4_scale_rot(&mat, 0.75f, 0.75f, 1.0f, &mat);
-            mat4_mul_rotate_z(&mat, (lens_flare_pos.x / (float_t)width)
-                * 25.0f * DEG_TO_RAD_FLOAT, &mat);
-            mat4_mul_translate(&mat, -((1.0f / (float_t)width) * lens_flare_pos.x),
+            mat4_mul_rotate_z(&mat, lens_flare_pos.x * (1.0f / (float_t)width)
+                * (float_t)(25.0 * DEG_TO_RAD_FLOAT), &mat);
+            mat4_mul_translate(&mat, lens_flare_pos.x * (-1.0f / (float_t)width),
                 (lens_flare_pos.y - (float_t)height) * (1.0f / (float_t)width), 0.0f, &mat);
-            mat4_scale_rot(&mat, 1.0f, aspect, 1.0f, &mat);
-            mat4_transpose(&mat, &mat);
-            shader_data.g_texcoord_transforms[4] = mat.row0;
-            shader_data.g_texcoord_transforms[5] = mat.row1;
+            mat4_scale_rot(&mat, 0.5f, 0.5f * aspect, 1.0f, &mat);
+            mat4_mul_translate(&mat, 1.0f, 1.0f, 0.0f, &mat);
+
+            texcoord_transforms[0].flare.transform_x = vec3(mat.row0.x, mat.row1.x, mat.row3.x);
+            texcoord_transforms[0].flare.coef = lens_flare_coef;
+            texcoord_transforms[0].flare.transform_y = vec3(mat.row0.y, mat.row1.y, mat.row3.y);
 
             if (lens_shaft_scale < 50.0f) {
                 rend_data_ctx.shader_flags.arr[U_FLARE] = 2;
@@ -1379,21 +1444,20 @@ namespace rndr {
 
                 mat4_translate(0.5f, 0.5f, 0.0f, &mat);
                 mat4_scale_rot(&mat, lens_shaft_scale, lens_shaft_scale, 1.0f, &mat);
-                mat4_mul_rotate_z(&mat, (lens_flare_pos.x / (float_t)width)
-                    * 60.0f * DEG_TO_RAD_FLOAT, &mat);
-                mat4_mul_translate(&mat, -((1.0f / (float_t)width) * lens_flare_pos.x),
+                mat4_mul_rotate_z(&mat, lens_flare_pos.x * (1.0f / (float_t)width)
+                    * (float_t)(60.0 * DEG_TO_RAD_FLOAT), &mat);
+                mat4_mul_translate(&mat, lens_flare_pos.x * (-1.0f / (float_t)width),
                     (lens_flare_pos.y - (float_t)height) * (1.0f / (float_t)width), 0.0f, &mat);
-                mat4_scale_rot(&mat, 1.0f, aspect, 1.0f, &mat);
-                mat4_transpose(&mat, &mat);
-                shader_data.g_texcoord_transforms[6] = mat.row0;
-                shader_data.g_texcoord_transforms[7] = mat.row1;
+                mat4_scale_rot(&mat, 0.5f, 0.5f * aspect, 1.0f, &mat);
+                mat4_mul_translate(&mat, 1.0f, 1.0f, 0.0f, &mat);
+
+                texcoord_transforms[1].flare.transform_x = vec3(mat.row0.x, mat.row1.x, mat.row3.x);
+                texcoord_transforms[1].flare.coef = lens_shaft_coef;
+                texcoord_transforms[1].flare.transform_y = vec3(mat.row0.y, mat.row1.y, mat.row3.y);
             }
             else {
                 rend_data_ctx.state.active_bind_texture_2d(5, rctx->empty_texture_2d->glid);
                 rend_data_ctx.state.bind_sampler(5, rctx->render_samplers[2]);
-
-                shader_data.g_texcoord_transforms[6] = { 1.0f, 0.0f, 0.0f, 0.0f };
-                shader_data.g_texcoord_transforms[7] = { 0.0f, 1.0f, 0.0f, 0.0f };
             }
         }
         else {
@@ -1401,46 +1465,38 @@ namespace rndr {
             rend_data_ctx.state.bind_sampler(4, rctx->render_samplers[2]);
             rend_data_ctx.state.active_bind_texture_2d(5, rctx->empty_texture_2d->glid);
             rend_data_ctx.state.bind_sampler(5, rctx->render_samplers[2]);
-
-            shader_data.g_texcoord_transforms[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
-            shader_data.g_texcoord_transforms[5] = { 0.0f, 1.0f, 0.0f, 0.0f };
-            shader_data.g_texcoord_transforms[6] = { 1.0f, 0.0f, 0.0f, 0.0f };
-            shader_data.g_texcoord_transforms[7] = { 0.0f, 1.0f, 0.0f, 0.0f };
         }
 
-        if (composite_back) {
-            rend_data_ctx.state.active_bind_texture_2d(6, composite_back_tex->glid);
-            rend_data_ctx.state.bind_sampler(6, rctx->render_samplers[2]);
-            rend_data_ctx.shader_flags.arr[U_COMPOSITE_BACK] = 1;
-        }
-
-        if (light_proj_tex) {
-            rend_data_ctx.shader_flags.arr[U_LIGHT_PROJ] = 1;
-            rend_data_ctx.state.active_bind_texture_2d(7, light_proj_tex->glid);
-            rend_data_ctx.state.bind_sampler(7, rctx->render_samplers[2]);
-
-            shader_data.g_flare_coef.z = 1.0f;
-        }
-        else {
-            rend_data_ctx.state.active_bind_texture_2d(7, rctx->empty_texture_2d->glid);
-            rend_data_ctx.state.bind_sampler(7, rctx->render_samplers[2]);
-        }
-
-        if (composite_back && npr_param == 1) {
-            rend_data_ctx.state.active_bind_texture_2d(14, rend_texture[0].GetDepthTex());
+        if (tone_map == 0 && composite_back_tex && npr1 && npr_mask) {
+            rend_data_ctx.state.active_bind_texture_2d(14, scene_depth_tex);
             rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[1]);
         }
+        else {
+            rend_data_ctx.state.active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
+            rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[2]);
+        }
+
+        texcoord_transforms[0].param = litproj_quality;
+        texcoord_transforms[1].param = litproj_tex ? 1.0f : 0.0f;
+
+        tone_map_shader_data shader_data;
+        shader_data.g_exposure = exposure;
+        shader_data.g_fade_color = fade_color;
+        *(vec3*)&shader_data.g_tone_scale = tone_scale;
+        shader_data.g_tone_scale.w = (float_t)fade_func;
+        *(vec3*)&shader_data.g_tone_offset = tone_offset;
+        shader_data.g_tone_offset.w = gamma > 0.0f ? 2.0f / (gamma * 3.0f) : 0.0f;
+        memcpy(shader_data.g_texcoord_transforms, texcoord_transforms, sizeof(vec4) * 4);
 
         rctx->tone_map_ubo.WriteMemory(rend_data_ctx.state, shader_data);
 
-        rend_data_ctx.state.set_viewport(0, 0, render_width[0], render_height[0]);
+        rend_data_ctx.state.set_viewport(0, 0, render_width, render_height);
         taa_buffer[2].Bind(rend_data_ctx.state);
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_TONEMAP);
         rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->tone_map_ubo);
         rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         rend_data_ctx.state.active_bind_texture_2d(2, 0);
-        rend_data_ctx.state.end_event();
     }
 
     void Render::calc_exposure(render_data_context& rend_data_ctx, const cam_data& cam) {
