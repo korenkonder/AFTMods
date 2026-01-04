@@ -10,6 +10,8 @@
 #include "render_context.hpp"
 #include "shader_ft.hpp"
 
+float_t sss_inverse_scale = 0.0f;
+float_t sss_inverse_scale_reflect = 0.0f;
 vec4 sss_param = 0.0f;
 vec4 sss_param_reflect = 0.0f;
 
@@ -24,7 +26,84 @@ static void sss_draw_quad(render_data_context& rend_data_ctx,
 
 // 0x00000001406411E0
 void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
+    pre_proc(rctx->render_manager_cam);
+
     const int32_t sss_count = 6;
+
+    rend_data_ctx.state.active_texture(0);
+    if (downsample) {
+        textures[0].Bind(rend_data_ctx.state);
+        rend_data_ctx.state.set_viewport(0, 0, 640, 360);
+        rndr::Render* rend = render_get();
+        rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+        shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
+        RenderTexture& rt = reflect_draw
+            ? reflect_full_ptr->reflect_texture
+            : rend->rend_texture[0];
+        rend_data_ctx.state.bind_texture_2d(rt.GetColorTex());
+        rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
+        sss_draw_quad(rend_data_ctx, rt.GetWidth(), rt.GetHeight(),
+            1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
+    }
+
+    textures[2].Bind(rend_data_ctx.state);
+    rend_data_ctx.state.set_viewport(0, 0, 320, 180);
+    rend_data_ctx.shader_flags.arr[U_SSS_FILTER] = 0;
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SSS_FILT);
+    rend_data_ctx.state.bind_texture_2d(textures[0].GetColorTex());
+    rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
+    sss_draw_quad(rend_data_ctx, textures[0].GetWidth(), textures[0].GetHeight(),
+        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
+
+    sss_filter_gaussian_coef_shader_data shader_data = {};
+    shader_data.g_param = { (float_t)(sss_count - 1), 0.0f, 1.0f, 1.0f };
+
+    const double_t weights[] = { 0.4, 0.3, 0.3 };
+    const double_t r_radius[] = { 1.0, 2.0, 5.0 };
+    const double_t g_radius[] = { 0.2, 0.4, 1.2 };
+    const double_t b_radius[] = { 0.3, 0.7, 2.0 };
+    sss_calc_coef(1.0, sss_count, reflect_draw ? sss_inverse_scale_reflect : sss_inverse_scale,
+        3, weights, r_radius, g_radius, b_radius, shader_data.g_coef);
+
+    rctx->sss_filter_gaussian_coef_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+    textures[reflect_draw ? 3 : 1].Bind(rend_data_ctx.state);
+    rend_data_ctx.state.set_viewport(0, 0, 320, 180);
+    rend_data_ctx.shader_flags.arr[U_SSS_FILTER] = 3;
+    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SSS_FILT);
+    rend_data_ctx.state.bind_texture_2d(textures[2].GetColorTex());
+    rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
+    rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->sss_filter_gaussian_coef_ubo);
+    sss_draw_quad(rend_data_ctx, textures[2].GetWidth(), textures[2].GetHeight(),
+        1.0f, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
+    rend_data_ctx.state.bind_texture_2d(0);
+}
+
+// 0x0000000140641920
+void sss_data::free() {
+    if (init_data)
+        for (RenderTexture& i : textures)
+            i.Free();
+}
+
+// 0x0000000140641890
+void sss_data::init() {
+    if (init_data)
+        return;
+
+    textures[0].Init(640, 360, 0, GL_RGBA16F, GL_ZERO /*GL_DEPTH_COMPONENT32F*/);
+    textures[1].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[2].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[3].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
+
+    param = { 0.0f, 0.0f, 0.0f, 1.0f };
+    init_data = true;
+}
+
+// Added
+void sss_data::pre_proc(const struct cam_data& cam) {
+    if (!init_data || !enable)
+        return;
+
     vec3 interest = camera_data.interest;
     vec3 view_point = camera_data.view_point;
 
@@ -64,78 +143,15 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
     float_t inverse_scale = (float_t)(1.0 / clamp_def(fov_scale * distance_to_interest, 0.25f, 100.0f));
     if (inverse_scale < 0.145f)
         sss_strength = max_def(inverse_scale - 0.02f, 0.0f) * 8.0f * 0.6f;
-    if (reflect_draw)
+
+    if (reflect_draw) {
+        sss_inverse_scale_reflect = inverse_scale;
         sss_param_reflect = { sss_strength, 0.0f, 0.0f, 0.0f };
-    else
-        sss_param = { sss_strength, 0.0f, 0.0f, 0.0f };
-
-    rend_data_ctx.state.active_texture(0);
-    if (downsample) {
-        textures[0].Bind(rend_data_ctx.state);
-        rend_data_ctx.state.set_viewport(0, 0, 640, 360);
-        rndr::Render* rend = render_get();
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
-        shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
-        RenderTexture& rt = reflect_draw
-            ? reflect_full_ptr->reflect_texture
-            : rend->rend_texture[0];
-        rend_data_ctx.state.bind_texture_2d(rt.GetColorTex());
-        rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
-        sss_draw_quad(rend_data_ctx, rt.GetWidth(), rt.GetHeight(),
-            1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     }
-
-    textures[2].Bind(rend_data_ctx.state);
-    rend_data_ctx.state.set_viewport(0, 0, 320, 180);
-    rend_data_ctx.shader_flags.arr[U_SSS_FILTER] = 0;
-    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SSS_FILT);
-    rend_data_ctx.state.bind_texture_2d(textures[0].GetColorTex());
-    rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
-    sss_draw_quad(rend_data_ctx, textures[0].GetWidth(), textures[0].GetHeight(),
-        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
-
-    sss_filter_gaussian_coef_shader_data shader_data = {};
-    shader_data.g_param = { (float_t)(sss_count - 1), 0.0f, 1.0f, 1.0f };
-
-    const double_t weights[] = { 0.4, 0.3, 0.3 };
-    const double_t r_radius[] = { 1.0, 2.0, 5.0 };
-    const double_t g_radius[] = { 0.2, 0.4, 1.2 };
-    const double_t b_radius[] = { 0.3, 0.7, 2.0 };
-    sss_calc_coef(1.0, sss_count, inverse_scale,
-        3, weights, r_radius, g_radius, b_radius, shader_data.g_coef);
-
-    rctx->sss_filter_gaussian_coef_ubo.WriteMemory(rend_data_ctx.state, shader_data);
-    textures[reflect_draw ? 3 : 1].Bind(rend_data_ctx.state);
-    rend_data_ctx.state.set_viewport(0, 0, 320, 180);
-    rend_data_ctx.shader_flags.arr[U_SSS_FILTER] = 3;
-    shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SSS_FILT);
-    rend_data_ctx.state.bind_texture_2d(textures[2].GetColorTex());
-    rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
-    rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->sss_filter_gaussian_coef_ubo);
-    sss_draw_quad(rend_data_ctx, textures[2].GetWidth(), textures[2].GetHeight(),
-        1.0f, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
-    rend_data_ctx.state.bind_texture_2d(0);
-}
-
-// 0x0000000140641920
-void sss_data::free() {
-    if (init_data)
-        for (RenderTexture& i : textures)
-            i.Free();
-}
-
-// 0x0000000140641890
-void sss_data::init() {
-    if (init_data)
-        return;
-
-    textures[0].Init(640, 360, 0, GL_RGBA16F, GL_ZERO /*GL_DEPTH_COMPONENT32F*/);
-    textures[1].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
-    textures[2].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
-    textures[3].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
-
-    param = { 0.0f, 0.0f, 0.0f, 1.0f };
-    init_data = true;
+    else {
+        sss_inverse_scale = inverse_scale;
+        sss_param = { sss_strength, 0.0f, 0.0f, 0.0f };
+    }
 }
 
 // 0x0000000140641B40

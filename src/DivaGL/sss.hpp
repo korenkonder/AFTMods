@@ -19,6 +19,7 @@ struct sss_data {
     void apply_filter(struct render_data_context& rend_data_ctx);
     void free();
     void init();
+    void pre_proc(const struct cam_data& cam); // Added
     void reset(struct render_data_context& rend_data_ctx);
     bool set(struct render_data_context& rend_data_ctx);
     bool set(struct render_data_context& rend_data_ctx, RenderTexture& rt); // Added
