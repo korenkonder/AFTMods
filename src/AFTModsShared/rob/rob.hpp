@@ -312,17 +312,17 @@ enum mothead_data_type {
     MOTHEAD_DATA_SET_EYES_MOTTBL_MOTION      = 0x39,
     MOTHEAD_DATA_SET_EYELID_MOTTBL_MOTION    = 0x3A,
     MOTHEAD_DATA_SET_ROB_CHARA_HEAD_OBJECT   = 0x3B,
-    MOTHEAD_DATA_TYPE_60                     = 0x3C,
+    MOTHEAD_DATA_SET_LOOK_CAMERA             = 0x3C,
     MOTHEAD_DATA_SET_EYELID_MOTION_FROM_FACE = 0x3D,
     MOTHEAD_DATA_ROB_PARTS_ADJUST            = 0x3E,
     MOTHEAD_DATA_TYPE_63                     = 0x3F,
-    MOTHEAD_DATA_WIND_RESET                  = 0x40,
-    MOTHEAD_DATA_OSAGE_RESET                 = 0x41,
+    MOTHEAD_DATA_OSAGE_RESET                 = 0x40,
+    MOTHEAD_DATA_MOTION_SKIN_PARAM           = 0x41,
     MOTHEAD_DATA_OSAGE_STEP                  = 0x42,
     MOTHEAD_DATA_SLEEVE_ADJUST               = 0x43,
     MOTHEAD_DATA_TYPE_68                     = 0x44,
-    MOTHEAD_DATA_TYPE_69                     = 0x45,
-    MOTHEAD_DATA_TYPE_70                     = 0x46,
+    MOTHEAD_DATA_MOTION_MAX_FRAME            = 0x45,
+    MOTHEAD_DATA_CAMERA_MAX_FRAME            = 0x46,
     MOTHEAD_DATA_OSAGE_MOVE_CANCEL           = 0x47,
     MOTHEAD_DATA_TYPE_72                     = 0x48,
     MOTHEAD_DATA_ROB_HAND_ADJUST             = 0x49,
@@ -332,7 +332,7 @@ enum mothead_data_type {
     MOTHEAD_DATA_DISABLE_EYE_MOTION          = 0x4D,
     MOTHEAD_DATA_TYPE_78                     = 0x4E,
     MOTHEAD_DATA_ROB_CHARA_COLI_RING         = 0x4F,
-    MOTHEAD_DATA_ADJUST_GET_GLOBAL_POSITION  = 0x50,
+    MOTHEAD_DATA_ADJUST_GET_GLOBAL_POS       = 0x50,
     MOTHEAD_DATA_MAX                         = 0x51,
 };
 
@@ -986,7 +986,7 @@ struct RobOsageNodeData {
 static_assert(sizeof(RobOsageNodeData) == 0xB0, "\"RobOsageNodeData\" struct should have a size of 0xB0");
 
 struct opd_blend_data {
-    int32_t motion_id;
+    uint32_t motion_id;
     float_t frame;
     float_t frame_count;
     bool use_blend;
@@ -1326,8 +1326,8 @@ struct RobOsage {
     void SetHinge(float_t hinge_y, float_t hinge_z);
     void SetInitRot(float_t init_rot_y, float_t init_rot_z);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
-    void SetNodesExternalForce(vec3* external_force, float_t strength);
-    void SetNodesForce(float_t force);
+    void SetNodesExternalForce(const vec3* external_force, const float_t& strength);
+    void SetNodesForce(const float_t& force);
     void SetRot(float_t rot_y, float_t rot_z);
 };
 
@@ -1636,7 +1636,11 @@ struct rob_chara_motion {
     uint32_t prev_motion_id;
     rob_chara_motion_frame_data frame_data;
     rob_chara_motion_step_data step_data;
-    uint8_t data[0x1198];
+    uint8_t data[0x558];
+    rob_chara_data_adjust parts_adjust[ROB_OSAGE_PARTS_MAX];
+    rob_chara_data_adjust parts_adjust_prev[ROB_OSAGE_PARTS_MAX];
+    rob_chara_data_adjust adjust_global;
+    rob_chara_data_adjust adjust_global_prev;
     rob_chara_data_hand_adjust hand_adjust[2];
     rob_chara_data_hand_adjust hand_adjust_prev[2];
     uint8_t data1[0x30];
@@ -1695,7 +1699,7 @@ struct mothead_mot {
 static_assert(sizeof(mothead_mot) == 0x30, "\"mothead_mot\" struct should have a size of 0x30");
 
 struct struc_652 {
-    int32_t motion_id;
+    uint32_t motion_id;
     float_t frame_count;
     float_t frame;
     int16_t field_C;
@@ -1874,7 +1878,7 @@ struct struc_223 {
     struc_652 field_0;
     struc_651 field_330;
     int64_t* field_7A0;
-    int32_t motion_set_id;
+    uint32_t motion_set_id;
 };
 
 static_assert(sizeof(struc_223) == 0x7B0, "\"struc_223\" struct should have a size of 0x7B0");

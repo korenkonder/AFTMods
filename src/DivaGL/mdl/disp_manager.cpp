@@ -4174,7 +4174,7 @@ namespace mdl {
     }
 }
 
-// 0x00000001405223C0
+// 0x1405223C0
 static void rob_chara_item_cos_data_disp_item(rob_chara_item_cos_data* item_cos_data, const mat4& mat, int32_t item_no) {
     if (!item_no)
         return;
@@ -4191,7 +4191,7 @@ static void rob_chara_item_cos_data_disp_item(rob_chara_item_cos_data* item_cos_
             rob_chara_item_cos_data_disp_item_object(item_cos_data, i.obj_info, mat, item_no);
 }
 
-// 0x0000000140522480
+// 0x140522480
 static void rob_chara_item_cos_data_disp_item_object(rob_chara_item_cos_data* item_cos_data,
     object_info obj_info, const mat4& mat, int32_t item_no) {
     mat4* rob_chara_item_cos_data_bone_mat = (mat4*)0x00000001411B2040;
@@ -4226,7 +4226,7 @@ static void rob_chara_item_cos_data_disp_item_object(rob_chara_item_cos_data* it
     }
 }
 
-// 0x000000014052C530
+// 0x14052C530
 static void rob_chara_item_cos_data_set_chara_index(rob_chara_item_cos_data* item_cos_data, ::chara_index chara_index) {
     item_cos_data->chara_index = chara_index;
 }

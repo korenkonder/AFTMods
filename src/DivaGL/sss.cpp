@@ -24,7 +24,7 @@ static void sss_draw_quad(render_data_context& rend_data_ctx,
     int32_t width, int32_t height, float_t s, float_t t,
     float_t param_x, float_t param_y, float_t param_z, float_t param_w);
 
-// 0x00000001406411E0
+// 0x1406411E0
 void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
     pre_proc(rctx->render_manager_cam);
 
@@ -78,14 +78,14 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
     rend_data_ctx.state.bind_texture_2d(0);
 }
 
-// 0x0000000140641920
+// 0x140641920
 void sss_data::free() {
     if (init_data)
         for (RenderTexture& i : textures)
             i.Free();
 }
 
-// 0x0000000140641890
+// 0x140641890
 void sss_data::init() {
     if (init_data)
         return;
@@ -154,13 +154,13 @@ void sss_data::pre_proc(const struct cam_data& cam) {
     }
 }
 
-// 0x0000000140641B40
+// 0x140641B40
 void sss_data::reset(struct render_data_context& rend_data_ctx) {
     if (init_data)
         rend_data_ctx.state.bind_framebuffer(0);
 }
 
-// 0x0000000140641060
+// 0x140641060
 bool sss_data::set(struct render_data_context& rend_data_ctx) {
     if (!init_data)
         return false;
@@ -222,18 +222,18 @@ bool sss_data::set(struct render_data_context& rend_data_ctx, RenderTexture& rt)
     return true;
 }
 
-// 0x0000000140641190
+// 0x140641190
 void sss_data::set_texture(struct p_gl_rend_state& p_gl_rend_st, int32_t texture_index) {
     p_gl_rend_st.active_bind_texture_2d(16, textures[texture_index].GetColorTex());
     p_gl_rend_st.active_texture(0);
 }
 
-// 0x0000000140641B70
+// 0x140641B70
 sss_data* sss_data_get() {
     return &_sss_data;
 }
 
-// 0x0000000140641B80
+// 0x140641B80
 static void sss_calc_coef(const double_t step, const int32_t size,
     const double_t inverse_scale, const int32_t iterations, const double_t* weights,
     const double_t* r_radius, const double_t* g_radius, const double_t* b_radius, vec4 coef[64]) {
@@ -270,7 +270,7 @@ static void sss_calc_coef(const double_t step, const int32_t size,
     }
 }
 
-// 0x0000000140641960
+// 0x140641960
 static void sss_draw_quad(render_data_context& rend_data_ctx,
     int32_t width, int32_t height, float_t s, float_t t,
     float_t param_x, float_t param_y, float_t param_z, float_t param_w) {

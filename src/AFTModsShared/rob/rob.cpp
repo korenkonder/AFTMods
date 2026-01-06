@@ -89,7 +89,7 @@ void RobOsage::SetMotionResetData(uint32_t motion_id, float_t frame) {
 }
 
 // 0x140480F40
-void RobOsage::SetNodesExternalForce(vec3* external_force, float_t strength) {
+void RobOsage::SetNodesExternalForce(const vec3* external_force, const float_t& strength) {
     if (!external_force) {
         RobOsageNode* i_begin = nodes.data() + 1;
         RobOsageNode* i_end = nodes.data() + nodes.size();
@@ -98,30 +98,20 @@ void RobOsage::SetNodesExternalForce(vec3* external_force, float_t strength) {
         return;
     }
 
-    vec3 v4 = *external_force;
-    size_t exf = osage_setting.exf;
-    size_t v8 = 0;
-    if (exf >= 4) {
-        float_t strength4 = strength * strength * strength * strength;
-        v8 = ((exf - 4) / 4 + 1) * 4;
-        for (size_t v10 = v8 / 4; v10; v10--)
-            v4 *= strength4;
-    }
-
-    if (v8 < exf)
-        for (size_t v12 = exf - v8; v12; v12--)
-            v4 *= strength;
+    vec3 _external_force = *external_force;
+    for (size_t i = osage_setting.exf; i; i--)
+        _external_force *= strength;
 
     RobOsageNode* i_begin = nodes.data() + 1;
     RobOsageNode* i_end = nodes.data() + nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++) {
-        i->external_force = v4;
-        v4 *= strength;
+        i->external_force = _external_force;
+        _external_force *= strength;
     }
 }
 
 // 0x140481540
-void RobOsage::SetNodesForce(float_t force) {
+void RobOsage::SetNodesForce(const float_t& force) {
     RobOsageNode* i_begin = nodes.data() + 1;
     RobOsageNode* i_end = nodes.data() + nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++)
