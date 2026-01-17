@@ -8,7 +8,7 @@
 namespace Glitter {
     RenderElementX::RenderElementX() : alive(), uv_index(), disp(), frame(), life_time(), rebound_time(),
         frame_step_uv(), base_speed(), speed(), deceleration(), rot_z_cos(), rot_z_sin(),
-        scale_all(), fade_out_frames(), fade_in_frames(), locus_history(), random(), step() {
+        uniform_scale(), fade_out_frames(), fade_in_frames(), locus_history(), random(), step() {
 
     }
 
@@ -36,7 +36,7 @@ namespace Glitter {
         if (ptcl_data->flags & PARTICLE_EMITTER_LOCAL)
             scale = 1.0f;
         else
-            scale = emit_inst->scale * emit_inst->scale_all;
+            scale = emit_inst->scale * emit_inst->uniform_scale;
 
         vec3 position = 0.0f;
         emit_inst->InitMesh(index, scale, position, direction, random);

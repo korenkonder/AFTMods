@@ -252,7 +252,7 @@ namespace Glitter {
         rend_elem->uv_scroll = 0.0f;
         rend_elem->uv_scroll_2nd = 0.0f;
         rend_elem->scale = 1.0f;
-        rend_elem->scale_all = 1.0f;
+        rend_elem->uniform_scale = 1.0f;
         rend_elem->frame_step_uv = (float_t)ptcl_data->frame_step_uv;
 
         rend_elem->scale_particle.x = random->GetFloat(ptcl_data->scale_random.x)
@@ -444,8 +444,8 @@ namespace Glitter {
                     return false;
                 }
                 break;
-            case CURVE_SCALE_ALL:
-                rend_elem->scale_all = value;
+            case CURVE_UNIFORM_SCALE:
+                rend_elem->uniform_scale = value;
                 if (fabsf(value) <= 0.000001f) {
                     rend_elem->disp = false;
                     return false;

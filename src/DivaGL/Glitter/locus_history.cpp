@@ -33,7 +33,7 @@ namespace Glitter {
         LocusHistoryX::Data locus_history;
         locus_history.color = rend_elem->color;
         locus_history.translation = temp;
-        locus_history.scale = rend_elem->scale_particle.x * rend_elem->scale.x * rend_elem->scale_all;
+        locus_history.scale = rend_elem->scale_particle.x * rend_elem->scale.x * rend_elem->uniform_scale;
         if (size < 1)
             data.push_back(locus_history);
         else if (size == 1) {

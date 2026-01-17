@@ -37,7 +37,7 @@ namespace Glitter {
         effect = eff;
         data = eff->data;
         color = 1.0f;
-        scale_all = 1.0f;
+        uniform_scale = 1.0f;
         this->id = id;
         translation = eff->translation;
         rotation = eff->rotation;
@@ -214,7 +214,7 @@ namespace Glitter {
             mat4_translate(&translation, &mat);
         }
 
-        vec3 scale = this->scale * scale_all;
+        vec3 scale = this->scale * uniform_scale;
 
         mat4_mul_rotate_zyx(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &this->mat);
@@ -266,7 +266,7 @@ namespace Glitter {
             mat4_mul_translate(&this->mat, &translation, &mat);
 
             vec3 rot = rotation;
-            vec3 scale = this->scale * scale_all;
+            vec3 scale = this->scale * uniform_scale;
 
             mat4_mul_rotate_zyx(&mat, &rot, &mat);
             mat4_scale_rot(&mat, &scale, &this->mat);
@@ -434,7 +434,7 @@ namespace Glitter {
 
                 vec3 trans = translation;
                 vec3 rot = rotation;
-                vec3 scale = this->scale * scale_all;
+                vec3 scale = this->scale * uniform_scale;
 
                 mat4 mat;
                 mat4_translate(&trans, &mat);
@@ -473,7 +473,7 @@ namespace Glitter {
 
         vec3 trans = translation;
         vec3 rot = rotation;
-        vec3 scale = this->scale * scale_all;
+        vec3 scale = this->scale * uniform_scale;
 
         mat4 mat;
         mat4_translate(&trans, &mat);
@@ -702,8 +702,8 @@ namespace Glitter {
             case CURVE_SCALE_Z:
                 scale.z = value;
                 break;
-            case CURVE_SCALE_ALL:
-                scale_all = value;
+            case CURVE_UNIFORM_SCALE:
+                uniform_scale = value;
                 break;
             case CURVE_COLOR_R:
                 color.x = value;

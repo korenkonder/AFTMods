@@ -435,7 +435,7 @@ namespace Glitter {
         if (particle) {
             Glitter::EmitterInstX* emit_inst = particle->data.emitter;
             if (emit_inst) {
-                emitter_scale = emit_inst->scale * emit_inst->scale_all;
+                emitter_scale = emit_inst->scale * emit_inst->uniform_scale;
                 return emitter_scale.x > 0.000001f || emitter_scale.y > 0.000001f || emitter_scale.z > 0.000001f;
             }
         }

@@ -46,7 +46,7 @@ namespace Glitter {
         CURVE_SCALE_X                = 6,
         CURVE_SCALE_Y                = 7,
         CURVE_SCALE_Z                = 8,
-        CURVE_SCALE_ALL              = 9,
+        CURVE_UNIFORM_SCALE          = 9,
         CURVE_COLOR_R                = 10,
         CURVE_COLOR_G                = 11,
         CURVE_COLOR_B                = 12,
@@ -490,7 +490,7 @@ namespace Glitter {
         vec3 translation;
         vec3 rotation;
         vec3 scale;
-        float_t scale_all;
+        float_t uniform_scale;
 
         NodeX();
         virtual ~NodeX() override;
@@ -678,7 +678,7 @@ namespace Glitter {
         vec3 translation;
         vec3 rotation;
         vec3 scale;
-        float_t scale_all;
+        float_t uniform_scale;
         mat4 mat;
         EffectInstFlag flags;
         size_t id;
@@ -836,7 +836,7 @@ namespace Glitter {
         vec3 scale;
         mat4 mat;
         mat4 mat_rot;
-        float_t scale_all;
+        float_t uniform_scale;
         float_t emission_timer;
         EmitterX::Data data;
         float_t emission_interval;
@@ -1293,7 +1293,7 @@ namespace Glitter {
         vec3 rotation_add;
         float_t rot_z_cos;
         float_t rot_z_sin;
-        float_t scale_all;
+        float_t uniform_scale;
         vec2 uv_scroll;
         mat4 mat;
         LocusHistory* locus_history;
@@ -1324,7 +1324,7 @@ namespace Glitter {
         vec3 rotation_add;
         float_t rot_z_cos;
         float_t rot_z_sin;
-        float_t scale_all;
+        float_t uniform_scale;
         vec2 uv_scroll;
         vec2 uv_scroll_2nd;
         float_t fade_out_frames;

@@ -8,7 +8,7 @@
 namespace Glitter {
     NodeX::NodeX() : translation(), rotation() {
         scale = 1.0f;
-        scale_all = 1.0f;
+        uniform_scale = 1.0f;
     }
 
     NodeX::~NodeX() {
@@ -19,7 +19,7 @@ namespace Glitter {
         translation = node.translation;
         rotation = node.rotation;
         scale = node.scale;
-        scale_all = node.scale_all;
+        uniform_scale = node.uniform_scale;
         return *this;
     }
 }
