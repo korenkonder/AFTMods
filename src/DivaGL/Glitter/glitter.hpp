@@ -29,7 +29,7 @@ namespace Glitter {
         CURVE_RANDOM_RANGE        = 0x01,
         CURVE_KEY_RANDOM_RANGE    = 0x02,
         CURVE_RANDOM_RANGE_NEGATE = 0x04,
-        CURVE_STEP                = 0x08,
+        CURVE_GLOBAL_RANDOM       = 0x08,
         CURVE_NEGATE              = 0x10,
         CURVE_RANDOM_RANGE_MULT   = 0x20,
         CURVE_BAKED               = 0x40,

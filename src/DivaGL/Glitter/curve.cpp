@@ -48,7 +48,7 @@ namespace Glitter {
         int32_t random_val = random->GetValue();
         random->SetValue(random_value);
         bool negate = flags & CURVE_NEGATE && random->GetInt(0, 0xFFFF) > 0x7FFF;
-        if (flags & CURVE_STEP)
+        if (flags & CURVE_GLOBAL_RANDOM)
             random->SetValue(random_val + 1);
 
         float_t start_time;
