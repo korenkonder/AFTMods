@@ -19,7 +19,6 @@ namespace Glitter {
     }
 
     void LocusHistoryX::Append(RenderElementX* rend_elem, ParticleInstX* ptcl_inst) {
-        LocusHistoryX::Data* hist_data = data.data();
         size_t size = data.size();
         vec3 temp = rend_elem->translation;
         if (ptcl_inst->data.data.flags & PARTICLE_EMITTER_LOCAL && ptcl_inst->data.emitter) {
@@ -37,22 +36,22 @@ namespace Glitter {
         if (size < 1)
             data.push_back(locus_history);
         else if (size == 1) {
-            locus_history.translation = hist_data->translation;
+            locus_history.translation = data.data()[0].translation;
             if (data.capacity() > 1)
                 data.push_back(locus_history);
-            hist_data->translation = temp;
+            data.data()[0].translation = temp;
         }
         else {
             vec3 temp1 = data[size - 1].translation;
 
             for (size_t i = size - 1; i > 0; i--)
-                hist_data[i].translation = hist_data[i - 1].translation;
+                data.data()[i].translation = data.data()[i - 1].translation;
 
             if (size < data.capacity()) {
                 locus_history.translation = temp1;
                 data.push_back(locus_history);
             }
-            hist_data->translation = temp;
+            data.data()[0].translation = temp;
         }
     }
 }
