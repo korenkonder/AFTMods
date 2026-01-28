@@ -849,7 +849,7 @@ void snow_particle_draw(render_data_context& rend_data_ctx, const cam_data& cam)
         snow_batch.start_vertex_location.x = first;
         snow_particle_batch_ubo.WriteMemory(rend_data_ctx.state, snow_batch);
 
-        snow_gpu_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, first, count);
+        snow_gpu_storage.Draw(rend_data_ctx.state, GL_TRIANGLES, 0, count);
         first += count;
     }
 
