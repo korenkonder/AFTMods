@@ -4,6 +4,7 @@
 */
 
 #include "hook.hpp"
+#include "../KKdLib/farc.hpp"
 #include "Glitter/glitter.hpp"
 #include "data_test/rob_osage_test.hpp"
 #include "graphics/color_change_dw.hpp"

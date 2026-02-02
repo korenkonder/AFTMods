@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 #include "../KKdLib/default.hpp"
-#include "../KKdLib/farc.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/vec.hpp"
 #include "../AFTModsShared/uniform.hpp"
@@ -66,7 +65,7 @@ struct shader {
     static bool parse_define(const char* data, std::string& temp);
     static bool parse_define(const char* data, int32_t num_uniform,
         int32_t* uniform_value, std::string& temp);
-    static char* parse_include(char* data, farc* f);
+    static char* parse_include(char* data, struct farc* f);
     static void unbind(struct p_gl_rend_state& p_gl_rend_st);
 };
 
@@ -79,7 +78,7 @@ struct shader_set_data {
     shader_set_data();
 
     int32_t get_index_by_name(const char* name);
-    void load(farc* f, bool ignore_cache, const char* name,
+    void load(struct farc* f, bool ignore_cache, const char* name,
         const shader_table* shaders_table, const size_t size,
         const shader_bind_func* bind_func_table, const size_t bind_func_table_size,
         PFNSHADERGETINDEXFUNCPROC get_index_by_name);

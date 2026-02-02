@@ -22,6 +22,7 @@
 #define SHARED_GLITTER_BUFFER (1)
 
 struct cam_data;
+struct farc;
 struct render_data_context;
 
 namespace Glitter {

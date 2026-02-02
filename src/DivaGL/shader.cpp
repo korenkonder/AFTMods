@@ -7,6 +7,7 @@
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/prj/vector_pair.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "gl_rend_state.hpp"
