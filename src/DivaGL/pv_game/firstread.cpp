@@ -4,7 +4,7 @@
 */
 
 #include "../../KKdLib/f2/header.hpp"
-#include "../../KKdLib/aes.hpp"
+#include "../../KKdLib/prj/rijndael.hpp"
 #include "../../KKdLib/deflate.hpp"
 #include "firstread.hpp"
 
@@ -144,9 +144,19 @@ const firstread_objset* firstread_objset::read(
                 uint8_t* key = section_data + data_size - key_iv_size;
                 uint8_t* iv = section_data + data_size + 0x20 - key_iv_size;
 
-                aes256_ctx aes;
-                aes256_init_ctx_iv(&aes, key, iv);
-                aes256_cbc_decrypt_buffer(&aes, section_data, section_size);
+                prj::Rijndael rijndael(prj::Rijndael_Nb, prj::Rijndael_Nk256, key);
+
+                uint8_t _iv[prj::Rijndael_Nlen];
+                uint8_t next_iv[prj::Rijndael_Nlen];
+                memcpy(_iv, iv, prj::Rijndael_Nlen);
+                for (size_t i = 0; i < section_size; i += prj::Rijndael_Nlen) {
+                    memcpy(next_iv, section_data + i, prj::Rijndael_Nlen);
+                    rijndael.decrypt16(section_data + i);
+                    for (uint32_t j = 0; j < prj::Rijndael_Nlen / sizeof(uint32_t); j++)
+                        ((uint32_t*)(section_data + i))[j] ^= ((uint32_t*)_iv)[j];
+                    memcpy(_iv, next_iv, prj::Rijndael_Nlen);
+                }
+
                 head->attrib.set_aes(false);
             }
         }
