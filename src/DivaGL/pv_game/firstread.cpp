@@ -171,7 +171,7 @@ const firstread_objset* firstread_objset::read(
 
         dec = 0;
         size_t dec_len = head->custom;
-        if (deflate::decompress(section_data, section_size, dec, dec_len, deflate::MODE_GZIP, allocator) < 0
+        if (deflate::decompress(section_data, section_size, dec, dec_len, deflate::MODE_GZIP, &allocator) < 0
             || !dec_len || dec_len < head->custom)
             return 0;
 
