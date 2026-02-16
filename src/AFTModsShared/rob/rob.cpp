@@ -12,6 +12,8 @@ bool (FASTCALL* pv_osage_manager_array_get_disp)(int32_t* chara_id)
     = (bool (FASTCALL*)(int32_t * chara_id))0x00000001404F9130;
 const char* (FASTCALL* chara_index_get_auth_3d_name)(chara_index chara_index)
     = (const char* (FASTCALL*)(chara_index chara_index))0x0000000140508100;
+const char* (FASTCALL* chara_index_get_chara_name)(chara_index chara_index)
+    = (const char* (FASTCALL*)(chara_index chara_index))0x0000000140508180;
 void(FASTCALL* sub_1405163C0)(rob_chara* rob_chr, int32_t index, mat4* mat)
     = (void(FASTCALL*)(rob_chara* rob_chr, int32_t index, mat4 * mat))0x00000001405163C0;
 float_t(FASTCALL* rob_chara_get_max_face_depth)(rob_chara* rob_chr)

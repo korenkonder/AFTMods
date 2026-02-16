@@ -1998,6 +1998,7 @@ extern rob_chara* rob_chara_array;
 extern const mat4* (FASTCALL* rob_chara_bone_data_get_mats_mat)(size_t rob_bone_data, size_t index);
 extern bool (FASTCALL* pv_osage_manager_array_get_disp)(int32_t* chara_id);
 extern const char* (FASTCALL* chara_index_get_auth_3d_name)(chara_index chara_index);
+extern const char* (FASTCALL* chara_index_get_chara_name)(chara_index chara_index);
 extern void(FASTCALL* sub_1405163C0)(rob_chara* rob_chr, int32_t index, mat4* mat);
 extern float_t(FASTCALL* rob_chara_get_max_face_depth)(rob_chara* rob_chr);
 extern const mat4* (FASTCALL* rob_chara_get_bone_data_mat)(rob_chara* rob_chr, mot_bone_index index);

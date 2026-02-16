@@ -23,6 +23,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RobTexAnim", "src\RobTexAni
 		{BCF448EA-DCFF-49AF-97FF-361204C69358} = {BCF448EA-DCFF-49AF-97FF-361204C69358}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OPDPlayGen", "src\OPDPlayGen\OPDPlayGen.vcxproj", "{1DEDD404-A057-4269-9E8A-4AC73909B36E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{65707AD3-568A-4FE9-A75E-BDBF3D5EFC88} = {65707AD3-568A-4FE9-A75E-BDBF3D5EFC88}
+		{BCF448EA-DCFF-49AF-97FF-361204C69358} = {BCF448EA-DCFF-49AF-97FF-361204C69358}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -49,6 +55,10 @@ Global
 		{761037C2-9F05-4EB0-B28A-D666981F2725}.Debug|x64.Build.0 = Debug|x64
 		{761037C2-9F05-4EB0-B28A-D666981F2725}.Release|x64.ActiveCfg = Release|x64
 		{761037C2-9F05-4EB0-B28A-D666981F2725}.Release|x64.Build.0 = Release|x64
+		{1DEDD404-A057-4269-9E8A-4AC73909B36E}.Debug|x64.ActiveCfg = Debug|x64
+		{1DEDD404-A057-4269-9E8A-4AC73909B36E}.Debug|x64.Build.0 = Debug|x64
+		{1DEDD404-A057-4269-9E8A-4AC73909B36E}.Release|x64.ActiveCfg = Release|x64
+		{1DEDD404-A057-4269-9E8A-4AC73909B36E}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
