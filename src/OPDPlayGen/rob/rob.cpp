@@ -581,7 +581,7 @@ void OsagePlayDataManager::LoadOpdFileList() {
                     = (bool (FASTCALL*)(prj::string & path))0x0000000140183F30;
                 if (path_get_file_first_mount_path_0(farc_path)) {
                     file_handlers.push_back(new (_operator_new(sizeof(p_file_handler)))p_file_handler);
-                    file_handlers.back()->read_file(farc_path.c_str(), file_buf.c_str(), prj::HeapCMallocTemp, true);
+                    file_handlers.back()->read_file(farc_path.c_str(), file_buf.c_str(), prj::MemCTemp, true);
                     i++;
                     continue;
                 }

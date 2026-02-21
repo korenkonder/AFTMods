@@ -107,7 +107,7 @@ HOOK(void, FASTCALL, ColorChangeDw__Draw, 0x00000001402C2170, ColorChangeDw* Thi
             if (!tex_data)
                 continue;
 
-            void* data = prj::HeapCMallocAllocate(prj::HeapCMallocTemp, size, "imgf_color_tone_cpu()");
+            void* data = prj::MemoryManager::alloc(prj::MemCTemp, size, "imgf_color_tone_cpu()");
             if (!data)
                 break;
 
@@ -137,7 +137,7 @@ HOOK(void, FASTCALL, ColorChangeDw__Draw, 0x00000001402C2170, ColorChangeDw* Thi
                     GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
             }
             gl_get_error_print();
-            prj::HeapCMallocFree(prj::HeapCMallocTemp, data);
+            prj::MemoryManager::free(prj::MemCTemp, data);
         }
         gl_state.bind_texture_2d(0);
     }
@@ -275,7 +275,7 @@ bool ColorChangeDw::LoadTexture() {
             vec_data.reserve((size_t)org_tex->max_mipmap_level + 1);
             for (int32_t i = 0; i <= org_tex->max_mipmap_level; i++) {
                 int32_t size = org_tex->get_size_mip_level(i);
-                void* data = prj::HeapCMallocAllocate(prj::HeapCMallocTemp, size, "ColorChangeDw::LoadTexture()");
+                void* data = prj::MemoryManager::alloc(prj::MemCTemp, size, "ColorChangeDw::LoadTexture()");
                 if (!data)
                     break;
 
@@ -331,7 +331,7 @@ void ColorChangeDw::ResetTexture() {
     for (prj::vector<void*>& i : *color_change_dw_textures)
         for (void*& j : i)
             if (j) {
-                prj::HeapCMallocFree(prj::HeapCMallocTemp, j);
+                prj::MemoryManager::free(prj::MemCTemp, j);
                 j = 0;
             }
 

@@ -42,20 +42,20 @@ size_t p_file_handler::get_size() {
     return p_file_handler__get_size(this);
 }
 
-bool p_file_handler::read_file(const char* farc_path, const char* file_path, prj::HeapCMallocType heap_malloc_type, bool cache) {
+bool p_file_handler::read_file(const char* farc_path, const char* file_path, prj::MemCType mem_c_type, bool cache) {
     static bool (FASTCALL * p_file_handler__read_file)(p_file_handler * pfhndl, const char* farc_path,
-        const char* file_path, prj::HeapCMallocType heap_malloc_type, bool cache)
+        const char* file_path, prj::MemCType mem_c_type, bool cache)
         = (bool (FASTCALL*)(p_file_handler * pfhndl, const char* farc_path,
-            const char* file_path, prj::HeapCMallocType heap_malloc_type, bool cache))0x0000000140183430;
-    return p_file_handler__read_file(this, farc_path, file_path, heap_malloc_type, cache);
+            const char* file_path, prj::MemCType mem_c_type, bool cache))0x0000000140183430;
+    return p_file_handler__read_file(this, farc_path, file_path, mem_c_type, cache);
 }
 
-bool p_file_handler::read_file_path(const char* file_path, prj::HeapCMallocType heap_malloc_type) {
+bool p_file_handler::read_file_path(const char* file_path, prj::MemCType mem_c_type) {
     static bool (FASTCALL * p_file_handler__read_file_path)(p_file_handler * pfhndl,
-        const char* file_path, prj::HeapCMallocType heap_malloc_type)
+        const char* file_path, prj::MemCType mem_c_type)
         = (bool (FASTCALL*)(p_file_handler * pfhndl,
-            const char* file_path, prj::HeapCMallocType heap_malloc_type))0x00000001401836C0;
-    return p_file_handler__read_file_path(this, file_path, heap_malloc_type);
+            const char* file_path, prj::MemCType mem_c_type))0x00000001401836C0;
+    return p_file_handler__read_file_path(this, file_path, mem_c_type);
 }
 
 void p_file_handler::read_now() {

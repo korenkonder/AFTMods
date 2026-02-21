@@ -22,23 +22,28 @@ typedef uint32_t AFTGLenum;
 typedef ssize_t AFTGLsizeiptr;
 
 namespace prj {
-    typedef enum HeapCMallocType {
-        HeapCMallocSystem = 0x00,
-        HeapCMallocTemp   = 0x01,
-        HeapCMallocMode   = 0x02,
-        HeapCMallocEvent  = 0x03,
-        HeapCMallocDebug  = 0x04,
-        HeapCMallocMax    = 0x05,
-    } HeapCMallocType;
+    enum MemCType {
+        MemCSystem = 0x00,
+        MemCTemp   = 0x01,
+        MemCMode   = 0x02,
+        MemCEvent  = 0x03,
+        MemCDebug  = 0x04,
+        MemCMax    = 0x05,
+    };
 
-    static void* (*HeapCMallocAllocate)(HeapCMallocType type, size_t size, const char* name)
-        = (void* (*)(HeapCMallocType, size_t, const char*))0x00000001403F2A00;
-    static void* (*HeapCMallocAllocateByType)(HeapCMallocType type, size_t size, const char* name)
-        = (void* (*)(HeapCMallocType, size_t, const char*))0x0000000140181C30;
-    static void(*HeapCMallocFree)(HeapCMallocType type, void* data)
-        = (void(*)(HeapCMallocType, void*))0x00000001403F2960;
-    static void(*HeapCMallocFreeByType)(HeapCMallocType type, void* data)
-        = (void(*)(HeapCMallocType, void*))0x0000000140182DB0;
+    struct MemoryManager {
+        inline static void* alloc(MemCType type, size_t size, const char* id) {
+            static void* (*_alloc)(MemCType type, size_t size, const char* id)
+                = (void* (*)(MemCType, size_t, const char*))0x00000001403F2A00;
+            return _alloc(type, size, id);
+        }
+
+        inline static void free(MemCType type, void* data) {
+            static void(*_free)(MemCType type, void* data)
+                = (void(*)(MemCType, void*))0x00000001403F2960;
+            _free(type, data);
+        }
+    };
 };
 
 static void* (*_operator_new)(size_t) = (void* (*)(size_t))0x000000014084530C;

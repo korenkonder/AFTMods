@@ -292,7 +292,7 @@ namespace Glitter {
 
         file_handler = new (_operator_new(sizeof(p_file_handler))) p_file_handler;
         farc = new ::farc;
-        if (file_handler->read_file_path(path_temp.c_str(), prj::HeapCMallocTemp)) {
+        if (file_handler->read_file_path(path_temp.c_str(), prj::MemCTemp)) {
             this->hash = hash;
             load_count = 1;
             return true;

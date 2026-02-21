@@ -28,7 +28,7 @@ struct file_handler {
     bool reading;
     prj::string farc_path;
     prj::string file_path;
-    prj::HeapCMallocType heap_malloc_type;
+    prj::MemCType mem_c_type;
     bool cache;
     file_handler_callback_func callback[2];
     size_t size;
@@ -45,8 +45,8 @@ struct p_file_handler {
     bool check_not_ready();
     const void* get_data();
     size_t get_size();
-    bool read_file(const char* farc_path, const char* file_path, prj::HeapCMallocType heap_malloc_type, bool cache);
-    bool read_file_path(const char* file_path, prj::HeapCMallocType heap_malloc_type);
+    bool read_file(const char* farc_path, const char* file_path, prj::MemCType mem_c_type, bool cache);
+    bool read_file_path(const char* file_path, prj::MemCType mem_c_type);
     void read_now();
     void reset();
     void set_callback_data(int32_t index, PFNFILEHANDLERCALLBACK* func, void* data);

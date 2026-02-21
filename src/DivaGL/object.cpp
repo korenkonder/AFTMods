@@ -1126,7 +1126,7 @@ void ObjsetInfo::index_buffer_free() {
     if (objib) {
         for (int32_t i = 0; i < objib_num; i++)
             objib[i].unload();
-        prj::HeapCMallocFree(prj::HeapCMallocSystem, objvb);
+        prj::MemoryManager::free(prj::MemCSystem, objvb);
     }
 
     objib = 0;
@@ -1136,7 +1136,7 @@ void ObjsetInfo::index_buffer_free() {
 bool ObjsetInfo::index_buffer_load() {
     ::obj_set* set = obj_set;
     objib_num = set->obj_num;
-    objib = new (prj::HeapCMallocAllocate(prj::HeapCMallocSystem,
+    objib = new (prj::MemoryManager::alloc(prj::MemCSystem,
         sizeof(obj_index_buffer) * set->obj_num, "OBJIB")) obj_index_buffer[set->obj_num];
     if (!objib)
         return true;
@@ -1151,7 +1151,7 @@ void ObjsetInfo::vertex_buffer_free() {
     if (objvb) {
         for (int32_t i = 0; i < objvb_num; i++)
             objvb[i].unload();
-        prj::HeapCMallocFree(prj::HeapCMallocSystem, objvb);
+        prj::MemoryManager::free(prj::MemCSystem, objvb);
     }
 
     objvb = 0;
@@ -1161,7 +1161,7 @@ void ObjsetInfo::vertex_buffer_free() {
 bool ObjsetInfo::vertex_buffer_load() {
     ::obj_set* set = obj_set;
     objvb_num = set->obj_num;
-    objvb = new (prj::HeapCMallocAllocate(prj::HeapCMallocSystem,
+    objvb = new (prj::MemoryManager::alloc(prj::MemCSystem,
         sizeof(obj_vertex_buffer) * set->obj_num, "OBJVB")) obj_vertex_buffer[set->obj_num];
     if (!objvb)
         return true;

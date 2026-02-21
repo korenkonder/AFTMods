@@ -63,7 +63,7 @@ texture* texture_create_copy_texture_apply_color_tone(
     texture_bind(org_tex->target, org_tex->glid);
     for (int32_t i = 0; i <= org_tex->max_mipmap_level; i++) {
         int32_t size = org_tex->get_size_mip_level(i);
-        void* data = prj::HeapCMallocAllocate(prj::HeapCMallocTemp,
+        void* data = prj::MemoryManager::alloc(prj::MemCTemp,
             org_tex->get_size_mip_level(i), "create_copy_texture_apply_color_tone()");
         if (!data)
             break;
@@ -96,7 +96,7 @@ texture* texture_create_copy_texture_apply_color_tone(
         org_tex->width, org_tex->height, org_tex->max_mipmap_level, (const void**)vec_data.data(), true);
 
     for (void*& i : vec_data)
-        prj::HeapCMallocFree(prj::HeapCMallocTemp, i);
+        prj::MemoryManager::free(prj::MemCTemp, i);
 
     return tex;
 }
@@ -126,7 +126,7 @@ HOOK(void, FASTCALL, texture_apply_color_tone, 0x00000001403B5DF0,
 
     for (int32_t i = 0; i <= org_tex->max_mipmap_level; i++) {
         int32_t size = org_tex->get_size_mip_level(i);
-        void* data = prj::HeapCMallocAllocate(prj::HeapCMallocTemp, size, "imgf_color_tone_cpu()");
+        void* data = prj::MemoryManager::alloc(prj::MemCTemp, size, "imgf_color_tone_cpu()");
         if (!data)
             break;
 
@@ -162,7 +162,7 @@ HOOK(void, FASTCALL, texture_apply_color_tone, 0x00000001403B5DF0,
                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
         }
         gl_get_error_print();
-        prj::HeapCMallocFree(prj::HeapCMallocTemp, data);
+        prj::MemoryManager::free(prj::MemCTemp, data);
     }
     texture_bind(org_tex->target, 0);
 }
@@ -259,7 +259,7 @@ HOOK(texture*, FASTCALL, texture_create_copy_texture, 0x000000014069B550, textur
 
     texture_bind(org_tex->target, org_tex->glid);
     for (int32_t i = 0; i <= org_tex->max_mipmap_level; i++) {
-        void* data = prj::HeapCMallocAllocate(prj::HeapCMallocTemp,
+        void* data = prj::MemoryManager::alloc(prj::MemCTemp,
             org_tex->get_size_mip_level(i), "create_copy_texture()");
         if (!data)
             break;
@@ -277,7 +277,7 @@ HOOK(texture*, FASTCALL, texture_create_copy_texture, 0x000000014069B550, textur
         org_tex->width, org_tex->height, org_tex->max_mipmap_level, (const void**)vec_data.data(), true);
 
     for (void*& i : vec_data)
-        prj::HeapCMallocFree(prj::HeapCMallocTemp, i);
+        prj::MemoryManager::free(prj::MemCTemp, i);
 
     return tex;
 }

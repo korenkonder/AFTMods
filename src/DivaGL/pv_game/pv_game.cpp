@@ -788,11 +788,11 @@ HOOK(bool, FASTCALL, pv_game_pv_data__load, 0x000000014011B7E0, size_t This,
         bool load_x = false;
         char buf[0x200];
         sprintf_s(buf, sizeof(buf), "rom/pv_script/pv_%03d.dsc", task_pv_game_x->data.pv_id);
-        if (task_pv_game_x->data.pv_data.dsc_file_handler.read_file_path(buf, prj::HeapCMallocSystem)) {
+        if (task_pv_game_x->data.pv_data.dsc_file_handler.read_file_path(buf, prj::MemCSystem)) {
             sprintf_s(buf, sizeof(buf), "rom/pv/pv%03d.pvpp", task_pv_game_x->data.pv_id);
-            if (task_pv_game_x->data.play_param_file_handler.read_file_path(buf, prj::HeapCMallocSystem)) {
+            if (task_pv_game_x->data.play_param_file_handler.read_file_path(buf, prj::MemCSystem)) {
                 sprintf_s(buf, sizeof(buf), "rom/pv_stage_rsrc/stgpv%03d_param.pvsr", task_pv_game_x->stage_data.pv_id);
-                if (task_pv_game_x->stage_data.stage_resource_file_handler.read_file_path(buf, prj::HeapCMallocTemp))
+                if (task_pv_game_x->stage_data.stage_resource_file_handler.read_file_path(buf, prj::MemCTemp))
                     load_x = true;
             }
         }
@@ -4208,7 +4208,7 @@ void x_pv_game_firstread::read() {
     if (init)
         return;
 
-    file_handler.read_file_path("rom/firstread_x.bin", prj::HeapCMallocSystem);
+    file_handler.read_file_path("rom/firstread_x.bin", prj::MemCSystem);
     file_handler.read_now();
 
     if (!file_handler.get_data() || !file_handler.get_size()) {

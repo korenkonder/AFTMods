@@ -515,7 +515,7 @@ bool RobOsageTest::ctrl() {
                     path.append(buf);
 
                     p_file_handler pfhndl;
-                    pfhndl.read_file_path(path.c_str(), prj::HeapCMallocDebug);
+                    pfhndl.read_file_path(path.c_str(), prj::MemCTemp);
                     pfhndl.read_now();
                     if (!pfhndl.check_not_ready())
                         can_prop.ParseEscapeSeq((const char*)pfhndl.get_data(), pfhndl.get_size());
