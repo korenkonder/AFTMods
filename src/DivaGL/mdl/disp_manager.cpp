@@ -3600,8 +3600,9 @@ namespace mdl {
         int32_t id = objset_info_storage_get_set_obj_id(*(int32_t*)(a1 + 0x68), *(int32_t*)(a1 + 0x74));
         disp_manager->set_obj_flags((mdl::ObjFlags)(*(int32_t*)(a1 + 0x84) | mdl::OBJ_40 | mdl::OBJ_20));
 
+        vec3 rotation = *(vec3*)(a1 + 0x78) * DEG_TO_RAD_FLOAT;
         mat4 mat;
-        mat4_rotate_xyz((vec3*)(a1 + 0x78), &mat);
+        mat4_rotate_xyz(&rotation, &mat);
         mat4_transpose(&mat, &mat);
 
         sub_1405E8A20(shadow_ptr_get(), 0, 0.0f);
