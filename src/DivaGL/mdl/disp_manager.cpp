@@ -3198,49 +3198,6 @@ namespace mdl {
         }
     }
 
-    GLuint DispManager::get_vertex_array(const ObjSubMeshArgs* args) {
-        const obj_mesh* mesh = args->mesh;
-        const obj_sub_mesh* sub_mesh = args->sub_mesh;
-        const obj_material_data* material = args->material;
-
-        GLuint vertex_buffer = args->vertex_buffer;
-        size_t vertex_buffer_offset = args->vertex_buffer_offset;
-        GLuint morph_vertex_buffer = args->morph_vertex_buffer;
-        size_t morph_vertex_buffer_offset = args->morph_vertex_buffer_offset;
-        GLuint index_buffer = args->index_buffer;
-
-        int32_t texcoord_array[2] = { -1, -1 };
-        int32_t color_tex_index = 0;
-        for (const obj_material_texture_data& i : material->material.texdata) {
-            if (i.tex_index == -1)
-                continue;
-
-            int32_t texcoord_index = obj_material_texture_type_get_texcoord_index(
-                i.shader_info.m.tex_type, color_tex_index);
-            if (texcoord_index < 0)
-                continue;
-
-            texcoord_array[texcoord_index] = sub_mesh->uv_index[&i - material->material.texdata];
-
-            if (i.shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
-                color_tex_index++;
-        }
-
-        GLsizei size_vertex = (GLsizei)mesh->size_vertex;
-        obj_vertex_format vertex_format = mesh->vertex_format;
-
-        for (DispManager::vertex_array& i : vertex_array_cache)
-            if (i.vertex_buffer == vertex_buffer
-                && i.vertex_buffer_offset == vertex_buffer_offset
-                && i.morph_vertex_buffer == morph_vertex_buffer
-                && i.morph_vertex_buffer_offset == morph_vertex_buffer_offset
-                && i.index_buffer == index_buffer && i.vertex_format == vertex_format
-                && i.size_vertex == size_vertex
-                && !memcmp(i.texcoord_array, texcoord_array, sizeof(texcoord_array)))
-                return i.vertex_array;
-        return 0;
-    }
-
     bool DispManager::get_chara_color() {
         return chara_color;
     }
@@ -3327,6 +3284,53 @@ namespace mdl {
 
         for (int32_t i = 0; i < count; i++)
             value[i] = texture_transform_array[i];
+    }
+
+    GLuint DispManager::get_vertex_array(const ObjSubMeshArgs* args) {
+        const obj_mesh* mesh = args->mesh;
+        const obj_sub_mesh* sub_mesh = args->sub_mesh;
+        const obj_material_data* material = args->material;
+
+        GLuint vertex_buffer = args->vertex_buffer;
+        size_t vertex_buffer_offset = args->vertex_buffer_offset;
+        GLuint morph_vertex_buffer = args->morph_vertex_buffer;
+        size_t morph_vertex_buffer_offset = args->morph_vertex_buffer_offset;
+        GLuint index_buffer = args->index_buffer;
+
+        if (!vertex_buffer || !index_buffer)
+            return 0;
+
+        int32_t texcoord_array[2] = { -1, -1 };
+        int32_t color_tex_index = 0;
+        for (const obj_material_texture_data& i : material->material.texdata) {
+            if (i.tex_index == -1)
+                continue;
+
+            int32_t texcoord_index = obj_material_texture_type_get_texcoord_index(
+                i.shader_info.m.tex_type, color_tex_index);
+            if (texcoord_index < 0)
+                continue;
+
+            texcoord_array[texcoord_index] = sub_mesh->uv_index[&i - material->material.texdata];
+
+            if (i.shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
+                color_tex_index++;
+        }
+
+        uint32_t compression = mesh->attrib.m.compression;
+        GLsizei size_vertex = (GLsizei)mesh->size_vertex;
+        obj_vertex_format vertex_format = mesh->vertex_format;
+
+        for (DispManager::vertex_array& i : vertex_array_cache)
+            if (i.vertex_buffer == vertex_buffer
+                && i.vertex_buffer_offset == vertex_buffer_offset
+                && i.morph_vertex_buffer == morph_vertex_buffer
+                && i.morph_vertex_buffer_offset == morph_vertex_buffer_offset
+                && i.index_buffer == index_buffer && i.vertex_format == vertex_format
+                && i.size_vertex == size_vertex && i.compression == compression
+                && !memcmp(i.texcoord_array, texcoord_array, sizeof(texcoord_array)))
+                return i.vertex_array;
+        return 0;
     }
 
     float_t DispManager::get_wet_param() {

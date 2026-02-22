@@ -496,7 +496,6 @@ namespace mdl {
             const mat4* matrices, const mat4* ex_data_matrices, const mat4* mat, const mat4& global_mat);
         void entry_obj_etc(const mat4& mat, const EtcObj& etc);
         void entry_obj_user(const mat4& mat, UserArgsFunc func, void* data, ObjType type);
-        GLuint get_vertex_array(const ObjSubMeshArgs* args);
         bool get_chara_color();
         ObjList& get_obj_list(ObjType type);
         ObjList& get_obj_list(ObjTypeScreen type);
@@ -514,6 +513,7 @@ namespace mdl {
         void get_texture_specular_coeff(vec4& value);
         void get_texture_specular_offset(vec4& value);
         void get_texture_transform(int32_t& count, texture_transform_struct*& value);
+        GLuint get_vertex_array(const ObjSubMeshArgs* args);
         float_t get_wet_param();
         void obj_sort(render_data_context& rend_data_ctx,
             ObjType type, int32_t compare_func, const cam_data& cam, bool a3 = false);

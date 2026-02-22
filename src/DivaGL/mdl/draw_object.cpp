@@ -1014,7 +1014,7 @@ static void draw_object_vertex_attrib_set_cheap(
 
     rend_data_ctx.set_batch_texcoord_transforms(mats);
 
-    if (vertex_format & OBJ_VERTEX_BONE_DATA)
+    if ((vertex_format & OBJ_VERTEX_BONE_DATA) == OBJ_VERTEX_BONE_DATA && args->mats)
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 1;
     else
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
@@ -1077,7 +1077,7 @@ static void draw_object_vertex_attrib_set_default(
 
     rend_data_ctx.set_batch_texcoord_transforms(mats);
 
-    if (vertex_format & OBJ_VERTEX_BONE_DATA)
+    if ((vertex_format & OBJ_VERTEX_BONE_DATA) == OBJ_VERTEX_BONE_DATA && args->mats)
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 1;
     else
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
