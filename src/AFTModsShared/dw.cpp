@@ -124,7 +124,7 @@ namespace dw_gui_detail {
         dw::Widget::KeyCallbackData key_callback_data;
         prj::vector<dw::Widget*> free_widgets;
         struc_751 field_C0;
-        dw::init_data init_data;
+        dw::DisplayData data;
         int64_t field_118;
         vec2 field_120;
         float_t field_128;
@@ -386,12 +386,12 @@ namespace dw {
         Draw();
     }
 
-    void Widget::sub_1402F3770(Widget* widget) {
+    void Widget::LimitPos(Widget* widget) {
         if (!widget)
             return;
 
         rectangle v10 = widget->GetRectangle();
-        rectangle v11 = dw_gui_detail_display->init_data.field_0;
+        rectangle v11 = dw_gui_detail_display->data.field_0;
         if (v11.pos.x > v10.pos.x || v10.pos.x + v10.size.x > v11.pos.x + v11.size.x
             || v11.pos.y > v10.pos.y || v10.pos.y + v10.size.y > v11.pos.y + v11.size.y) {
             vec2 v7 = v10.pos;
@@ -406,6 +406,17 @@ namespace dw {
                 v7.y = 0.0f;
             widget->rect.pos = v7;
         }
+    }
+
+    void* Widget::operator new(std::size_t size) {
+        void* data = alloc(size);
+        if (!data)
+            throw std::bad_alloc{};
+        return data;
+    }
+
+    void Widget::operator delete(void* data) noexcept {
+        free(data);
     }
 
     Control::Control(Composite* parent, Flags flags) : Widget(parent, flags),
@@ -1040,6 +1051,11 @@ namespace dw {
         return disp;
     }
 
+    void Shell::LimitPosDisp() {
+        LimitPos(this);
+        Disp();
+    }
+
     void Shell::SetDisp(bool value) {
         if (disp == value)
             return;
@@ -1067,11 +1083,6 @@ namespace dw {
     void Shell::sub_1402E61F0(Widget* widget) {
         if (field_178 && field_178 == widget)
             field_178 = 0;
-    }
-
-    void Shell::sub_1402F38B0() {
-        sub_1402F3770(this);
-        Disp();
     }
 
     KeyListener::KeyListener() {
@@ -2234,8 +2245,8 @@ namespace dw {
         vec2 size = list->GetSize();
 
         vec2 pos;
-        if (dw_gui_detail_display->init_data.field_0.pos.y
-            + dw_gui_detail_display->init_data.field_0.size.y > rect.pos.y + rect.size.y + size.y)
+        if (dw_gui_detail_display->data.field_0.pos.y
+            + dw_gui_detail_display->data.field_0.size.y > rect.pos.y + rect.size.y + size.y)
             pos.y = rect.size.y;
         else
             pos.y = -size.y;
@@ -2923,7 +2934,7 @@ namespace dw {
         return slider;
     }
 
-    init_data::init_data() {
+    DisplayData::DisplayData() {
 
     }
 
@@ -2935,6 +2946,20 @@ namespace dw {
             }
 
         return -1;
+    }
+
+    void* alloc(size_t size) {
+        void* data = prj::MemoryManager::alloc(prj::MemCDebug, size, "dw_gui");;
+        if (data) {
+            memset(data, 0, size);
+            return data;
+        }
+        return 0;
+    }
+
+    void free(void* data) {
+        if (data)
+            prj::MemoryManager::free(prj::MemCDebug, data);
     }
 }
 

@@ -225,7 +225,10 @@ namespace dw {
             SetText(str);
         }
 
-        static void sub_1402F3770(Widget* widget);
+        static void LimitPos(Widget* widget);
+
+        static void* operator new(std::size_t size);
+        static void operator delete(void* data) noexcept;
     };
 
     static_assert(sizeof(dw::Widget) == 0x68, "\"dw::Widget\" struct should have a size of 0x68");
@@ -377,11 +380,11 @@ namespace dw {
 
         void Disp();
         bool GetDisp();
+        void LimitPosDisp();
         void SetDisp(bool value = false);
 
         void sub_1402E43C0(Widget* widget);
         void sub_1402E61F0(Widget* widget);
-        void sub_1402F38B0();
     };
 
     static_assert(sizeof(dw::Shell) == 0x180, "\"dw::Shell\" struct should have a size of 0x180");
@@ -871,14 +874,14 @@ namespace dw {
 
     static_assert(sizeof(dw::Slider) == 0x100, "\"dw::Slider\" struct should have a size of 0x100");
 
-    struct init_data {
+    struct DisplayData {
         rectangle field_0;
         rectangle field_10;
 
-        init_data();
+        DisplayData();
     };
 
-    static_assert(sizeof(dw::init_data) == 0x20, "\"dw::init_data\" struct should have a size of 0x20");
+    static_assert(sizeof(dw::DisplayData) == 0x20, "\"dw::DisplayData\" struct should have a size of 0x20");
 
     class DropDownListScrollBarSelectionListener : public SelectionAdapter {
     public:
@@ -903,4 +906,7 @@ namespace dw {
     extern p_Font& p_font_type_scroll_bar;
 
     extern int32_t font_get_index(prj::string& name);
+
+    extern void* alloc(size_t size);
+    extern void free(void* data);
 }

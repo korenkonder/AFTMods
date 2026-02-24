@@ -439,7 +439,7 @@ RobOsageTest::~RobOsageTest() {
 bool RobOsageTest::init() {
     if (!rob_osage_test_dw) {
         rob_osage_test_dw = new RobOsageTestDw;
-        rob_osage_test_dw->sub_1402F38B0();
+        rob_osage_test_dw->LimitPosDisp();
     }
     else
         rob_osage_test_dw->Disp();
