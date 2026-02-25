@@ -62,13 +62,13 @@ void main() {
     #endif
     result_texcoord.zw = vec4(texcoord1, 0.0, 1.0) * g_texcoord_transforms[1];
 
-    vec4 diff;
+    vec4 color = g_blend_color;
     #if MORPH_DEF
-        diff = apply_morph_color(diff, a_color, a_morph_color);
+        color = apply_morph_color(color, a_color, a_morph_color);
     #else
-        diff = a_color;
+        color *= a_color;
     #endif
-    result_color = diff * g_blend_color;
+    result_color = color;
 
     result_fog = get_fog_stage(g_effect_texture, pos_m, pos_w);
 }

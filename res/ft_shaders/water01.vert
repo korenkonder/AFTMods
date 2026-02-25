@@ -91,11 +91,11 @@ void main() {
 
     result_eye = g_view_position.xyz - pos_w;
 
-    vec4 diff;
+    vec4 diff = g_material_state_diffuse * g_blend_color;
     #if MORPH_DEF
         diff = apply_morph_color(diff, a_color, a_morph_color);
     #else
         diff = a_color;
     #endif
-    result_color = diff * g_material_state_diffuse * g_blend_color;
+    result_color = diff;
 }
