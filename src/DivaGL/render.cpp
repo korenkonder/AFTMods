@@ -1467,7 +1467,7 @@ namespace rndr {
             rend_data_ctx.state.bind_sampler(5, rctx->render_samplers[2]);
         }
 
-        if (tone_map == 0 && composite_back_tex && npr1 && npr_mask) {
+        if (tone_map == 0 && composite_back_tex && npr1) {
             rend_data_ctx.state.active_bind_texture_2d(14, scene_depth_tex);
             rend_data_ctx.state.bind_sampler(14, rctx->render_samplers[1]);
         }
