@@ -95,7 +95,7 @@ void main() {
     #if MORPH_DEF
         diff = apply_morph_color(diff, a_color, a_morph_color);
     #else
-        diff = a_color;
+        diff *= a_color;
     #endif
     result_color = diff;
 }

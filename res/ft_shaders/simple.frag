@@ -42,7 +42,7 @@ vec3 disp_lod_linear(float level) {
     if (level >= 2.0) {
         return level2_color;
     } else if (level >= 1.0) {
-        return (level - 1.0) * warning_color + level1_color;
+        return mix(level1_color, level2_color, level - 1.0);
     } else {
         return mix(level0_color, level1_color, level);
     }
