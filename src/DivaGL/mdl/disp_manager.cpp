@@ -1683,19 +1683,19 @@ namespace mdl {
         case OBJ_TYPE_SHADOW_OBJECT_STAGE:
             func = draw_sub_mesh_shadow;
             break;
-        case OBJ_TYPE_TYPE_6:
+        case OBJ_TYPE_SILHOUETTE:
             func = draw_sub_mesh_no_mat;
             rend_data_ctx.state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
             rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
             break;
-        case OBJ_TYPE_TYPE_7:
+        case OBJ_TYPE_SILHOUETTE_HIGH:
             func = draw_sub_mesh_no_mat;
             rend_data_ctx.state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
             rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
 
             alpha_test = 1;
             min_alpha = 0.0f;
-            alpha_threshold = 0.99999994f;
+            alpha_threshold = 1.0f;
             break;
         case OBJ_TYPE_REFLECT_CHARA_OPAQUE:
             rend_data_ctx.state.set_cull_face_mode(GL_FRONT);
@@ -1857,8 +1857,8 @@ namespace mdl {
             if (!depth_mask)
                 rend_data_ctx.state.set_depth_mask(GL_TRUE);
             break;
-        case OBJ_TYPE_TYPE_6:
-        case OBJ_TYPE_TYPE_7:
+        case OBJ_TYPE_SILHOUETTE:
+        case OBJ_TYPE_SILHOUETTE_HIGH:
             rctx->draw_state_rend_data[rend_data_ctx.index].shader_index = -1;
             rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
             break;
@@ -2516,8 +2516,8 @@ namespace mdl {
                             if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
                                 entry_list(OBJ_TYPE_OPAQUE, data);
 
-                            if (obj_flags & mdl::OBJ_20)
-                                entry_list(OBJ_TYPE_TYPE_6, data);
+                            if (obj_flags & mdl::OBJ_SILHOUETTE)
+                                entry_list(OBJ_TYPE_SILHOUETTE, data);
 
                             if (obj_flags & mdl::OBJ_CHARA_REFLECT)
                                 entry_list(OBJ_TYPE_REFLECT_CHARA_OPAQUE, data);
@@ -2549,8 +2549,8 @@ namespace mdl {
                 if (obj_flags & mdl::OBJ_SHADOW)
                     entry_list((ObjType)(OBJ_TYPE_SHADOW_CHARA
                         + shadow_type), data);
-                if (obj_flags & mdl::OBJ_40)
-                    entry_list(OBJ_TYPE_TYPE_7, data);
+                if (obj_flags & mdl::OBJ_SILHOUETTE_HIGH)
+                    entry_list(OBJ_TYPE_SILHOUETTE_HIGH, data);
                 if (obj_flags & mdl::OBJ_CHARA_REFLECT)
                     entry_list(OBJ_TYPE_REFLECT_CHARA_OPAQUE, data);
                 if (obj_flags & mdl::OBJ_REFLECT) {
@@ -3567,7 +3567,7 @@ namespace mdl {
         if (!(((state - 3) & 0xFFFFFFFC) == 0 && state != 4))
             return;
 
-        disp_manager->set_obj_flags((mdl::ObjFlags)(*(int32_t*)(a1 + 0x94) | mdl::OBJ_40 | mdl::OBJ_20));
+        disp_manager->set_obj_flags((mdl::ObjFlags)(*(int32_t*)(a1 + 0x94) | mdl::OBJ_SILHOUETTE_HIGH | mdl::OBJ_SILHOUETTE));
 
         mat4 mat;
         mat4_rotate_zyx((vec3*)(a1 + 0x98), &mat);
@@ -3602,7 +3602,7 @@ namespace mdl {
 
         int32_t set_id = object_database_get_set_id(*(int32_t*)(a1 + 0x68));
         int32_t id = objset_info_storage_get_set_obj_id(*(int32_t*)(a1 + 0x68), *(int32_t*)(a1 + 0x74));
-        disp_manager->set_obj_flags((mdl::ObjFlags)(*(int32_t*)(a1 + 0x84) | mdl::OBJ_40 | mdl::OBJ_20));
+        disp_manager->set_obj_flags((mdl::ObjFlags)(*(int32_t*)(a1 + 0x84) | mdl::OBJ_SILHOUETTE_HIGH | mdl::OBJ_SILHOUETTE));
 
         vec3 rotation = *(vec3*)(a1 + 0x78) * DEG_TO_RAD_FLOAT;
         mat4 mat;
