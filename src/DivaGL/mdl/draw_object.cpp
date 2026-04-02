@@ -287,8 +287,10 @@ namespace mdl {
         }
 
         draw_object_vertex_attrib_set_default(rend_data_ctx, args);
-        if (args->material->material.attrib.m.double_sided)
+        if (material->material.attrib.m.double_sided)
             rend_data_ctx.state.disable_cull_face();
+        else
+            rend_data_ctx.state.enable_cull_face();
 
         GLuint tex_id = -1;
         int32_t tex_index = 0;
@@ -579,6 +581,8 @@ static void draw_object_material_set_cheap(
     const prj::vector<GLuint>* textures = args->textures;
     if (material->material.attrib.m.double_sided)
         rend_data_ctx.state.disable_cull_face();
+    else
+        rend_data_ctx.state.enable_cull_face();
 
     const obj_material_texture_data* texdata = material->material.texdata;
     for (int32_t i = 0; i < 1; i++, texdata++) {
@@ -769,6 +773,8 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
         if (!material->material.attrib.m.normal_dir_light)
             rend_data_ctx.shader_flags.arr[U0B] = 1;
     }
+    else
+        rend_data_ctx.state.enable_cull_face();
 
     draw_object_chara_color_fog_set(rend_data_ctx, args, disable_fog);
 
