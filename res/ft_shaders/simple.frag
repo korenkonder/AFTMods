@@ -49,21 +49,25 @@ vec3 disp_lod_linear(float level) {
 }
 
 vec3 disp_lod_no_mipmap() {
-    int levels;
-    int texture_index = int(g_shininess.y);
-    if (texture_index == 0) {
-        levels = textureQueryLevels(g_color);
-    } else if (texture_index == 1) {
-        levels = textureQueryLevels(g_translucency);
-    } else if (texture_index == 2) {
-        levels = textureQueryLevels(g_normal);
-    } else if (texture_index == 3) {
-        levels = textureQueryLevels(g_specular);
-    } else if (texture_index == 4) {
-        levels = textureQueryLevels(g_transparency);
-    } else {
-        levels = 0;
-    }
+    // Won't compile on OpenGL 4.2 or lower
+    //int levels;
+    //int texture_index = int(g_shininess.y);
+    //if (texture_index == 0) {
+    //    levels = textureQueryLevels(g_color);
+    //} else if (texture_index == 1) {
+    //    levels = textureQueryLevels(g_translucency);
+    //} else if (texture_index == 2) {
+    //    levels = textureQueryLevels(g_normal);
+    //} else if (texture_index == 3) {
+    //    levels = textureQueryLevels(g_specular);
+    //} else if (texture_index == 4) {
+    //    levels = textureQueryLevels(g_transparency);
+    //} else {
+    //    levels = 0;
+    //}
+
+    // Stubbed with own stuff
+    int levels = int(g_shininess.z > 0.0);
 
     if (levels == 1) {
         return warning_color;
