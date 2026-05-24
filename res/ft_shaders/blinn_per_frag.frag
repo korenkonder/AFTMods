@@ -123,7 +123,9 @@ void main() {
 
     diff *= tex_col;
 
-    result = apply_fog_stage(diff, spec, frg_texcoord_shadow0.w);
+    vec4 col_depth = vec4(diff.rgb + spec.rgb, diff.a);
+    vec4 col_height = diff + spec;
+    result = apply_fog_stage(col_depth, col_height, frg_texcoord_shadow0.w);
 
     #if ALPHA_TEST_DEF
         if (result.a <= g_max_alpha.z && result.a != 1.0)
