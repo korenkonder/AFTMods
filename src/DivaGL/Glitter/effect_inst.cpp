@@ -579,12 +579,12 @@ namespace Glitter {
 
             if (ext_anim->mesh_name) {
                 if (ext_anim->mesh_index == -1)
-                    ext_anim->mesh_index = objset_info_storage_get_obj_mesh_index(ext_anim->object, ext_anim->mesh_name);
+                    ext_anim->mesh_index = get_mesh_index(ext_anim->object, ext_anim->mesh_name);
 
                 if (ext_anim->mesh_index != -1) {
-                    obj_mesh* mesh = objset_info_storage_get_obj_mesh_by_index(ext_anim->object, ext_anim->mesh_index);
+                    obj_mesh* mesh = get_mesh(ext_anim->object, ext_anim->mesh_index);
                     if (mesh) {
-                        vec3* trans = &mesh->bounding_sphere.center;
+                        vec3* trans = &mesh->bsphere.center;
                         SetExtAnim(&mat, obj_mat, trans, true);
                     }
                 }
@@ -598,13 +598,13 @@ namespace Glitter {
                 if (!ext_anim->mesh_name)
                     return;
 
-                ext_anim->mesh_index = objset_info_storage_get_obj_mesh_index(ext_anim->object, ext_anim->mesh_name);
+                ext_anim->mesh_index = get_mesh_index(ext_anim->object, ext_anim->mesh_name);
             }
 
             if (ext_anim->mesh_index != -1) {
-                obj_mesh* mesh = objset_info_storage_get_obj_mesh_by_index(ext_anim->object, ext_anim->mesh_index);
+                obj_mesh* mesh = get_mesh(ext_anim->object, ext_anim->mesh_index);
                 if (mesh) {
-                    vec3* trans = &mesh->bounding_sphere.center;
+                    vec3* trans = &mesh->bsphere.center;
                     SetExtAnim(0, 0, trans, true);
                 }
             }

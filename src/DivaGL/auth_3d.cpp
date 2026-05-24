@@ -84,7 +84,7 @@ HOOK(void, FASTCALL, auth_3d_parse, 0x00000001401C15B0, auth_3d* auth) {
 
                     const firstread_auth_3d_object* frg_a3d_obj = &frg_auth_3d->object_array[j];
                     k.uid_name.assign(frg_a3d_obj->uid_name);
-                    k.object_info = object_database_get_object_info(frg_a3d_obj->uid_name);
+                    k.object_info = get_objdb_object_uid(frg_a3d_obj->uid_name);
 
                     k.reflect = k.uid_name.find("_REFLECT") != -1;
                     k.refract = k.uid_name.find("_REFRACT") != -1;
@@ -142,56 +142,55 @@ HOOK(void, FASTCALL, auth_3d_parse, 0x00000001401C15B0, auth_3d* auth) {
         char buf[0x80];
         for (int32_t i = min; i < max; i++) {
             sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, i + 1);
-            object_info morph_obj_info = object_database_get_object_info(buf);
+            object_info morph_obj_info = get_objdb_object_uid(buf);
             if (morph_obj_info.is_null())
                 morph_obj_info = o->object_info;
 
             sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, i);
-            object_info obj_info = object_database_get_object_info(buf);
+            object_info obj_info = get_objdb_object_uid(buf);
 
-            ::obj* obj = objset_info_storage_get_obj(obj_info);
+            ::obj* obj = get_object_header(obj_info);
             if (!obj)
                 continue;
 
-            obj_mesh_vertex_buffer_divagl* obj_vert_buf = (obj_mesh_vertex_buffer_divagl*)
-                objset_info_storage_get_obj_mesh_vertex_buffer(obj_info, 0);
-            obj_mesh_index_buffer* obj_index_buf = objset_info_storage_get_obj_mesh_index_buffer(obj_info, 0);
+            VertexBufferDivaGL* vbhn_array = (VertexBufferDivaGL*)get_object_vertex_buffer(obj_info, 0);
+            IndexBuffer* ibhn_array = get_object_index_buffer(obj_info, 0);
 
-            obj_mesh_vertex_buffer_divagl* obj_morph_vert_buf = 0;
+            VertexBufferDivaGL* obj_morph_vert_buf = 0;
             if (morph_obj_info.set_id != -1)
-                obj_morph_vert_buf = (obj_mesh_vertex_buffer_divagl*)
-                    objset_info_storage_get_obj_mesh_vertex_buffer(morph_obj_info, 0);
+                obj_morph_vert_buf = (VertexBufferDivaGL*)
+                    get_object_vertex_buffer(morph_obj_info, 0);
 
             for (int32_t i = 0; i < obj->num_mesh; i++) {
                 const obj_mesh* mesh = &obj->mesh_array[i];
                 for (int32_t j = 0; j < mesh->num_submesh; j++) {
                     const obj_sub_mesh* sub_mesh = &mesh->submesh_array[j];
-                    if (sub_mesh->attrib.m.cloth)
+                    if (sub_mesh->attrib.m.hide)
                         continue;
 
                     obj_material_data* material = &obj->material_array[sub_mesh->material_index];
 
-                    GLuint morph_vertex_buffer = 0;
-                    size_t morph_vertex_buffer_offset = 0;
+                    GLuint morph_vb = 0;
+                    size_t morph_vb_offset = 0;
                     if (obj_morph_vert_buf) {
-                        morph_vertex_buffer = obj_morph_vert_buf[i].get_buffer();
-                        morph_vertex_buffer_offset = obj_morph_vert_buf[i].get_offset();
+                        morph_vb = obj_morph_vert_buf[i].get_glvb();
+                        morph_vb_offset = obj_morph_vert_buf[i].get_glvb_offset();
                     }
 
-                    GLuint index_buffer = 0;
-                    if (obj_index_buf)
-                        index_buffer = obj_index_buf[i].buffer;
+                    GLuint ib = 0;
+                    if (ibhn_array)
+                        ib = ibhn_array[i].get_glib();
 
-                    GLuint vertex_buffer = 0;
-                    size_t vertex_buffer_offset = 0;
-                    if (obj_vert_buf) {
-                        vertex_buffer = obj_vert_buf[i].get_buffer();
-                        vertex_buffer_offset = obj_vert_buf[i].get_offset();
+                    GLuint vb = 0;
+                    size_t vb_offset = 0;
+                    if (vbhn_array) {
+                        vb = vbhn_array[i].get_glvb();
+                        vb_offset = vbhn_array[i].get_glvb_offset();
                     }
 
-                    if (vertex_buffer && index_buffer && (!obj_morph_vert_buf || morph_vertex_buffer))
-                        disp_manager->add_vertex_array(mesh, sub_mesh, material, vertex_buffer,
-                            vertex_buffer_offset, index_buffer, morph_vertex_buffer, morph_vertex_buffer_offset);
+                    if (vb && ib && (!obj_morph_vert_buf || morph_vb))
+                        disp_manager->add_vertex_array(mesh, sub_mesh, material, vb,
+                            vb_offset, ib, morph_vb, morph_vb_offset);
                 }
             }
         }
@@ -436,13 +435,13 @@ HOOK(void, FASTCALL, auth_3d_object_disp, 0x00000001401D0970, auth_3d_object* o,
         morph = fmodf(morph, 1.0f);
         if (morph > 0.0f && morph < 1.0f) {
             sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, morph_int + 1);
-            object_info morph_obj_info = object_database_get_object_info(buf);
+            object_info morph_obj_info = get_objdb_object_uid(buf);
             if (morph_obj_info.is_null())
                 morph_obj_info = o->object_info;
             disp_manager.set_morph(morph_obj_info, morph);
 
             sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, morph_int);
-            object_info obj_info = object_database_get_object_info(buf);
+            object_info obj_info = get_objdb_object_uid(buf);
             if (auth->alpha < 0.999f)
                 disp_manager.entry_obj_by_object_info(mat, obj_info, auth->alpha);
             else
@@ -454,7 +453,7 @@ HOOK(void, FASTCALL, auth_3d_object_disp, 0x00000001401D0970, auth_3d_object* o,
                 morph_int++;
 
             sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, morph_int);
-            object_info obj_info = object_database_get_object_info(buf);
+            object_info obj_info = get_objdb_object_uid(buf);
             if (obj_info.is_null())
                 obj_info = o->object_info;
             disp_manager.entry_obj_by_object_info(mat, obj_info);
@@ -463,7 +462,7 @@ HOOK(void, FASTCALL, auth_3d_object_disp, 0x00000001401D0970, auth_3d_object* o,
     else if (o->pattern.curve) {
         sprintf_s(buf, sizeof(buf), "%.*s%03d",
             uid_name_length - 3, uid_name, (int32_t)prj::roundf(o->pattern.value));
-        object_info obj_info = object_database_get_object_info(buf);
+        object_info obj_info = get_objdb_object_uid(buf);
         disp_manager.entry_obj_by_object_info(mat, obj_info);
     }
     else

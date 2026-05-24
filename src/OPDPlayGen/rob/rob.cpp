@@ -274,7 +274,7 @@ OsagePlayDataManager& osage_play_data_manager = *(OsagePlayDataManager*)0x000000
 
 static const char* (FASTCALL* motion_database_get_motion_name_by_motion_id)(int32_t id)
     = (const char* (FASTCALL*)(int32_t id))0x0000000140403830;
-static const char* (FASTCALL* objset_info_storage_get_obj_name)(object_info obj_info)
+static const char* (FASTCALL* get_object_header_name)(object_info obj_info)
     = (const char* (FASTCALL*)(object_info obj_info))0x000000014045A340;
 
 static float_t(FASTCALL* rob_chara_bone_data_get_frame_count)(rob_chara_bone_data* rob_bone_data)
@@ -546,7 +546,7 @@ void OsagePlayDataManager::LoadOpdFileList() {
             continue;
         }
 
-        const char* object_name = objset_info_storage_get_obj_name(i->first);
+        const char* object_name = get_object_header_name(i->first);
         if (object_name) {
             std::string obj_name_buf = string_to_lower(std::string(object_name));
 
@@ -919,7 +919,7 @@ bool OpdPlayGen::Cache::Entry::read(const char* path) {
     if (!file_data.size)
         return false;
 
-    const char* object_name = objset_info_storage_get_obj_name(file_data.obj_info);
+    const char* object_name = get_object_header_name(file_data.obj_info);
     if (!object_name)
         return false;
 
@@ -1023,7 +1023,7 @@ bool OpdPlayGen::Cache::Entry::read(const char* path) {
 }
 
 bool OpdPlayGen::Cache::Entry::write(const char* path, std::mt19937& mt_rand, FreeRanges* free_ranges) {
-    const char* object_name = objset_info_storage_get_obj_name(file_data.obj_info);
+    const char* object_name = get_object_header_name(file_data.obj_info);
     if (!object_name)
         return false;
 
@@ -1178,7 +1178,7 @@ void OpdPlayGen::Cache::FreeRanges::find_free_ranges(const char* path, const prj
 
     obj_free_ranges.reserve(preserved_ranges.size());
     for (auto& i : preserved_ranges) {
-        const char* object_name = objset_info_storage_get_obj_name(i.first);
+        const char* object_name = get_object_header_name(i.first);
         if (!object_name)
             continue;
 

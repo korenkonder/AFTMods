@@ -31,12 +31,12 @@ struct rob_chara_age_age_object {
     obj_mesh mesh;
     obj_sub_mesh sub_mesh;
     obj_material_data material[2];
-    obj_axis_aligned_bounding_box axis_aligned_bounding_box;
+    AABB axis_aligned_bounding_box;
     rob_chara_age_age_object_vertex* vertex_data;
     int32_t vertex_data_size;
     int32_t vertex_array_size;
-    obj_mesh_vertex_buffer obj_vert_buf;
-    obj_mesh_index_buffer obj_index_buf;
+    VertexBuffer vbhn_array;
+    IndexBuffer ibhn_array;
     vec3 pos[10];
     int32_t disp_count;
     int32_t count;
@@ -141,15 +141,15 @@ const mat4* rob_chara_get_item_adjust_data_mat(rob_chara* rob_chr) {
     return &rob_chara_item_adjust_x_array[rob_chr - rob_chara_array].mat;
 }
 
-HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh* mesh, obj_mesh_vertex_buffer* vertex_buffer,
-    CLOTHNode* nodes, float_t facing, uint16_t* indices, bool double_sided) {
+HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh* mesh, VertexBuffer* vertex_buffer,
+    CLOTH_VERTEX* nodes, float_t facing, uint16_t* indices, bool double_sided) {
     if (!mesh || !vertex_buffer || (mesh->vertex_format
         & (OBJ_VERTEX_NORMAL | OBJ_VERTEX_POSITION)) != (OBJ_VERTEX_NORMAL | OBJ_VERTEX_POSITION))
         return;
 
-    vertex_buffer->cycle_index();
-    GL::ArrayBuffer buffer = vertex_buffer->get_buffer();
-    size_t data = (size_t)buffer.MapMemory(gl_state);
+    vertex_buffer->flip();
+    GL::ArrayBuffer vb = vertex_buffer->get_glvb();
+    size_t data = (size_t)vb.MapMemory(gl_state);
     if (!data)
         return;
 
@@ -166,12 +166,12 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
         if (tangent)
             for (int32_t i = 2; i; i--, facing = -1.0f) {
                 for (int32_t j = indices_count; j; j--, indices++) {
-                    CLOTHNode* node = &nodes[*indices];
+                    CLOTH_VERTEX* node = &nodes[*indices];
 
                     *(vec3*)data = node->pos;
                     *(vec3*)(data + 0x0C) = node->normal * facing;
                     *(vec3*)(data + 0x18) = node->tangent;
-                    *(float_t*)(data + 0x24) = node->tangent_sign;
+                    *(float_t*)(data + 0x24) = node->m;
 
                     data += mesh->size_vertex;
                 }
@@ -182,7 +182,7 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
         else
             for (int32_t i = 2; i; i--, facing = -1.0f) {
                 for (int32_t j = indices_count; j; j--, indices++) {
-                    CLOTHNode* node = &nodes[*indices];
+                    CLOTH_VERTEX* node = &nodes[*indices];
 
                     *(vec3*)data = node->pos;
                     *(vec3*)(data + 0x0C) = node->normal * facing;
@@ -198,7 +198,7 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
         if (tangent)
             for (int32_t i = 2; i; i--, facing = -1.0f) {
                 for (int32_t j = indices_count; j; j--, indices++) {
-                    CLOTHNode* node = &nodes[*indices];
+                    CLOTH_VERTEX* node = &nodes[*indices];
 
                     *(vec3*)data = node->pos;
 
@@ -207,7 +207,7 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
 
                     vec4 tangent;
                     *(vec3*)&tangent = node->tangent;
-                    tangent.w = node->tangent_sign;
+                    tangent.w = node->m;
                     vec4_to_vec4i16(tangent * 32767.0f, *(vec4i16*)(data + 0x14));
 
                     data += mesh->size_vertex;
@@ -219,7 +219,7 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
         else
             for (int32_t i = 2; i; i--, facing = -1.0f) {
                 for (int32_t j = indices_count; j; j--, indices++) {
-                    CLOTHNode* node = &nodes[*indices];
+                    CLOTH_VERTEX* node = &nodes[*indices];
 
                     *(vec3*)data = node->pos;
 
@@ -236,7 +236,7 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
         if (tangent)
             for (int32_t i = 2; i; i--, facing = -1.0f) {
                 for (int32_t j = indices_count; j; j--, indices++) {
-                    CLOTHNode* node = &nodes[*indices];
+                    CLOTH_VERTEX* node = &nodes[*indices];
 
                     *(vec3*)data = node->pos;
 
@@ -249,7 +249,7 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
 
                     vec4 tangent;
                     *(vec3*)&tangent = node->tangent;
-                    tangent.w = node->tangent_sign;
+                    tangent.w = node->m;
 
                     vec4i16 tangent_int;
                     vec4_to_vec4i16(tangent * 511.0f, tangent_int);
@@ -267,7 +267,7 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
         else
             for (int32_t i = 2; i; i--, facing = -1.0f) {
                 for (int32_t j = indices_count; j; j--, indices++) {
-                    CLOTHNode* node = &nodes[*indices];
+                    CLOTH_VERTEX* node = &nodes[*indices];
 
                     *(vec3*)data = node->pos;
 
@@ -287,31 +287,31 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
         break;
     }
 
-    buffer.UnmapMemory(gl_state);
+    vb.UnmapMemory(gl_state);
 }
 
 HOOK(void, FASTCALL, RobCloth__InitDataParent, 0x000000014021EEB0, RobCloth* This, obj_skin_block_cloth* cls_data, rob_chara_item_equip_object* itm_eq_obj) {
     originalRobCloth__InitDataParent(This, cls_data, itm_eq_obj);
 
-    obj* obj = objset_info_storage_get_obj(itm_eq_obj->obj_info);
+    obj* obj = get_object_header(itm_eq_obj->obj_info);
     if (!obj)
         return;
 
     for (int32_t i = 0; i < 2; i++){
-        if (!This->mesh[i].num_vertex || !This->mesh[i].vertex_array.position || !This->index_buffer[i].buffer)
+        if (!This->mesh[i].num_vertex || !This->mesh[i].vertex_array.position || !This->ib[i].get_glib())
             continue;
 
-        obj_mesh_vertex_buffer* obj_vert_buf = &This->vertex_buffer[i];
-        obj_mesh_index_buffer* obj_index_buf = &This->index_buffer[i];
+        VertexBuffer* vbhn = &This->vb[i];
+        IndexBuffer* ibhn = &This->ib[i];
 
         obj_mesh* mesh = &This->mesh[i];
         for (int32_t j = 0; j < mesh->num_submesh; j++) {
             obj_material_data* material = &obj->material_array[mesh->submesh_array[j].material_index];
-            for (int32_t k = 0; k < (mesh->attrib.m.double_buffer ? 2 : 1); k++) {
+            for (int32_t k = 0; k < (mesh->attrib.m.soft_body ? 2 : 1); k++) {
                 disp_manager->add_vertex_array(mesh, &mesh->submesh_array[j], material,
-                    obj_vert_buf->get_buffer(), 0, obj_index_buf->buffer, 0, 0);
+                    vbhn->get_glvb(), 0, ibhn->get_glib(), 0, 0);
 
-                obj_vert_buf->cycle_index();
+                vbhn->flip();
             }
         }
     }
@@ -788,10 +788,10 @@ void rob_chara_age_age_object::disp(size_t chara_index,
                 return a.first < b.first;
             });
 
-    obj_vert_buf.cycle_index();
+    vbhn_array.flip();
 
-    GL::ArrayBuffer buffer = obj_vert_buf.get_buffer();
-    size_t vtx_data = (size_t)buffer.MapMemory(gl_state);
+    GL::ArrayBuffer vb = vbhn_array.get_glvb();
+    size_t vtx_data = (size_t)vb.MapMemory(gl_state);
     if (!vtx_data)
         return;
 
@@ -800,7 +800,7 @@ void rob_chara_age_age_object::disp(size_t chara_index,
         memmove((void*)(vtx_data + vertex_array_size * i),
             (void*)((size_t)vertex_data + vertex_array_size * v44[i].second), vertex_array_size);
 
-    buffer.UnmapMemory(gl_state);
+    vb.UnmapMemory(gl_state);
 
     mesh.num_vertex = disp_count * num_vertex;
     sub_mesh.num_index = disp_count * num_index;
@@ -817,7 +817,7 @@ void rob_chara_age_age_object::disp(size_t chara_index,
         = (prj::vector<GLuint>*(FASTCALL*)(rob_chara_age_age_object * rob_age_age_obj))0x000000014045A8E0;
     disp_manager->entry_obj_by_obj(mat4_identity, &obj,
         rob_chara_age_age_object__get_obj_set_texture(this),
-        &obj_vert_buf, &obj_index_buf, 0, 1.0f);
+        &vbhn_array, &ibhn_array, 0, 1.0f);
 }
 
 ::obj* rob_chara_age_age_object::get_obj_set_obj() {
@@ -891,10 +891,10 @@ void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
             vtx_data->texcoord = vertex_array_texcoord0[k];
         }
 
-    static int32_t(FASTCALL * obj_mesh_vertex_buffer__load_data)(obj_mesh_vertex_buffer * objvb, uint32_t data_size, void* data, uint32_t count)
-        = (int32_t(FASTCALL*)(obj_mesh_vertex_buffer * objvb, uint32_t data_size, void* data, uint32_t count))0x0000000140461650;
+    static int32_t(FASTCALL * VertexBuffer__create)(VertexBuffer * This, uint32_t size, void * buf, uint32_t num_flip)
+        = (int32_t(FASTCALL*)(VertexBuffer * This, uint32_t size, void*  buf, uint32_t num_flip))0x0000000140461650;
 
-    obj_mesh_vertex_buffer__load_data(&obj_vert_buf, vertex_data_size, vertex_data, 2);
+    VertexBuffer__create(&vbhn_array, vertex_data_size, vertex_data, 2);
     this->num_index = num_index + 1;
     int32_t num_idx_data = (int32_t)(count * (num_index + 1));
 
@@ -913,20 +913,20 @@ void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
     }
 
     {
-        GL::ElementArrayBuffer ebo;
-        ebo.Create(gl_state, sizeof(uint16_t) * num_idx_data, idx_data);
-        obj_index_buf.buffer = ebo;
+        GL::ElementArrayBuffer ib;
+        ib.Create(gl_state, sizeof(uint16_t) * num_idx_data, idx_data);
+        ibhn_array.ib = ib;
     }
     _operator_delete(idx_data);
 
     material[0] = o->material_array[0];
     material[1] = o->material_array[0];
-    material[1].material.attrib.m.alpha_texture = 0;
-    material[1].material.attrib.m.alpha_material = 0;
+    material[1].material.attrib.m.alpha_tex = 0;
+    material[1].material.attrib.m.alpha_mat = 0;
 
     obj.version = o->version;
     obj.flags = o->flags;
-    obj.bounding_sphere = o->bounding_sphere;
+    obj.bsphere = o->bsphere;
     obj.num_mesh = 1;
     obj.mesh_array = &mesh;
     obj.num_material = 2;
@@ -934,7 +934,7 @@ void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
     memmove(obj.reserved, o->reserved, sizeof(uint32_t) * 10);
 
     mesh.flags = m->flags;
-    mesh.bounding_sphere = m->bounding_sphere;
+    mesh.bsphere = m->bsphere;
     mesh.num_submesh = 1;
     mesh.submesh_array = &sub_mesh;
     mesh.vertex_format = (obj_vertex_format)(OBJ_VERTEX_POSITION | OBJ_VERTEX_NORMAL
@@ -956,7 +956,7 @@ void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
 
     sub_mesh.flags = sm->flags;
     sub_mesh.material_index = 0;
-    sub_mesh.bounding_sphere = sm->bounding_sphere;
+    sub_mesh.bsphere = sm->bsphere;
     memmove(sub_mesh.uv_index, sm->uv_index, sizeof(uint8_t) * 8);
     sub_mesh.bone_index_array = 0;
     sub_mesh.num_bone_index = 0;
@@ -967,19 +967,19 @@ void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
     sub_mesh.num_index = num_idx_data;
     sub_mesh.attrib = sm->attrib;
     memmove(sub_mesh.reserved, sm->reserved, sizeof(uint32_t) * 4);
-    sub_mesh.axis_aligned_bounding_box = &axis_aligned_bounding_box;
-    sub_mesh.first_index = 0;
-    sub_mesh.last_index = num_vertex * count;
+    sub_mesh.aabb = &axis_aligned_bounding_box;
+    sub_mesh.min_index = 0;
+    sub_mesh.max_index = num_vertex * count;
     sub_mesh.index_offset = 0;
 
-    axis_aligned_bounding_box = *sm->axis_aligned_bounding_box;
+    axis_aligned_bounding_box = *sm->aabb;
 
     if (mesh.num_vertex && mesh.vertex_array.position)
         for (int32_t i = 0; i < 2; i++) {
             disp_manager->add_vertex_array(&mesh, &sub_mesh, material,
-                obj_vert_buf.get_buffer(), 0, obj_index_buf.buffer, 0, 0);
+                vbhn_array.get_glvb(), 0, ibhn_array.get_glib(), 0, 0);
 
-            obj_vert_buf.cycle_index();
+            vbhn_array.flip();
         }
 }
 

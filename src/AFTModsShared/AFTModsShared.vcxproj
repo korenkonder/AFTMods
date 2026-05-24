@@ -136,6 +136,7 @@
     <ClCompile Include="light_param\light.cpp" />
     <ClCompile Include="mdl\disp_manager.cpp" />
     <ClCompile Include="object.cpp" />
+    <ClCompile Include="ogl_buffer_object.cpp" />
     <ClCompile Include="print_work.cpp" />
     <ClCompile Include="resolution_mode.cpp" />
     <ClCompile Include="rob\rob.cpp" />
@@ -159,6 +160,7 @@
     <ClInclude Include="light_param\light.hpp" />
     <ClInclude Include="mdl\disp_manager.hpp" />
     <ClInclude Include="object.hpp" />
+    <ClInclude Include="ogl_buffer_object.hpp" />
     <ClInclude Include="print_work.hpp" />
     <ClInclude Include="resolution_mode.hpp" />
     <ClInclude Include="resource.h" />

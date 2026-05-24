@@ -26,7 +26,7 @@ namespace Glitter {
 
         for (MeshX& i : meshes)
             if (i.object_set != -1) {
-                objset_info_storage_unload_set(i.object_set);
+                free_objset(i.object_set);
                 i.load = false;
             }
 

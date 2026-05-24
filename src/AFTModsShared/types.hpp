@@ -43,6 +43,11 @@ namespace prj {
                 = (void(*)(MemCType, void*))0x00000001403F2960;
             _free(type, data);
         }
+
+        template <typename T>
+        inline static T* alloc(MemCType type, size_t size, const char* id) {
+            return reinterpret_cast<T*>(alloc(type, sizeof(T) * (size), id));
+        }
     };
 };
 

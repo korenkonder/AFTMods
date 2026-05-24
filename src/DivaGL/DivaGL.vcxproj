@@ -152,6 +152,7 @@
     <ClCompile Include="mdl\disp_manager.cpp" />
     <ClCompile Include="mdl\draw_object.cpp" />
     <ClCompile Include="movie_play_lib\movie_play_lib.cpp" />
+    <ClCompile Include="ogl_buffer_object.cpp" />
     <ClCompile Include="pv_game\dsc.cpp" />
     <ClCompile Include="pv_game\firstread.cpp" />
     <ClCompile Include="pv_game\pvpp.cpp" />
@@ -195,6 +196,7 @@
     <ResourceCompile Include="DivaGL.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="config.hpp" />
     <ClInclude Include="GL\array_buffer.hpp" />
     <ClInclude Include="GL\buffer.hpp" />
     <ClInclude Include="GL\element_array_buffer.hpp" />
@@ -206,6 +208,7 @@
     <ClInclude Include="mdl\disp_manager.hpp" />
     <ClInclude Include="mdl\draw_object.hpp" />
     <ClInclude Include="movie_play_lib\movie_play_lib.hpp" />
+    <ClInclude Include="ogl_buffer_object.hpp" />
     <ClInclude Include="pv_game\dsc.hpp" />
     <ClInclude Include="pv_game\firstread.hpp" />
     <ClInclude Include="pv_game\pvpp.hpp" />

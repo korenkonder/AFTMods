@@ -206,8 +206,8 @@ void ColorChangeDw::GetColorToneDefault(::color_tone& value) {
 }
 
 ::texture* ColorChangeDw::GetOrgTex() {
-    ::texture** textures = objset_info_storage_get_set_textures(obj_set_id);
-    if (textures && color_change_index < objset_info_storage_get_set_tex_num(obj_set_id))
+    ::texture** textures = get_objset_textures(obj_set_id);
+    if (textures && color_change_index < get_objset_num_textures(obj_set_id))
         return textures[color_change_index];
     return 0;
 }
@@ -244,11 +244,11 @@ bool ColorChangeDw::LoadColorTone() {
 bool ColorChangeDw::LoadTexture() {
     ResetTexture();
 
-    ::texture** textures = objset_info_storage_get_set_textures(obj_set_id);
+    ::texture** textures = get_objset_textures(obj_set_id);
     if (!textures)
         return false;
 
-    int32_t tex_num = objset_info_storage_get_set_tex_num(obj_set_id);
+    int32_t tex_num = get_objset_num_textures(obj_set_id);
 
     /*for (int32_t i = 0; i < tex_num; i++) {
         ::texture* chg_tex = 0;
@@ -341,7 +341,7 @@ void ColorChangeDw::ResetTexture() {
 void ColorChangeDw::UpdateData() {
     if (!set)
         ReloadData();
-    else if (!objset_info_storage_get_set_textures(obj_set_id))
+    else if (!get_objset_textures(obj_set_id))
         ResetData();
 
 }

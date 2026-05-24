@@ -4,37 +4,45 @@
 */
 
 #include "object.hpp"
+#include "ogl_buffer_object.hpp"
 
-void (FASTCALL* objset_info_storage_unload_set)(int32_t set)
-    = (void (FASTCALL*)(int32_t set))0x00000001404599B0;
-obj_mesh* (FASTCALL* objset_info_storage_get_obj_mesh_by_index)(uint32_t obj_info, int32_t mesh_index)
-    = (obj_mesh * (FASTCALL*)(uint32_t obj_info, int32_t mesh_index))0x0000000140459D40;
-int32_t(FASTCALL* objset_info_storage_get_obj_mesh_index)(uint32_t obj_info, const char* mesh_name)
-    = (int32_t(FASTCALL*)(uint32_t obj_info, const char* mesh_name))0x0000000140459DE0;
-const char* (FASTCALL* object_database_get_obj_name)(uint32_t obj_info)
-    = (const char* (FASTCALL*)(uint32_t obj_info))0x0000000140459F20;
-uint32_t(FASTCALL* object_database_get_object_info)(const char* name)
+struct IndexBuffer;
+struct VertexBuffer;
+
+bool (FASTCALL* create_mesh_index_buffer)(IndexBuffer* ibhn, const obj_mesh* mesh)
+    = (bool (FASTCALL*)(IndexBuffer * ibhn, const obj_mesh * mesh))0x0000000140458040;
+bool (FASTCALL* create_mesh_vertex_buffer)(VertexBuffer* vbhn, const obj_mesh* mesh)
+    = (bool (FASTCALL*)(VertexBuffer * vbhn, const obj_mesh * mesh))0x0000000140458280;
+void (FASTCALL* free_objset)(int32_t objset_index)
+    = (void (FASTCALL*)(int32_t objset_index))0x00000001404599B0;
+obj_mesh* (FASTCALL* get_mesh)(uint32_t obj_id, int32_t mesh_index)
+    = (obj_mesh * (FASTCALL*)(uint32_t obj_id, int32_t mesh_index))0x0000000140459D40;
+int32_t(FASTCALL* get_mesh_index)(uint32_t obj_id, const char* mesh_name)
+    = (int32_t(FASTCALL*)(uint32_t obj_id, const char* mesh_name))0x0000000140459DE0;
+const char* (FASTCALL* get_objdb_object_name)(uint32_t obj_id)
+    = (const char* (FASTCALL*)(uint32_t obj_id))0x0000000140459F20;
+uint32_t(FASTCALL* get_objdb_object_uid)(const char* name)
     = (uint32_t(FASTCALL*)(const char* name))0x0000000140459F80;
-obj* (FASTCALL* objset_info_storage_get_obj)(uint32_t obj_info)
-    = (obj * (FASTCALL*)(uint32_t obj_info))0x000000014045A140;
-obj_skin* (FASTCALL* objset_info_storage_get_obj_skin)(uint32_t obj_info)
-    = (obj_skin * (FASTCALL*)(uint32_t obj_info))0x000000014045A3E0;
-int32_t(FASTCALL* objset_info_storage_get_set_obj_id)(int32_t set_index, int32_t obj_index)
-    = (int32_t(FASTCALL*)(int32_t set_index, int32_t obj_index))0x000000014045A750;
-int32_t(FASTCALL* object_database_get_set_id)(int32_t set_index)
-    = (int32_t(FASTCALL*)(int32_t set_index))0x000000014045AA10;
-int32_t(FASTCALL* object_database_get_object_set_id)(const char* name)
+obj* (FASTCALL* get_object_header)(uint32_t obj_id)
+    = (obj * (FASTCALL*)(uint32_t obj_id))0x000000014045A140;
+obj_skin* (FASTCALL* get_object_skin)(uint32_t obj_id)
+    = (obj_skin * (FASTCALL*)(uint32_t obj_id))0x000000014045A3E0;
+int32_t(FASTCALL* get_objnum_idx2uid)(int32_t objset_index, int32_t obj_index)
+    = (int32_t(FASTCALL*)(int32_t objset_index, int32_t obj_index))0x000000014045A750;
+int32_t(FASTCALL* get_objset_idx2uid)(int32_t objset_index)
+    = (int32_t(FASTCALL*)(int32_t objset_index))0x000000014045AA10;
+int32_t(FASTCALL* get_objset_idx_name)(const char* name)
     = (int32_t(FASTCALL*)(const char* name))0x000000014045AA60;
-const char* (FASTCALL* objset_info_storage_get_set_name)(int32_t set_id)
-    = (const char* (FASTCALL*)(int32_t set_id))0x000000014045AC80;
-int32_t(FASTCALL* objset_info_storage_get_set_tex_num)(int32_t set)
-    = (int32_t(FASTCALL*)(int32_t set))0x000000014045ADE0;
-texture** (FASTCALL* objset_info_storage_get_set_textures)(int32_t set)
-    = (texture * *(FASTCALL*)(int32_t set))0x000000014045AE20;
-int32_t(FASTCALL* objset_info_storage_load_set)(int32_t set)
-    = (int32_t(FASTCALL*)(int32_t set))0x000000014045C6A0;
-bool (FASTCALL* objset_info_storage_load_obj_set_check_not_read)(int32_t set)
-    = (bool(FASTCALL*)(int32_t set))0x000000014045DA60;
+const char* (FASTCALL* get_objset_name)(int32_t objset_index)
+    = (const char* (FASTCALL*)(int32_t objset_index))0x000000014045AC80;
+int32_t(FASTCALL* get_objset_num_textures)(int32_t objset_index)
+    = (int32_t(FASTCALL*)(int32_t objset_index))0x000000014045ADE0;
+texture** (FASTCALL* get_objset_textures)(int32_t objset_index)
+    = (texture * *(FASTCALL*)(int32_t objset_index))0x000000014045AE20;
+int32_t(FASTCALL* request_objset)(int32_t objset_index)
+    = (int32_t(FASTCALL*)(int32_t objset_index))0x000000014045C6A0;
+bool (FASTCALL* wait_objset)(int32_t objset_index)
+    = (bool(FASTCALL*)(int32_t objset_index))0x000000014045DA60;
 
 obj_material_shader_lighting_type obj_material_shader_attrib::get_lighting_type() const {
     if (!m.is_lgt_diffuse && !m.is_lgt_specular)
@@ -56,17 +64,6 @@ int32_t obj_texture_attrib::get_blend() const {
     default:
         return 0;
     }
-}
-
-void obj_mesh_vertex_buffer::cycle_index() {
-    if (++index >= count)
-        index = 0;
-}
-
-AFTGLuint obj_mesh_vertex_buffer::get_buffer() {
-    if (index < count)
-        return buffers[index];
-    return 0;
 }
 
 inline int32_t obj_material_texture_type_get_texcoord_index(
@@ -106,33 +103,34 @@ inline int32_t obj_material_texture_type_get_texture_index(
     return -1;
 }
 
-void obj_skin_set_matrix_buffer(obj_skin* s, const mat4* matrices,
-    const mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4& global_mat) {
-    if (!s->num_bone)
+// 0x1405E9250
+void skin_calc_matrix_palette(const obj_skin* skin_data, const mat4* node_mtx,
+    const mat4* subnode_mtx, mat4* mtx_pal, const mat4* mtx, const mat4& global_mat) {
+    if (!skin_data->num_bone)
         return;
 
-    uint32_t* bone_id = s->bone_id_array;
-    mat4* bone_matrix = s->bone_matrix_array;
-    if (mat)
-        for (int32_t i = 0; i < s->num_bone; i++, bone_id++, bone_matrix++, matrix_buffer++) {
+    const int32_t* matrix_id = skin_data->matrix_id;
+    const mat4* trans_matrix = skin_data->trans_matrix;
+    if (mtx)
+        for (int32_t i = 0; i < skin_data->num_bone; i++, matrix_id++, trans_matrix++, mtx_pal++) {
             mat4 temp;
-            if (*bone_id & 0x8000)
-                mat4_mul(&ex_data_matrices[*bone_id & 0x7FFF], mat, &temp);
+            if (*matrix_id & 0x8000)
+                mat4_mul(&subnode_mtx[*matrix_id & 0x7FFF], mtx, &temp);
             else
-                mat4_mul(&matrices[*bone_id], mat, &temp);
+                mat4_mul(&node_mtx[*matrix_id], mtx, &temp);
 
             mat4_mul(&global_mat, &temp, &temp);
-            mat4_mul(&temp, bone_matrix, matrix_buffer);
+            mat4_mul(&temp, trans_matrix, mtx_pal);
         }
     else
-        for (int32_t i = 0; i < s->num_bone; i++, bone_id++, bone_matrix++, matrix_buffer++) {
+        for (int32_t i = 0; i < skin_data->num_bone; i++, matrix_id++, trans_matrix++, mtx_pal++) {
             mat4 temp;
-            if (*bone_id & 0x8000)
-                temp = ex_data_matrices[*bone_id & 0x7FFF];
+            if (*matrix_id & 0x8000)
+                temp = subnode_mtx[*matrix_id & 0x7FFF];
             else
-                temp = matrices[*bone_id];
+                temp = node_mtx[*matrix_id];
 
             mat4_mul(&global_mat, &temp, &temp);
-            mat4_mul(&temp, bone_matrix, matrix_buffer);
+            mat4_mul(&temp, trans_matrix, mtx_pal);
         }
 }

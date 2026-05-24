@@ -56,7 +56,7 @@ struct firstread_auth_3d_array {
 };
 
 struct firstread_obj_sub_mesh_split {
-    obj_bounding_sphere bounding_sphere[2];
+    BSphere bsphere[2];
     int32_t material_index[2];
     obj_index_format index_format;
     int32_t num_index[2];
@@ -65,7 +65,7 @@ struct firstread_obj_sub_mesh_split {
 };
 
 struct firstread_obj_sub_mesh {
-    obj_bounding_sphere bounding_sphere;
+    BSphere bsphere;
     obj_index_format index_format;
     int32_t num_index;
     const void* index_array;

@@ -28,8 +28,8 @@ HOOK(void, FASTCALL, TaskRobLoad__UnloadCharaItem, 0x0000000140525560,
 
     for (const int32_t& i : *item_objset)
         if (i != -1) {
-            objset_info_storage_unload_set(i);
-            auth_3d_data_unload_category(objset_info_storage_get_set_name(i));
+            free_objset(i);
+            auth_3d_data_unload_category(get_objset_name(i));
         }
 }
 
@@ -45,8 +45,8 @@ HOOK(void, FASTCALL, TaskRobLoad__LoadCharaItem, 0x000000014052B0F0,
 
     for (const int32_t& i : *item_objset)
         if (i != -1) {
-            objset_info_storage_load_set(i);
-            auth_3d_data_load_category(objset_info_storage_get_set_name(i));
+            request_objset(i);
+            auth_3d_data_load_category(get_objset_name(i));
         }
 }
 
@@ -61,8 +61,8 @@ HOOK(bool, FASTCALL, TaskRobLoad__LoadCharaItemCheckNotRead, 0x000000014052D4C0,
         return true;
 
     for (const int32_t& i : *item_objset)
-        if (i != -1 && objset_info_storage_load_obj_set_check_not_read(i)) {
-            if (auth_3d_data_check_category_loaded(objset_info_storage_get_set_name(i)))
+        if (i != -1 && wait_objset(i)) {
+            if (auth_3d_data_check_category_loaded(get_objset_name(i)))
                 return true;
         }
     return false;
@@ -80,7 +80,7 @@ HOOK(void, FASTCALL, rob_chara_item_equip_object_ctrl, 0x00000001405F2310, rob_c
 
     if (itm_eq_obj->auth_3d_id != -1 && itm_eq_obj->auth_obj_index == -1
         && (*(auth_3d_id*)&itm_eq_obj->auth_3d_id).check_loaded()) {
-        const char* obj_name = object_database_get_obj_name(itm_eq_obj->obj_info);
+        const char* obj_name = get_objdb_object_name(itm_eq_obj->obj_info);
 
         auth_3d* auth = (*(auth_3d_id*)&itm_eq_obj->auth_3d_id).get_auth_3d();
         for (auth_3d_object& i : auth->object)
@@ -163,7 +163,7 @@ HOOK(bool, FASTCALL, rob_chara_item_equip_object__init_members, 0x00000001405F36
 
 HOOK(bool, FASTCALL, rob_chara_item_equip_object_load_object_info_ex_data, 0x00000001405F6E30,
     rob_chara_item_equip_object* itm_eq_obj, uint32_t obj_info, bone_node* bone_nodes, bool osage_reset) {
-    auth_3d_id id(objset_info_storage_get_set_name((*(object_info*)&obj_info).set_id));
+    auth_3d_id id(get_objset_name((*(object_info*)&obj_info).set_id));
     if (id.check_not_empty()) {
         id.read_file();
         id.set_enable(true);

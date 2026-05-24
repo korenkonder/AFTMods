@@ -80,9 +80,9 @@ static_assert(sizeof(stage) == 0x68, "\"stage\" struct should have a size of 0x6
 
 extern size_t(FASTCALL* stage_data_handler_get_stage_data_count)() = (size_t(FASTCALL*)())0x000000014064AFC0;
 
-static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, mat4* mat);
-static bool object_bounding_sphere_check_visibility_shadow_chara(const obj_bounding_sphere* sphere);
-static bool object_bounding_sphere_check_visibility_shadow_stage(const obj_bounding_sphere* sphere);
+static bool object_bounding_sphere_check_visibility_shadow(BSphere* bsphere, mat4* mat);
+static bool object_bounding_sphere_check_visibility_shadow_chara(const BSphere* bsphere);
+static bool object_bounding_sphere_check_visibility_shadow_stage(const BSphere* bsphere);
 
 bool& chara_reflect = *(bool*)0x00000001411ADAFC;
 
@@ -159,12 +159,12 @@ HOOK(void, FASTCALL, stage__disp, 0x0000000140649560, stage* s) {
     if (s->stage_data->lens_flare_texture != -1 && s->lens_flare) {
         int32_t object_set_id = s->stage_data->object_set_id;
         rndr::Render* rend = render_get();
-        rend->lens_flare_texture = objset_info_storage_get_set_texture(
+        rend->lens_flare_texture = get_objset_gen_textures_id(
             object_set_id, s->stage_data->lens_flare_texture);
         if (rend->lens_flare_texture) {
-            rend->lens_shaft_texture = objset_info_storage_get_set_texture(
+            rend->lens_shaft_texture = get_objset_gen_textures_id(
                 object_set_id, s->stage_data->lens_shaft_texture);
-            rend->lens_ghost_texture = objset_info_storage_get_set_texture(
+            rend->lens_ghost_texture = get_objset_gen_textures_id(
                 object_set_id, s->stage_data->lens_ghost_texture);
             rend->lens_ghost_count = 16;
             rend->lens_shaft_inv_scale = s->stage_data->lens_shaft_inv_scale;
@@ -207,14 +207,14 @@ void stage_patch() {
     INSTALL_HOOK(stage__disp_shadow);
 }
 
-static bool object_bounding_sphere_check_visibility_shadow(const obj_bounding_sphere* sphere, mat4* mat) {
+static bool object_bounding_sphere_check_visibility_shadow(const BSphere* bsphere, mat4* mat) {
     mat4 view;
     mat4_transpose(&camera_data.view, &view);
 
     vec3 center;
-    mat4_transform_point(mat, &sphere->center, &center);
+    mat4_transform_point(mat, &bsphere->center, &center);
     mat4_transform_point(&view, &center, &center);
-    float_t radius = sphere->radius;
+    float_t radius = bsphere->radius;
 
     Shadow* shad = shadow_ptr_get();
     float_t shadow_range = shad->get_shadow_range();
@@ -228,16 +228,16 @@ static bool object_bounding_sphere_check_visibility_shadow(const obj_bounding_sp
     return true;
 }
 
-static bool object_bounding_sphere_check_visibility_shadow_chara(const obj_bounding_sphere* sphere) {
+static bool object_bounding_sphere_check_visibility_shadow_chara(const BSphere* bsphere) {
     mat4 mat;
     Shadow* shad = shadow_ptr_get();
     mat4_look_at(&shad->view_point[0], &shad->interest[0], &mat);
-    return object_bounding_sphere_check_visibility_shadow(sphere, &mat);
+    return object_bounding_sphere_check_visibility_shadow(bsphere, &mat);
 }
 
-static bool object_bounding_sphere_check_visibility_shadow_stage(const obj_bounding_sphere* sphere) {
+static bool object_bounding_sphere_check_visibility_shadow_stage(const BSphere* bsphere) {
     mat4 mat;
     Shadow* shad = shadow_ptr_get();
     mat4_look_at(&shad->view_point[1], &shad->interest[1], &mat);
-    return object_bounding_sphere_check_visibility_shadow(sphere, &mat);
+    return object_bounding_sphere_check_visibility_shadow(bsphere, &mat);
 }

@@ -484,15 +484,15 @@ bool RobOsageTest::ctrl() {
 
         for (int32_t i = 0; i < ITEM_MAX; i++) {
             rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((::item_id)i);
-            ::obj* obj = objset_info_storage_get_obj(itm_eq_obj->obj_info);
+            ::obj* obj = get_object_header(itm_eq_obj->obj_info);
             if (!obj || !itm_eq_obj->osage_blocks.size() && !itm_eq_obj->cloth_blocks.size())
                 continue;
 
             objects.push_back((::item_id)i, itm_eq_obj->obj_info);
-            rob_osage_test_dw->rob.object_list_box->AddItem(object_database_get_obj_name(itm_eq_obj->obj_info));
+            rob_osage_test_dw->rob.object_list_box->AddItem(get_objdb_object_name(itm_eq_obj->obj_info));
 
             std::string buf = string_to_lower(sprintf_s_string(
-                "ext_skp_%s.txt", object_database_get_obj_name(itm_eq_obj->obj_info)));
+                "ext_skp_%s.txt", get_objdb_object_name(itm_eq_obj->obj_info)));
 
             std::string path("ram/skin_param/");
             path.append(buf);
@@ -664,14 +664,14 @@ bool RobOsageTest::ctrl() {
 
         for (int32_t i = 0; i < ITEM_MAX; i++) {
             rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((::item_id)i);
-            ::obj* obj = objset_info_storage_get_obj(itm_eq_obj->obj_info);
+            ::obj* obj = get_object_header(itm_eq_obj->obj_info);
             if (!obj || !itm_eq_obj->osage_blocks.size() && !itm_eq_obj->cloth_blocks.size())
                 continue;
 
             path_create_directory("ram/skin_param/");
 
             std::string buf = string_to_lower(sprintf_s_string(
-                "ext_skp_%s.txt", object_database_get_obj_name(itm_eq_obj->obj_info)));
+                "ext_skp_%s.txt", get_objdb_object_name(itm_eq_obj->obj_info)));
 
             prj::vector_pair_alloc<prj::string, ExNodeBlock*> ex_nodes;
             ex_nodes.reserve(itm_eq_obj->osage_blocks.size() + itm_eq_obj->cloth_blocks.size());
@@ -1000,10 +1000,10 @@ void RobOsageTest::disp_coli() {
             disp_manager->entry_obj_etc(mat4_identity, etc);
         }
     }
-    else if (cls && cls->rob.nodes.size() >= cls->rob.root_count) {
-        CLOTHNode* j_begin = cls->rob.nodes.data() + cls->rob.root_count;
-        CLOTHNode* j_end = cls->rob.nodes.data() + cls->rob.nodes.size();
-        for (CLOTHNode* j = j_begin; j != j_end; j++) {
+    else if (cls && cls->rob.nodes.size() >= cls->rob.width) {
+        CLOTH_VERTEX* j_begin = cls->rob.nodes.data() + cls->rob.width;
+        CLOTH_VERTEX* j_end = cls->rob.nodes.data() + cls->rob.nodes.size();
+        for (CLOTH_VERTEX* j = j_begin; j != j_end; j++) {
             mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
             etc.color = color_cyan;
             etc.color.a = 0xCF;
@@ -1216,7 +1216,7 @@ void RobOsageTest::disp_line() {
     }
 
     for (ExClothBlock*& i : itm_eq_obj->cloth_blocks) {
-        if (!i || i->rob.nodes.size() < i->rob.root_count)
+        if (!i || i->rob.nodes.size() < i->rob.width)
             continue;
 
         const color4u8 color_line = i == ex_node ? color_red : color_dark_red;
@@ -1225,13 +1225,13 @@ void RobOsageTest::disp_line() {
         const color4u8 color_binormal = i == ex_node ? color_cyan : color_dark_cyan;
         const color4u8 color_normal = i == ex_node ? color_white : color_grey;
 
-        const CLOTHNode* nodes = i->rob.nodes.data();
-        for (const CLOTHLine& j : i->rob.lines)
-            spr::put_sprite_3d_line(nodes[j.idx[0]].pos, nodes[j.idx[1]].pos, color_line);
+        const CLOTH_VERTEX* nodes = i->rob.nodes.data();
+        for (const CLOTH_SPRING& j : i->rob.lines)
+            spr::put_sprite_3d_line(nodes[j.index0].pos, nodes[j.index1].pos, color_line);
 
-        const CLOTHNode* j_begin = i->rob.nodes.data() + i->rob.root_count;
-        const CLOTHNode* j_end = i->rob.nodes.data() + i->rob.nodes.size();
-        for (const CLOTHNode* j = j_begin; j != j_end; j++) {
+        const CLOTH_VERTEX* j_begin = i->rob.nodes.data() + i->rob.width;
+        const CLOTH_VERTEX* j_end = i->rob.nodes.data() + i->rob.nodes.size();
+        for (const CLOTH_VERTEX* j = j_begin; j != j_end; j++) {
             spr::put_sprite_3d_line(j->pos, j->tangent * 0.05f + j->pos, color_tangent);
             spr::put_sprite_3d_line(j->pos, j->binormal * 0.05f + j->pos, color_binormal);
             spr::put_sprite_3d_line(j->pos, j->normal * 0.05f + j->pos, color_normal);

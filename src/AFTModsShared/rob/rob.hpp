@@ -11,6 +11,7 @@
 #include "../mdl/disp_manager.hpp"
 #include "../item_table.hpp"
 #include "../object.hpp"
+#include "../ogl_buffer_object.hpp"
 #include "../shadow.hpp"
 #include "../types.hpp"
 
@@ -1155,36 +1156,45 @@ static_assert(sizeof(osage_ring_data) == 0x50, "\"OsageCollision\" struct should
 
 struct skin_param_file_data;
 
-struct CLOTHNode {
-    uint32_t flags;
+struct CLOTH_FLAG {
+    uint32_t exec : 1;
+    uint32_t disp : 1;
+    uint32_t ring : 1;
+};
+
+static_assert(sizeof(CLOTH_FLAG) == 0x04, "\"CLOTH_FLAG\" struct should have a size of CLOTH_FLAG");
+
+struct CLOTH_VERTEX {
+    uint32_t flag;
     vec3 pos;
-    vec3 fixed_pos;
-    vec3 prev_pos;
-    vec3 delta_pos;
+    vec3 org_pos;
+    vec3 old_pos;
+    vec3 vec;
     vec3 normal;
     vec3 tangent;
     vec3 binormal;
-    float_t tangent_sign;
-    vec2 texcoord;
-    vec3 direction;
-    float_t dist_up;
-    float_t dist_down;
-    float_t dist_right;
-    float_t dist_left;
-    vec3 field_80;
+    float_t m;
+    vec2 uv;
+    vec3 localvec;
+    float_t length_up;
+    float_t length_down;
+    float_t length_left;
+    float_t length_right;
+    vec3 F;
     RobOsageNodeResetData reset_data;
     prj::vector<opd_vec3_data> opd_data;
     opd_node_data_pair opd_node_data;
 };
 
-static_assert(sizeof(CLOTHNode) == 0xF0, "\"CLOTHNode\" struct should have a size of 0xF0");
+static_assert(sizeof(CLOTH_VERTEX) == 0xF0, "\"CLOTH_VERTEX\" struct should have a size of 0xF0");
 
-struct CLOTHLine {
-    size_t idx[2];
+struct CLOTH_SPRING {
+    size_t index0;
+    size_t index1;
     float_t length;
 };
 
-static_assert(sizeof(CLOTHLine) == 0x18, "\"CLOTHLine\" struct should have a size of 0x18");
+static_assert(sizeof(CLOTH_SPRING) == 0x18, "\"CLOTH_SPRING\" struct should have a size of 0x18");
 
 class CLOTH;
 
@@ -1197,7 +1207,7 @@ struct CLOTH_vtbl {
     void(FASTCALL* SetWindDirection)(CLOTH* This, vec3* wind_direction);
     void(FASTCALL* Field_30)(CLOTH* This, float_t);
     void(FASTCALL* SetSkinParamHinge)(CLOTH* This, float_t hinge_y, float_t hinge_z);
-    CLOTHNode* (FASTCALL* GetNodes)(CLOTH* This);
+    CLOTH_VERTEX* (FASTCALL* GetNodes)(CLOTH* This);
     void(FASTCALL* Reset)(CLOTH* This);
     void(FASTCALL* DrawNormals)(CLOTH* This);
     void(FASTCALL* ResetData)(CLOTH* This);
@@ -1207,60 +1217,54 @@ static_assert(sizeof(CLOTH_vtbl) == 0x60, "\"CLOTH_vtbl\" struct should have a s
 
 class CLOTH {
 public:
-    CLOTH_vtbl* __vftable;
-    int32_t field_8;
-    size_t root_count;
-    size_t nodes_count;
-    prj::vector<CLOTHNode> nodes;
-    vec3 wind_direction;
-    float_t field_44;
-    bool set_external_force;
-    vec3 external_force;
-    prj::vector<CLOTHLine> lines;
+    CLOTH_vtbl* __vftable /*VFT*/;
+    CLOTH_FLAG flag;
+    size_t width;
+    size_t height;
+    prj::vector<CLOTH_VERTEX> nodes;
+    vec3 wind_dir;
+    float_t wet;
+    bool use_ex_force;
+    vec3 ex_force;
+    prj::vector<CLOTH_SPRING> lines;
     skin_param* skin_param_ptr;
     skin_param skin_param;
-    OsageCollision::Work coli_chara[64];
+    OsageCollision::Work coli_rob[64];
     OsageCollision::Work coli_ring[64];
     osage_ring_data ring;
-    mat4* mats;
 };
 
-static_assert(sizeof(CLOTH) == 0x1D40, "\"CLOTH\" struct should have a size of 0x1D40");
+static_assert(sizeof(CLOTH) == 0x1D38, "\"CLOTH\" struct should have a size of 0x1D38");
 
-struct RobClothRoot {
+struct CLOTH_WEIGHTED_ROOT {
     vec3 pos;
     vec3 normal;
     vec4 tangent;
-    bone_node* node[4];
-    mat4* node_mat[4];
-    mat4* mat[4];
+    const bone_node* node[4];
+    const mat4* node_mat[4];
+    const mat4* bone_mat[4];
     float_t weight[4];
-    mat4 field_98;
-    mat4 field_D8;
-    mat4 field_118;
+    mat4 mat;
+    mat4 mat_pos;
+    mat4 inv_mat_pos;
 };
 
-static_assert(sizeof(RobClothRoot) == 0x158, "\"RobClothRoot\" struct should have a size of 0x158");
-
-struct RobClothSubMeshArray {
-    obj_sub_mesh arr[4];
-};
-
-static_assert(sizeof(RobClothSubMeshArray) == 0x1C0, "\"RobClothSubMeshArray\" struct should have a size of 0x1C0");
+static_assert(sizeof(CLOTH_WEIGHTED_ROOT) == 0x158, "\"CLOTH_WEIGHTED_ROOT\" struct should have a size of 0x158");
 
 class RobCloth : public CLOTH {
 public:
-    prj::vector<RobClothRoot> root;
-    rob_chara_item_equip_object* itm_eq_obj;
-    struct obj_skin_block_cloth_root* cls_root;
-    struct obj_skin_block_cloth* cls_data;
+    const mat4* local_mat;
+    prj::vector<CLOTH_WEIGHTED_ROOT> root;
+    rob_chara_item_equip_object* skin_disp;
+    const struct CLOTH_ROOT_DATA* root_data;
+    const struct CLOTH_DATA* data;
     float_t move_cancel;
     bool osage_reset;
     obj_mesh mesh[2];
-    RobClothSubMeshArray submesh[2];
-    obj_axis_aligned_bounding_box axis_aligned_bounding_box;
-    obj_mesh_vertex_buffer vertex_buffer[2];
-    obj_mesh_index_buffer index_buffer[2];
+    obj_sub_mesh submesh[2][4];
+    AABB aabb;
+    VertexBuffer vb[2];
+    IndexBuffer ib[2];
     prj::map<prj::pair<int32_t, int32_t>, prj::list<RobOsageNodeResetData>> motion_reset_data;
     prj::list<RobOsageNodeResetData>* reset_data_list;
 };

@@ -118,17 +118,12 @@ enum obj_vertex_format : uint32_t {
     OBJ_VERTEX_UNKNOWN     = 0x1000,
 };
 
-struct obj_axis_aligned_bounding_box {
+struct AABB {
     vec3 center;
-    vec3 size;
+    vec3 r;
 };
 
-struct obj_bounding_box {
-    vec3 center;
-    vec3 size;
-};
-
-struct obj_bounding_sphere {
+struct BSphere {
     vec3 center;
     float_t radius;
 };
@@ -148,8 +143,8 @@ struct obj_shader_compo_member {
     uint32_t color_l3 : 1;
     uint32_t color_l3_a : 1;
     uint32_t translucency : 1;
-    uint32_t flag_14 : 1;
-    uint32_t override_ibl : 1;
+    uint32_t env_sphere : 1;
+    uint32_t env_cube : 1;
     uint32_t dummy : 16;
 };
 
@@ -195,8 +190,8 @@ struct obj_texture_attrib_member {
     uint32_t filter : 3;
     uint32_t mipmap : 2;
     uint32_t mipmap_bias : 7;
-    uint32_t flag_29 : 1;
-    uint32_t anisotropic_filter : 2;
+    uint32_t ignore : 1;
+    uint32_t aniso : 2;
 };
 
 union obj_texture_attrib {
@@ -231,8 +226,8 @@ struct obj_material_texture_data {
 static_assert(sizeof(obj_material_texture_data) == 0x78, "\"obj_material_texture_data\" struct should have a size of 0x78");
 
 struct obj_material_attrib_member {
-    uint32_t alpha_texture : 1;
-    uint32_t alpha_material : 1;
+    uint32_t alpha_tex : 1;
+    uint32_t alpha_mat : 1;
     uint32_t punch_through : 1;
     uint32_t double_sided : 1;
     uint32_t normal_dir_light : 1;
@@ -240,13 +235,13 @@ struct obj_material_attrib_member {
     obj_material_blend_factor dst_blend_factor : 4;
     uint32_t blend_operation : 3;
     uint32_t zbias : 4;
-    uint32_t no_fog : 1;
-    uint32_t translucent_priority : 6;
-    uint32_t has_fog_height : 1;
-    uint32_t flag_28 : 1;
-    uint32_t fog_height : 1;
-    uint32_t flag_30 : 1;
-    uint32_t flag_31 : 1;
+    uint32_t no_z_fog : 1;
+    uint32_t alpha_prio : 6;
+    uint32_t y_fog : 1;
+    uint32_t ignore_alpha : 1;
+    uint32_t y_fogmap : 1;
+    uint32_t use_mat_center : 1;
+    uint32_t dummy : 1;
 };
 
 union obj_material_attrib {
@@ -294,12 +289,14 @@ static_assert(sizeof(obj_material_data) == 0x4B0, "\"obj_material_data\" struct 
 struct obj_sub_mesh_attrib_member {
     uint32_t recieve_shadow : 1;
     uint32_t cast_shadow : 1;
-    uint32_t translucent : 1;
-    uint32_t cloth : 1;
+    uint32_t vertex_alpha : 1;
+    uint32_t hide : 1;
+    uint32_t poly_offset : 3;
+    uint32_t use_restart_index : 1;
     uint32_t no_reflect : 1; // Own stuff
     uint32_t reflect : 1; // Own stuff
     uint32_t reflect_cam_back : 1; // Own stuff
-    uint32_t dummy : 25; // 28
+    uint32_t dummy : 21; // 24
 };
 
 union obj_sub_mesh_attrib {
@@ -309,7 +306,7 @@ union obj_sub_mesh_attrib {
 
 struct obj_sub_mesh {
     uint32_t flags;
-    obj_bounding_sphere bounding_sphere;
+    BSphere bsphere;
     uint32_t material_index;
     uint8_t uv_index[8];
     int32_t num_bone_index;
@@ -321,19 +318,19 @@ struct obj_sub_mesh {
     void* index_array;
     obj_sub_mesh_attrib attrib;
     uint32_t reserved[4];
-    obj_axis_aligned_bounding_box* axis_aligned_bounding_box;
-    uint16_t first_index;
-    uint16_t last_index;
+    AABB* aabb;
+    uint16_t min_index;
+    uint16_t max_index;
     uint32_t index_offset;
 };
 
 static_assert(sizeof(obj_sub_mesh) == 0x70, "\"obj_sub_mesh\" struct should have a size of 0x70");
 
 struct obj_mesh_attrib_member {
-    uint32_t double_buffer : 1;
-    uint32_t billboard_y_axis : 1;
-    uint32_t translucent_sort_by_radius : 1;
+    uint32_t soft_body : 1;
     uint32_t billboard : 1;
+    uint32_t around_obj : 1;
+    uint32_t billboard_view : 1;
     uint32_t no_reflect : 1; // Own stuff
     uint32_t reflect : 1; // Own stuff
     uint32_t reflect_cam_back : 1; // Own stuff
@@ -374,7 +371,7 @@ static_assert(sizeof(obj_mesh_vertex_array) == 0xA0, "\"obj_mesh_vertex_array\" 
 
 struct obj_mesh {
     uint32_t flags;
-    obj_bounding_sphere bounding_sphere;
+    BSphere bsphere;
     int32_t num_submesh;
     obj_sub_mesh* submesh_array;
     obj_vertex_format vertex_format;
@@ -394,7 +391,7 @@ static_assert(sizeof(obj_mesh) == 0x130, "\"obj_mesh\" struct should have a size
 struct obj {
     uint32_t version;
     uint32_t flags;
-    obj_bounding_sphere bounding_sphere;
+    BSphere bsphere;
     int32_t num_mesh;
     obj_mesh* mesh_array;
     int32_t num_material;
@@ -405,31 +402,28 @@ struct obj {
 static_assert(sizeof(obj) == 0x60, "\"obj\" struct should have a size of 0x60");
 
 struct obj_skin_ex_data {
-    int32_t num_osage_name;
-    int32_t num_osage_node;
-    const char** field_8;
-    struct obj_skin_osage_node* osage_node_array;
-    const char** osage_name_array;
-    struct obj_skin_block* block_array;
-    int32_t num_bone_name;
-    const char** bone_name_array;
-    struct obj_skin_osage_sibling_info* osage_sibling_infos;
-    uint32_t cloth_count;
-    uint32_t reserved[7];
+    int32_t nb_root;
+    int32_t nb_jointX;
+    const char** osage_root;
+    struct ObjOsageJoint* osage_joint;
+    const char** root_name;
+    struct ObjExNode* ex_node_table;
+    uint32_t nb_node_name;
+    const char** ex_node_name;
+    struct ObjOsageConstraintInfo* osage_constraint_tbl;
+    int32_t nb_cloth;
+    uint32_t dummy[7];
 };
 
 static_assert(sizeof(obj_skin_ex_data) == 0x60, "\"obj_skin_ex_data\" struct should have a size of 0x60");
 
 struct obj_skin {
-    uint32_t* bone_id_array;
-    mat4* bone_matrix_array;
-    const char** bone_name_array;
-    obj_skin_ex_data* ex_data;
+    int32_t* matrix_id;
+    mat4* trans_matrix;
+    const char** bone_name;
+    obj_skin_ex_data* osage_header;
     int32_t num_bone;
-    int32_t bone_parent_ids_offset;
-    int32_t field_28;
-    int32_t field_2C;
-    int32_t field_30;
+    uint32_t dummy[4];
 };
 
 static_assert(sizeof(obj_skin) == 0x38, "\"obj_skin\" struct should have a size of 0x38");
@@ -507,52 +501,28 @@ inline bool operator !=(const object_info& left, const object_info& right) {
     return *(uint32_t*)&left != *(uint32_t*)&right;
 }
 
-struct obj_mesh_index_buffer {
-    AFTGLuint buffer;
-
-    inline obj_mesh_index_buffer() : buffer() {
-
-    }
-};
-
-static_assert(sizeof(obj_mesh_index_buffer) == 0x04, "\"obj_mesh_index_buffer\" struct should have a size of 0x04");
-
-struct obj_mesh_vertex_buffer {
-    int32_t count;
-    AFTGLuint buffers[3];
-    int32_t index;
-    AFTGLenum target;
-
-    inline obj_mesh_vertex_buffer() : count(), buffers(), index(), target(0x8892) { // GL_ARRAY_BUFFER
-
-    }
-
-    void cycle_index();
-    AFTGLuint get_buffer();
-};
-
-static_assert(sizeof(obj_mesh_vertex_buffer) == 0x18, "\"obj_mesh_vertex_buffer\" struct should have a size of 0x18");
-
-extern void (FASTCALL* objset_info_storage_unload_set)(int32_t set);
-extern obj_mesh* (FASTCALL* objset_info_storage_get_obj_mesh_by_index)(uint32_t obj_info, int32_t mesh_index);
-extern int32_t(FASTCALL* objset_info_storage_get_obj_mesh_index)(uint32_t obj_info, const char* mesh_name);
-extern const char* (FASTCALL* object_database_get_obj_name)(uint32_t obj_info);
-extern uint32_t(FASTCALL* object_database_get_object_info)(const char* name);
-extern obj* (FASTCALL* objset_info_storage_get_obj)(uint32_t obj_info);
-extern obj_skin* (FASTCALL* objset_info_storage_get_obj_skin)(uint32_t obj_info);
-extern int32_t(FASTCALL* objset_info_storage_get_set_obj_id)(int32_t set_index, int32_t obj_index);
-extern int32_t(FASTCALL* object_database_get_set_id)(int32_t set_index);
-extern int32_t(FASTCALL* object_database_get_object_set_id)(const char* name);
-extern const char* (FASTCALL* objset_info_storage_get_set_name)(int32_t set_id);
-extern int32_t(FASTCALL* objset_info_storage_get_set_tex_num)(int32_t set);
-extern texture** (FASTCALL* objset_info_storage_get_set_textures)(int32_t set);
-extern int32_t(FASTCALL* objset_info_storage_load_set)(int32_t set);
-extern bool (FASTCALL* objset_info_storage_load_obj_set_check_not_read)(int32_t set);
+extern bool (FASTCALL* create_mesh_index_buffer)(struct IndexBuffer* ibhn, const obj_mesh* mesh);
+extern bool (FASTCALL* create_mesh_vertex_buffer)(struct VertexBuffer* vbhn, const obj_mesh* mesh);
+extern void (FASTCALL* free_objset)(int32_t objset_index);
+extern obj_mesh* (FASTCALL* get_mesh)(uint32_t obj_id, int32_t mesh_index);
+extern int32_t(FASTCALL* get_mesh_index)(uint32_t obj_id, const char* mesh_name);
+extern const char* (FASTCALL* get_objdb_object_name)(uint32_t obj_id);
+extern uint32_t(FASTCALL* get_objdb_object_uid)(const char* name);
+extern obj* (FASTCALL* get_object_header)(uint32_t obj_id);
+extern obj_skin* (FASTCALL* get_object_skin)(uint32_t obj_id);
+extern int32_t(FASTCALL* get_objnum_idx2uid)(int32_t objset_index, int32_t obj_index);
+extern int32_t(FASTCALL* get_objset_idx2uid)(int32_t objset_index);
+extern int32_t(FASTCALL* get_objset_idx_name)(const char* name);
+extern const char* (FASTCALL* get_objset_name)(int32_t objset_index);
+extern int32_t(FASTCALL* get_objset_num_textures)(int32_t objset_index);
+extern texture** (FASTCALL* get_objset_textures)(int32_t objset_index);
+extern int32_t(FASTCALL* request_objset)(int32_t objset_index);
+extern bool (FASTCALL* wait_objset)(int32_t objset_index);
 
 extern int32_t obj_material_texture_type_get_texcoord_index(
     obj_material_texture_type type, int32_t index);
 extern int32_t obj_material_texture_type_get_texture_index(
     obj_material_texture_type type, int32_t base_index);
 
-extern void obj_skin_set_matrix_buffer(obj_skin* s, const mat4* matrices,
-    const mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4& global_mat);
+extern void skin_calc_matrix_palette(const obj_skin* skin_data, const mat4* node_mtx,
+    const mat4* subnode_mtx, mat4* mtx_pal, const mat4* mtx, const mat4& global_mat);

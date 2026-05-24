@@ -122,17 +122,17 @@ namespace mdl {
         const prj::vector<GLuint>* textures;
         int32_t mat_count;
         const mat4* mats;
-        GLuint vertex_buffer;
-        size_t vertex_buffer_offset;
-        GLuint index_buffer;
+        GLuint vb;
+        size_t vb_offset;
+        GLuint ib;
         bool set_blend_color;
         bool chara_color;
         vec4 blend_color;
         vec4 emission;
         bool self_shadow;
         shadow_type_enum shadow;
-        GLuint morph_vertex_buffer;
-        size_t morph_vertex_buffer_offset;
+        GLuint morph_vb;
+        size_t morph_vb_offset;
         float_t morph_weight;
         int32_t texture_pattern_count;
         texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
@@ -313,9 +313,9 @@ namespace mdl {
         void init_etc(const mat4& mat, int32_t index, int32_t count, const mdl::EtcObj& etc);
         void init_sub_mesh(const mat4& mat, float_t radius, const obj_sub_mesh* sub_mesh,
             const obj_mesh* mesh, const obj_material_data* material, const prj::vector<GLuint>* textures,
-            int32_t mat_count, const mat4* mats, GLuint vertex_buffer, size_t vertex_buffer_offset,
-            GLuint index_buffer, const vec4& blend_color, const vec4& emission, GLuint morph_vertex_buffer,
-            size_t morph_vertex_buffer_offset,
+            int32_t mat_count, const mat4* mats, GLuint vb, size_t vb_offset,
+            GLuint index_buffer, const vec4& blend_color, const vec4& emission, GLuint morph_vb,
+            size_t morph_vb_offset,
             int32_t instances_count, const mat4* instances_mat, draw_func func, const ObjSubMeshArgs* func_data);
         void init_translucent(const mat4& mat, const ObjTranslucentArgs& translucent);
         void init_user(const mat4& mat, UserArgsFunc func, void* data);
@@ -408,11 +408,11 @@ namespace mdl {
 
     struct DispManager {
         struct vertex_array {
-            GLuint vertex_buffer;
-            size_t vertex_buffer_offset;
-            GLuint morph_vertex_buffer;
-            size_t morph_vertex_buffer_offset;
-            GLuint index_buffer;
+            GLuint vb;
+            size_t vb_offset;
+            GLuint morph_vb;
+            size_t morph_vb_offset;
+            GLuint ib;
             GLuint vertex_array;
             obj_vertex_format vertex_format;
             GLsizei size_vertex;
@@ -446,11 +446,10 @@ namespace mdl {
         float_t wet_param;
         int32_t texture_transform_count;
         texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
-        bool(FASTCALL* culling_func)(const obj_bounding_sphere*);
+        bool(FASTCALL* culling_func)(const BSphere*);
 
         void add_vertex_array(const obj_mesh* mesh, const obj_sub_mesh* sub_mesh, const obj_material_data* material,
-            GLuint vertex_buffer, size_t vertex_buffer_offset, GLuint index_buffer,
-            GLuint morph_vertex_buffer, size_t morph_vertex_buffer_offset);
+            GLuint vb, size_t vb_offset, GLuint ib, GLuint morph_vb, size_t morph_vb_offset);
         void* alloc_data(int32_t size);
         ObjData* alloc_obj_data(ObjKind kind);
         mat4* alloc_mat4_array(int32_t count);
@@ -467,19 +466,19 @@ namespace mdl {
         void entry_list(ObjType type, ObjData* data);
         void entry_list(ObjTypeScreen type, ObjData* data);
         void entry_list(ObjTypeReflect type, ObjData* data);
-        bool entry_obj(const ::obj* obj, const mat4& mat, obj_mesh_vertex_buffer_divagl* obj_vert_buf,
-            obj_mesh_index_buffer* obj_index_buf, const prj::vector<GLuint>* textures, const vec4* blend_color,
-            const mat4* bone_mat, const ::obj* obj_morph, obj_mesh_vertex_buffer_divagl* obj_morph_vert_buf,
+        bool entry_obj(const ::obj* obj, const mat4& mat, VertexBufferDivaGL* vbhn_array,
+            IndexBuffer* ibhn_array, const prj::vector<GLuint>* textures, const vec4* blend_color,
+            const mat4* bone_mat, const ::obj* obj_morph, VertexBufferDivaGL* obj_morph_vert_buf,
             int32_t instances_count, const mat4* instances_mat,
             draw_func func, const ObjSubMeshArgs* func_data, bool enable_bone_mat);
-        bool entry_obj_screen(const ::obj* obj, const mat4& mat, obj_mesh_vertex_buffer_divagl* obj_vert_buf,
-            obj_mesh_index_buffer* obj_index_buf, const prj::vector<GLuint>* textures, const vec4* blend_color);
+        bool entry_obj_screen(const ::obj* obj, const mat4& mat, VertexBufferDivaGL* vbhn_array,
+            IndexBuffer* ibhn_array, const prj::vector<GLuint>* textures, const vec4* blend_color);
         void entry_obj_by_obj(const mat4& mat,
-            const ::obj* obj, prj::vector<GLuint>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
-            obj_mesh_index_buffer* obj_index_buf, const mat4* bone_mat, float_t alpha);
+            const ::obj* obj, prj::vector<GLuint>* textures, VertexBuffer* vbhn_array,
+            IndexBuffer* ibhn_array, const mat4* bone_mat, float_t alpha);
         void entry_obj_by_obj(const mat4& mat,
-            const ::obj* obj, prj::vector<GLuint>* textures, obj_mesh_vertex_buffer_divagl* obj_vert_buf,
-            obj_mesh_index_buffer* obj_index_buf, const mat4* bone_mat, float_t alpha);
+            const ::obj* obj, prj::vector<GLuint>* textures, VertexBufferDivaGL* vbhn_array,
+            IndexBuffer* ibhn_array, const mat4* bone_mat, float_t alpha);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info, const mat4* bone_mat);
         bool entry_obj_by_object_info(const mat4& mat, object_info obj_info,
@@ -522,10 +521,10 @@ namespace mdl {
         void obj_sort(render_data_context& rend_data_ctx,
             ObjTypeReflect type, int32_t compare_func, const cam_data& cam);
         void refresh();
-        void remove_index_buffer(GLuint buffer);
-        void remove_vertex_buffer(GLuint buffer);
+        void remove_index_buffer(GLuint ib);
+        void remove_vertex_buffer(GLuint vb);
         void set_chara_color(bool value = false);
-        void set_culling_func(bool(FASTCALL* func)(const obj_bounding_sphere*) = 0);
+        void set_culling_func(bool(FASTCALL* func)(const BSphere*) = 0);
         void set_obj_flags(ObjFlags flags = (ObjFlags)0);
         void set_material_list(int32_t count = 0, const material_list_struct* value = 0);
         void set_morph(object_info object = {}, float_t weight = 0.0f);
