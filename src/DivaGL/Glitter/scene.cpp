@@ -61,7 +61,7 @@ namespace Glitter {
         }
 
         if (disp)
-            effect_group->vbo.WriteMemory(gl_state, 0, effect_group->max_count * sizeof(Buffer), effect_group->buffer);
+            gl_state.write_array_buffer(effect_group->vbo, 0, effect_group->max_count * sizeof(Buffer), effect_group->buffer);
 #endif
     }
 

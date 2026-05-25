@@ -16,6 +16,8 @@ struct IndexBuffer {
 
     }
 
+    bool create(uint32_t size, const void* buf);
+    void destroy();
     AFTGLuint get_glib() const;
 };
 

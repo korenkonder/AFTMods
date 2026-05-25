@@ -181,6 +181,7 @@ struct gl_rend_state {
     void active_bind_texture_cube_map(int32_t index, GLuint texture);
     void active_texture(int32_t index);
     void begin_event(const char* message, int32_t length);
+    void begin_query(GLenum target, GLuint id);
     void bind_framebuffer(GLuint framebuffer);
     void bind_read_framebuffer(GLuint framebuffer);
     void bind_draw_framebuffer(GLuint framebuffer);
@@ -203,6 +204,7 @@ struct gl_rend_state {
     GLenum check_framebuffer_status(GLenum target);
     void clear(GLbitfield mask);
     void clear_buffer(GLenum buffer, GLint drawbuffer, const GLfloat* value);
+    void clear_buffer(GLenum buffer, GLint drawbuffer, const GLint* value);
     void clear_color(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
     void clear_depth(GLfloat depth);
     void clear_stencil(GLint stencil);
@@ -232,6 +234,7 @@ struct gl_rend_state {
     void enable_scissor_test();
     void enable_stencil_test();
     void end_event();
+    void end_query(GLenum target);
     void finish();
     void generate_mipmap(GLenum target);
     void generate_texture_mipmap(GLuint texture);
@@ -242,6 +245,10 @@ struct gl_rend_state {
     void get_scissor(GLint& x, GLint& y, GLsizei& width, GLsizei& height);
     gl_rend_state_rect get_viewport();
     void get_viewport(GLint& x, GLint& y, GLsizei& width, GLsizei& height);
+    void* map_array_buffer(GLuint buffer);
+    void* map_element_array_buffer(GLuint buffer);
+    void* map_uniform_buffer(GLuint buffer);
+    void* map_shader_storage_buffer(GLuint buffer);
     void set_blend_func(GLenum src, GLenum dst);
     void set_blend_func_separate(GLenum src_rgb, GLenum dst_rgb,
         GLenum src_alpha, GLenum dst_alpha);
@@ -263,6 +270,10 @@ struct gl_rend_state {
     void set_viewport(GLint x, GLint y, GLsizei width, GLsizei height);
     void tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
         GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
+    void unmap_array_buffer(GLuint buffer);
+    void unmap_element_array_buffer(GLuint buffer);
+    void unmap_uniform_buffer(GLuint buffer);
+    void unmap_shader_storage_buffer(GLuint buffer);
     void update();
     void update_program();
     void update_active_texture();
@@ -298,6 +309,10 @@ struct gl_rend_state {
     void update_clear_depth();
     void update_clear_stencil();
     void use_program(GLuint program);
+    void write_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
+    void write_element_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
+    void write_uniform_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
+    void write_shader_storage_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
 };
 
 gl_rend_state gl_rend_state_data[GL_REND_STATE_COUNT] = {
@@ -325,6 +340,10 @@ void p_gl_rend_state::active_texture(int32_t index) {
 
 void p_gl_rend_state::begin_event(const char* message, int32_t length) {
     ptr.begin_event(message, length);
+}
+
+void p_gl_rend_state::begin_query(GLenum target, GLuint id) {
+    ptr.begin_query(target, id);
 }
 
 void p_gl_rend_state::bind_framebuffer(GLuint framebuffer) {
@@ -403,6 +422,10 @@ void p_gl_rend_state::clear(GLbitfield mask) {
 }
 
 void p_gl_rend_state::clear_buffer(GLenum buffer, GLint drawbuffer, const GLfloat* value) {
+    ptr.clear_buffer(buffer, drawbuffer, value);
+}
+
+void p_gl_rend_state::clear_buffer(GLenum buffer, GLint drawbuffer, const GLint* value) {
     ptr.clear_buffer(buffer, drawbuffer, value);
 }
 
@@ -508,6 +531,10 @@ void p_gl_rend_state::end_event() {
     ptr.end_event();
 }
 
+void p_gl_rend_state::end_query(GLenum target) {
+    ptr.end_query(target);
+}
+
 void p_gl_rend_state::finish() {
     ptr.finish();
 }
@@ -546,6 +573,22 @@ gl_rend_state_rect p_gl_rend_state::get_viewport() {
 
 void p_gl_rend_state::get_viewport(GLint& x, GLint& y, GLsizei& width, GLsizei& height) {
     ptr.get_viewport(x, y, width, height);
+}
+
+void* p_gl_rend_state::map_array_buffer(GLuint buffer) {
+    return ptr.map_array_buffer(buffer);
+}
+
+void* p_gl_rend_state::map_element_array_buffer(GLuint buffer) {
+    return ptr.map_element_array_buffer(buffer);
+}
+
+void* p_gl_rend_state::map_uniform_buffer(GLuint buffer) {
+    return ptr.map_uniform_buffer(buffer);
+}
+
+void* p_gl_rend_state::map_shader_storage_buffer(GLuint buffer) {
+    return ptr.map_shader_storage_buffer(buffer);
 }
 
 void p_gl_rend_state::set_blend_func(GLenum src, GLenum dst) {
@@ -627,6 +670,38 @@ void p_gl_rend_state::use_program(GLuint program) {
     ptr.use_program(program);
 }
 
+void p_gl_rend_state::unmap_array_buffer(GLuint buffer) {
+    return ptr.unmap_array_buffer(buffer);
+}
+
+void p_gl_rend_state::unmap_element_array_buffer(GLuint buffer) {
+    return ptr.unmap_element_array_buffer(buffer);
+}
+
+void p_gl_rend_state::unmap_uniform_buffer(GLuint buffer) {
+    return ptr.unmap_uniform_buffer(buffer);
+}
+
+void p_gl_rend_state::unmap_shader_storage_buffer(GLuint buffer) {
+    return ptr.unmap_shader_storage_buffer(buffer);
+}
+
+void p_gl_rend_state::write_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    ptr.write_array_buffer(buffer, offset, size, data);
+}
+
+void p_gl_rend_state::write_element_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    ptr.write_element_array_buffer(buffer, offset, size, data);
+}
+
+void p_gl_rend_state::write_uniform_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    ptr.write_uniform_buffer(buffer, offset, size, data);
+}
+
+void p_gl_rend_state::write_shader_storage_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    ptr.write_shader_storage_buffer(buffer, offset, size, data);
+}
+
 inline void gl_rend_state::active_bind_texture_2d(int32_t index, GLuint texture) {
     active_texture(index);
     bind_texture_2d(texture);
@@ -645,6 +720,10 @@ inline void gl_rend_state::active_texture(int32_t index) {
 inline void gl_rend_state::begin_event(const char* message, int32_t length) {
     if (DIVA_GL_VERSION_4_3)
         glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, (GLsizei)length, message);
+}
+
+inline void gl_rend_state::begin_query(GLenum target, GLuint id) {
+    glBeginQuery(target, id);
 }
 
 inline void gl_rend_state::bind_framebuffer(GLuint framebuffer) {
@@ -837,12 +916,25 @@ inline void gl_rend_state::clear_buffer(GLenum buffer, GLint drawbuffer, const G
     update_scissor_test();
     update_scissor();
 
+    glClearBufferfv(buffer, drawbuffer, value);
+    enum_or(flags, GL_REND_STATE_EXECUTE);
+}
+
+inline void gl_rend_state::clear_buffer(GLenum buffer, GLint drawbuffer, const GLint* value) {
+    update_draw_framebuffer();
+
+    if (buffer == GL_COLOR)
+        update_color_mask();
+
+    update_scissor_test();
+    update_scissor();
+
     if (buffer == GL_STENCIL) {
         update_stencil_test();
         update_stencil_mask();
     }
 
-    glClearBufferfv(buffer, drawbuffer, value);
+    glClearBufferiv(buffer, drawbuffer, value);
     enum_or(flags, GL_REND_STATE_EXECUTE);
 }
 
@@ -1030,6 +1122,10 @@ inline void gl_rend_state::enable_stencil_test() {
 inline void gl_rend_state::end_event() {
     if (DIVA_GL_VERSION_4_3)
         glPopDebugGroup();
+}
+
+inline void gl_rend_state::end_query(GLenum target) {
+    glEndQuery(target);
 }
 
 inline void gl_rend_state::finish() {
@@ -1277,6 +1373,102 @@ inline void gl_rend_state::get_viewport(GLint& x, GLint& y, GLsizei& width, GLsi
     height = viewport.height;
 }
 
+inline void* gl_rend_state::map_array_buffer(GLuint buffer) {
+    if (!buffer)
+        return 0;
+
+    void* data;
+    if (DIVA_GL_VERSION_4_5)
+        data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
+    else {
+        bind_array_buffer(buffer);
+        data = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+    }
+
+    if (data)
+        return data;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        bind_array_buffer(0);
+    }
+    return 0;
+}
+
+inline void* gl_rend_state::map_element_array_buffer(GLuint buffer) {
+    if (!buffer)
+        return 0;
+
+    void* data;
+    if (DIVA_GL_VERSION_4_5)
+        data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
+    else {
+        bind_element_array_buffer(buffer);
+        data = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+    }
+
+    if (data)
+        return data;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+        bind_element_array_buffer(0);
+    }
+    return 0;
+}
+
+inline void* gl_rend_state::map_uniform_buffer(GLuint buffer) {
+    if (!buffer)
+        return 0;
+
+    void* data;
+    if (DIVA_GL_VERSION_4_5)
+        data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
+    else {
+        bind_uniform_buffer(buffer);
+        data = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+    }
+
+    if (data)
+        return data;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+        bind_uniform_buffer(0);
+    }
+    return 0;
+}
+
+inline void* gl_rend_state::map_shader_storage_buffer(GLuint buffer) {
+    if (!buffer)
+        return 0;
+
+    void* data;
+    if (DIVA_GL_VERSION_4_5)
+        data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
+    else {
+        bind_shader_storage_buffer(buffer);
+        data = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+    }
+
+    if (data)
+        return data;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        bind_shader_storage_buffer(0);
+    }
+    return 0;
+}
+
 inline void gl_rend_state::set_blend_func(GLenum src, GLenum dst) {
     blend_src_rgb = src;
     blend_dst_rgb = dst;
@@ -1384,6 +1576,54 @@ inline void gl_rend_state::set_viewport(GLint x, GLint y, GLsizei width, GLsizei
     enum_or(update_flags, GL_REND_STATE_UPDATE_VIEWPORT);
 }
 
+inline void gl_rend_state::unmap_array_buffer(GLuint buffer) {
+    if (!buffer)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        bind_array_buffer(0);
+    }
+}
+
+inline void gl_rend_state::unmap_element_array_buffer(GLuint buffer) {
+    if (!buffer)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+        bind_element_array_buffer(0);
+    }
+}
+
+inline void gl_rend_state::unmap_uniform_buffer(GLuint buffer) {
+    if (!buffer)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+        bind_uniform_buffer(0);
+    }
+}
+
+inline void gl_rend_state::unmap_shader_storage_buffer(GLuint buffer) {
+    if (!buffer)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        bind_shader_storage_buffer(0);
+    }
+}
+
 inline void gl_rend_state::tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
     GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) {
     update_curr_active_texture();
@@ -1455,7 +1695,7 @@ inline void gl_rend_state::update_curr_active_texture() {
         GLuint index = curr_active_texture_index;
         bool bind = false;
         if (curr_texture_binding_2d[index] != texture_binding_2d[index]) {
-            glBindTextureDLL(GL_TEXTURE_2D, texture_binding_2d[curr_active_texture_index]);
+            glBindTextureDLL(GL_TEXTURE_2D, texture_binding_2d[index]);
             curr_texture_binding_2d[index] = texture_binding_2d[index];
             bind = true;
         }
@@ -1735,7 +1975,6 @@ inline void gl_rend_state::update_multisample() {
             (multisample ? glEnableDLL : glDisableDLL)(GL_MULTISAMPLE);
             curr_multisample = multisample;
         }
-
         enum_and(update_flags, ~GL_REND_STATE_UPDATE_MULTISAMPLE);
     }
 }
@@ -1804,7 +2043,7 @@ inline void gl_rend_state::update_stencil_func() {
     if (curr_stencil_test && (update_flags & GL_REND_STATE_UPDATE_STENCIL_FUNC)) {
         if (curr_stencil_func != stencil_func || curr_stencil_ref != stencil_ref
             || curr_stencil_value_mask != stencil_value_mask) {
-            glStencilFunc(stencil_func, stencil_ref, stencil_ref);
+            glStencilFunc(stencil_func, stencil_ref, stencil_value_mask);
             curr_stencil_func = stencil_func;
             curr_stencil_ref = stencil_ref;
             curr_stencil_value_mask = stencil_value_mask;
@@ -1876,4 +2115,52 @@ inline void gl_rend_state::update_clear_stencil() {
 inline void gl_rend_state::use_program(GLuint program) {
     this->program = program;
     enum_or(update_flags, GL_REND_STATE_UPDATE_PROGRAM);
+}
+
+inline void gl_rend_state::write_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    if (!buffer || !size)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glNamedBufferSubData(buffer, offset, size, data);
+    else {
+        bind_array_buffer(buffer);
+        glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+    }
+}
+
+inline void gl_rend_state::write_element_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    if (!buffer || !size)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glNamedBufferSubData(buffer, offset, size, data);
+    else {
+        bind_element_array_buffer(buffer);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, size, data);
+    }
+}
+
+inline void gl_rend_state::write_uniform_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    if (!buffer || !size)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glNamedBufferSubData(buffer, offset, size, data);
+    else {
+        bind_uniform_buffer(buffer);
+        glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+    }
+}
+
+inline void gl_rend_state::write_shader_storage_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    if (!buffer || !size)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glNamedBufferSubData(buffer, offset, size, data);
+    else {
+        bind_shader_storage_buffer(buffer);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, data);
+    }
 }

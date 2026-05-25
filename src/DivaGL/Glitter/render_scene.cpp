@@ -125,7 +125,7 @@ namespace Glitter {
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-        rctx->glitter_batch_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx->glitter_batch_ubo, shader_data);
 
         GLenum blend_src;
         GLenum blend_dst;
@@ -357,7 +357,7 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
     }
 
     void RenderScene::CalcDispLocus(RenderGroup* rend_group) {
@@ -517,7 +517,7 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
     }
 
     void RenderScene::CalcDispQuad(RenderGroup* rend_group) {
@@ -715,7 +715,7 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
     }
 
     void RenderScene::CalcDispQuadNormal(
@@ -942,7 +942,7 @@ namespace Glitter {
             }
         rend_group->disp = disp;
 
-        rend_group->vbo.WriteMemory(gl_state, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+        gl_state.write_array_buffer(rend_group->vbo, 0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
     }
 
     void RenderScene::CalcDispLocusSetPivot(Pivot pivot,
@@ -1854,7 +1854,7 @@ namespace Glitter {
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-        rctx->glitter_batch_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx->glitter_batch_ubo, shader_data);
 
         GLenum blend_src;
         GLenum blend_dst;

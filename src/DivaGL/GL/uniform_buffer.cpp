@@ -78,54 +78,6 @@ namespace GL {
         }
     }
 
-    void* UniformBuffer::MapMemory(gl_state_struct& gl_st) {
-        if (!buffer)
-            return 0;
-
-        void* data;
-        if (DIVA_GL_VERSION_4_5)
-            data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
-        else {
-            gl_st.bind_uniform_buffer(buffer);
-            data = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
-        }
-
-        if (data)
-            return data;
-
-        if (DIVA_GL_VERSION_4_5)
-            glUnmapNamedBuffer(buffer);
-        else {
-            glUnmapBuffer(GL_UNIFORM_BUFFER);
-            gl_st.bind_uniform_buffer(0);
-        }
-        return 0;
-    }
-
-    void* UniformBuffer::MapMemory(p_gl_rend_state& p_gl_rend_st) {
-        if (!buffer)
-            return 0;
-
-        void* data;
-        if (DIVA_GL_VERSION_4_5)
-            data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
-        else {
-            p_gl_rend_st.bind_uniform_buffer(buffer);
-            data = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
-        }
-
-        if (data)
-            return data;
-
-        if (DIVA_GL_VERSION_4_5)
-            glUnmapNamedBuffer(buffer);
-        else {
-            glUnmapBuffer(GL_UNIFORM_BUFFER);
-            p_gl_rend_st.bind_uniform_buffer(0);
-        }
-        return 0;
-    }
-
     void UniformBuffer::Recreate(gl_state_struct& gl_st, size_t size, BufferUsage usage) {
         if (DIVA_GL_VERSION_4_4 && usage != BUFFER_USAGE_STREAM) {
             Destroy();
@@ -159,54 +111,6 @@ namespace GL {
                 gl_st.bind_uniform_buffer(buffer);
                 glBufferData(GL_UNIFORM_BUFFER, (GLsizeiptr)size, data, BufferUsageToGLenum(usage));
             }
-        }
-    }
-
-    void UniformBuffer::UnmapMemory(gl_state_struct& gl_st) {
-        if (!buffer)
-            return;
-
-        if (DIVA_GL_VERSION_4_5)
-            glUnmapNamedBuffer(buffer);
-        else {
-            glUnmapBuffer(GL_UNIFORM_BUFFER);
-            gl_st.bind_uniform_buffer(0);
-        }
-    }
-
-    void UniformBuffer::UnmapMemory(p_gl_rend_state& p_gl_rend_st) {
-        if (!buffer)
-            return;
-
-        if (DIVA_GL_VERSION_4_5)
-            glUnmapNamedBuffer(buffer);
-        else {
-            glUnmapBuffer(GL_UNIFORM_BUFFER);
-            p_gl_rend_st.bind_uniform_buffer(0);
-        }
-    }
-
-    void UniformBuffer::WriteMemory(gl_state_struct& gl_st, size_t offset, size_t size, const void* data) {
-        if (!buffer || !size)
-            return;
-
-        if (DIVA_GL_VERSION_4_5)
-            glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
-        else {
-            gl_st.bind_uniform_buffer(buffer);
-            glBufferSubData(GL_UNIFORM_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
-        }
-    }
-
-    void UniformBuffer::WriteMemory(p_gl_rend_state& p_gl_rend_st, size_t offset, size_t size, const void* data) {
-        if (!buffer || !size)
-            return;
-
-        if (DIVA_GL_VERSION_4_5)
-            glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
-        else {
-            p_gl_rend_st.bind_uniform_buffer(buffer);
-            glBufferSubData(GL_UNIFORM_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
         }
     }
 };

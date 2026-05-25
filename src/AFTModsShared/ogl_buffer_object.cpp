@@ -17,6 +17,21 @@ void (FASTCALL* free_index_buffer)(AFTGLuint ib)
 void (FASTCALL* free_vertex_buffer)(AFTGLuint vb)
     = (void (FASTCALL*)(AFTGLuint vb))0x0000000140461990;
 
+// Added
+bool IndexBuffer::create(uint32_t size, const void* buf) {
+    if (!size)
+        return false;
+
+    ib = create_index_buffer(size, buf);
+    return true;
+}
+
+// Added
+void IndexBuffer::destroy() {
+    free_index_buffer(ib);
+    ib = 0;
+}
+
 // 0x140461650
 int32_t VertexBuffer::create(uint32_t size, const void* buf, uint32_t num_flip) {
     if (!size || num_flip > VertexBuffer::NUM_FLIP_MAX)

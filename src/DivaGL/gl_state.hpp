@@ -34,6 +34,38 @@ struct gl_state_struct {
     bool check_texture_binding_2d();
     bool check_texture_binding_cube_map();
     void get();
+    void* map_array_buffer(GLuint buffer);
+    void* map_element_array_buffer(GLuint buffer);
+    void* map_uniform_buffer(GLuint buffer);
+    void* map_shader_storage_buffer(GLuint buffer);
+    void unmap_array_buffer(GLuint buffer);
+    void unmap_element_array_buffer(GLuint buffer);
+    void unmap_uniform_buffer(GLuint buffer);
+    void unmap_shader_storage_buffer(GLuint buffer);
+    void write_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
+    void write_element_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
+    void write_uniform_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
+    void write_shader_storage_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
+
+    template<typename T>
+    inline void write_array_buffer(GLuint buffer, const T& data) {
+        write_array_buffer(buffer, 0, sizeof(T), &data);
+    }
+
+    template<typename T>
+    inline void write_element_array_buffer(GLuint buffer, const T& data) {
+        write_element_array_buffer(buffer, 0, sizeof(T), &data);
+    }
+
+    template<typename T>
+    inline void write_uniform_buffer(GLuint buffer, const T& data) {
+        write_uniform_buffer(buffer, 0, sizeof(T), &data);
+    }
+
+    template<typename T>
+    inline void write_shader_storage_buffer(GLuint buffer, const T& data) {
+        write_shader_storage_buffer(buffer, 0, sizeof(T), &data);
+    }
 };
 
 extern gl_state_struct gl_state;

@@ -65,7 +65,7 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
     sss_calc_coef(1.0, sss_count, reflect_draw ? sss_inverse_scale_reflect : sss_inverse_scale,
         3, weights, r_radius, g_radius, b_radius, shader_data.g_coef);
 
-    rctx->sss_filter_gaussian_coef_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+    rend_data_ctx.state.write_uniform_buffer(rctx->sss_filter_gaussian_coef_ubo, shader_data);
     textures[reflect_draw ? 3 : 1].Bind(rend_data_ctx.state);
     rend_data_ctx.state.set_viewport(0, 0, 320, 180);
     rend_data_ctx.shader_flags.arr[U_SSS_FILTER] = 3;

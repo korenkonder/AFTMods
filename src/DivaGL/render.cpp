@@ -123,7 +123,7 @@ namespace rndr {
                 shader_data.g_transform[1] = mat.row1;
                 shader_data.g_transform[2] = mat.row2;
                 shader_data.g_transform[3] = mat.row3;
-                rctx->camera_blur_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+                rend_data_ctx.state.write_uniform_buffer(rctx->camera_blur_ubo, shader_data);
                 rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->camera_blur_ubo);
             }
             else {
@@ -255,7 +255,7 @@ namespace rndr {
             shader_data.g_transform[2] = mat.row2;
             shader_data.g_transform[3] = mat.row3;
             shader_data.g_emission = 0.0f;
-            rctx->sun_quad_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+            rend_data_ctx.state.write_uniform_buffer(rctx->sun_quad_ubo, shader_data);
 
             glBeginQuery(GL_SAMPLES_PASSED, chara_data->query[next_query_index]);
             rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -379,7 +379,7 @@ namespace rndr {
         shader_data.g_transform[1] = mat.row1;
         shader_data.g_transform[2] = mat.row2;
         shader_data.g_transform[3] = mat.row3;
-        rctx->sun_quad_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx->sun_quad_ubo, shader_data);
 
         glBeginQuery(GL_SAMPLES_PASSED, lens_shaft_query[next_query_index]);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -395,7 +395,7 @@ namespace rndr {
         shader_data.g_transform[1] = mat.row1;
         shader_data.g_transform[2] = mat.row2;
         shader_data.g_transform[3] = mat.row3;
-        rctx->sun_quad_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx->sun_quad_ubo, shader_data);
 
         glBeginQuery(GL_SAMPLES_PASSED, lens_flare_query[next_query_index]);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -434,7 +434,7 @@ namespace rndr {
             shader_data.g_transform[1] = mat.row1;
             shader_data.g_transform[2] = mat.row2;
             shader_data.g_transform[3] = mat.row3;
-            rctx->sun_quad_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+            rend_data_ctx.state.write_uniform_buffer(rctx->sun_quad_ubo, shader_data);
 
             rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -502,7 +502,7 @@ namespace rndr {
         quad.g_color = { param_x, param_y, param_z, param_w };
         quad.g_texture_lod = 0.0f;
 
-        rctx->quad_ubo.WriteMemory(rend_data_ctx.state, quad);
+        rend_data_ctx.state.write_uniform_buffer(rctx->quad_ubo, quad);
         rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->quad_ubo);
         rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -555,7 +555,7 @@ namespace rndr {
             (float_t)(-(max_distance * min_distance) * (1.0 / (max_distance - min_distance))),
             (float_t)min_distance, (float_t)max_distance
         };
-        rctx->contour_coef_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx->contour_coef_ubo, shader_data);
 
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_CONTOUR);
         rend_data_ctx.state.bind_uniform_buffer_base(2, rctx->contour_coef_ubo);
@@ -1488,7 +1488,7 @@ namespace rndr {
         shader_data.g_tone_offset.w = gamma > 0.0f ? 2.0f / (gamma * 3.0f) : 0.0f;
         memcpy(shader_data.g_texcoord_transforms, texcoord_transforms, sizeof(vec4) * 4);
 
-        rctx->tone_map_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx->tone_map_ubo, shader_data);
 
         rend_data_ctx.state.set_viewport(0, 0, render_width, render_height);
         taa_buffer[2].Bind(rend_data_ctx.state);
@@ -1603,7 +1603,7 @@ namespace rndr {
             for (int32_t i = 0; i < 4 && i < ROB_CHARA_COUNT; i++, chara_data++)
                 for (int32_t j = 0; j < 8; j++)
                     exposure_measure.g_spot_coefficients[i * 8 + j] = chara_data->spot_coefficients[j];
-            rctx->exposure_measure_ubo.WriteMemory(rend_data_ctx.state, exposure_measure);
+            rend_data_ctx.state.write_uniform_buffer(rctx->exposure_measure_ubo, exposure_measure);
 
             rend_data_ctx.state.set_viewport(0, 0, 32, 1);
             downsample_texture.Bind(rend_data_ctx.state);
@@ -1673,7 +1673,7 @@ namespace rndr {
             *(vec3*)&gaussian_coef.g_coef[i] = gauss[i] * intensity;
             gaussian_coef.g_coef[i].w = 0.0f;
         }
-        rctx->gaussian_coef_ubo.WriteMemory(rend_data_ctx.state, gaussian_coef);
+        rend_data_ctx.state.write_uniform_buffer(rctx->gaussian_coef_ubo, gaussian_coef);
     }
 
     void Render::calc_taa_blend() {
@@ -1794,7 +1794,7 @@ namespace rndr {
         const float_t angle_sin = sinf(angle);
         const float_t angle_cos = cosf(angle);
 
-        float_t* data = (float_t*)rctx->lens_ghost_vbo.MapMemory(rend_data_ctx.state);
+        float_t* data = (float_t*)rend_data_ctx.state.map_array_buffer(rctx->lens_ghost_vbo);
         if (!data)
             return;
 
@@ -1812,7 +1812,7 @@ namespace rndr {
             make_ghost_quad((uint8_t)(i & 0x03), opacity, &mat, data);
         }
 
-        rctx->lens_ghost_vbo.UnmapMemory(rend_data_ctx.state);
+        rend_data_ctx.state.unmap_array_buffer(rctx->lens_ghost_vbo);
 
         rend_data_ctx.state.set_viewport(0, 0, render_width[0], render_height[0]);
         rend_texture[0].Bind(rend_data_ctx.state);

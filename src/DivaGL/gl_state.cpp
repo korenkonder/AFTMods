@@ -112,3 +112,195 @@ void gl_state_struct::get() {
     if (DIVA_GL_VERSION_4_3)
         glGetIntegervDLL(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&shader_storage_buffer_binding);
 }
+
+void* gl_state_struct::map_array_buffer(GLuint buffer) {
+    if (!buffer)
+        return 0;
+
+    void* data;
+    if (DIVA_GL_VERSION_4_5)
+        data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
+    else {
+        bind_array_buffer(buffer);
+        data = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+    }
+
+    if (data)
+        return data;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        bind_array_buffer(0);
+    }
+    return 0;
+}
+
+void* gl_state_struct::map_element_array_buffer(GLuint buffer) {
+    if (!buffer)
+        return 0;
+
+    void* data;
+    if (DIVA_GL_VERSION_4_5)
+        data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
+    else {
+        bind_element_array_buffer(buffer);
+        data = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+    }
+
+    if (data)
+        return data;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+        bind_element_array_buffer(0);
+    }
+    return 0;
+}
+
+void* gl_state_struct::map_uniform_buffer(GLuint buffer) {
+    if (!buffer)
+        return 0;
+
+    void* data;
+    if (DIVA_GL_VERSION_4_5)
+        data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
+    else {
+        bind_uniform_buffer(buffer);
+        data = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+    }
+
+    if (data)
+        return data;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+        bind_uniform_buffer(0);
+    }
+    return 0;
+}
+
+void* gl_state_struct::map_shader_storage_buffer(GLuint buffer) {
+    if (!buffer)
+        return 0;
+
+    void* data;
+    if (DIVA_GL_VERSION_4_5)
+        data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
+    else {
+        bind_shader_storage_buffer(buffer);
+        data = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+    }
+
+    if (data)
+        return data;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        bind_shader_storage_buffer(0);
+    }
+    return 0;
+}
+
+void gl_state_struct::unmap_array_buffer(GLuint buffer) {
+    if (!buffer)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        bind_array_buffer(0);
+    }
+}
+
+void gl_state_struct::unmap_element_array_buffer(GLuint buffer) {
+    if (!buffer)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+        bind_element_array_buffer(0);
+    }
+}
+
+void gl_state_struct::unmap_uniform_buffer(GLuint buffer) {
+    if (!buffer)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+        bind_uniform_buffer(0);
+    }
+}
+
+void gl_state_struct::unmap_shader_storage_buffer(GLuint buffer) {
+    if (!buffer)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glUnmapNamedBuffer(buffer);
+    else {
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        bind_shader_storage_buffer(0);
+    }
+}
+
+void gl_state_struct::write_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    if (!buffer || !size)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glNamedBufferSubData(buffer, offset, size, data);
+    else {
+        bind_array_buffer(buffer);
+        glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+    }
+}
+
+void gl_state_struct::write_element_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    if (!buffer || !size)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glNamedBufferSubData(buffer, offset, size, data);
+    else {
+        bind_element_array_buffer(buffer);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, size, data);
+    }
+}
+
+void gl_state_struct::write_uniform_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    if (!buffer || !size)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glNamedBufferSubData(buffer, offset, size, data);
+    else {
+        bind_uniform_buffer(buffer);
+        glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+    }
+}
+
+void gl_state_struct::write_shader_storage_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data) {
+    if (!buffer || !size)
+        return;
+
+    if (DIVA_GL_VERSION_4_5)
+        glNamedBufferSubData(buffer, offset, size, data);
+    else {
+        bind_shader_storage_buffer(buffer);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, data);
+    }
+}

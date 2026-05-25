@@ -8,9 +8,6 @@
 #include "../../KKdLib/default.hpp"
 #include "../wrap.hpp"
 
-struct gl_state_struct;
-struct p_gl_rend_state;
-
 namespace GL {
     enum BufferUsage {
         BUFFER_USAGE_STREAM = 0,

@@ -42,7 +42,7 @@ namespace renderer {
     void Transparency::combine(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha) {
         transparency_batch_shader_data shader_data = {};
         shader_data.g_opacity = { alpha, 0.0f, 0.0f, 0.0f };
-        rctx->transparency_batch_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx->transparency_batch_ubo, shader_data);
 
         rend_data_ctx.state.disable_blend();
         rend_data_ctx.state.disable_depth_test();

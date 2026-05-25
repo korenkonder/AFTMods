@@ -31,12 +31,12 @@ struct rob_chara_age_age_object {
     obj_mesh mesh;
     obj_sub_mesh sub_mesh;
     obj_material_data material[2];
-    AABB axis_aligned_bounding_box;
+    AABB aabb;
     rob_chara_age_age_object_vertex* vertex_data;
     int32_t vertex_data_size;
     int32_t vertex_array_size;
-    VertexBuffer vbhn_array;
-    IndexBuffer ibhn_array;
+    VertexBuffer vb;
+    IndexBuffer ib;
     vec3 pos[10];
     int32_t disp_count;
     int32_t count;
@@ -141,15 +141,15 @@ const mat4* rob_chara_get_item_adjust_data_mat(rob_chara* rob_chr) {
     return &rob_chara_item_adjust_x_array[rob_chr - rob_chara_array].mat;
 }
 
-HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh* mesh, VertexBuffer* vertex_buffer,
+HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh* mesh, VertexBuffer* vb,
     CLOTH_VERTEX* nodes, float_t facing, uint16_t* indices, bool double_sided) {
-    if (!mesh || !vertex_buffer || (mesh->vertex_format
+    if (!mesh || !vb || (mesh->vertex_format
         & (OBJ_VERTEX_NORMAL | OBJ_VERTEX_POSITION)) != (OBJ_VERTEX_NORMAL | OBJ_VERTEX_POSITION))
         return;
 
-    vertex_buffer->flip();
-    GL::ArrayBuffer vb = vertex_buffer->get_glvb();
-    size_t data = (size_t)vb.MapMemory(gl_state);
+    vb->flip();
+    GLuint glvb = vb->get_glvb();
+    size_t data = (size_t)gl_state.map_array_buffer(glvb);
     if (!data)
         return;
 
@@ -287,7 +287,7 @@ HOOK(void, FASTCALL, RobCloth__UpdateVertexBuffer, 0x000000014021CF00, obj_mesh*
         break;
     }
 
-    vb.UnmapMemory(gl_state);
+    gl_state.unmap_array_buffer(glvb);
 }
 
 HOOK(void, FASTCALL, RobCloth__InitDataParent, 0x000000014021EEB0, RobCloth* This, obj_skin_block_cloth* cls_data, rob_chara_item_equip_object* itm_eq_obj) {
@@ -788,10 +788,10 @@ void rob_chara_age_age_object::disp(size_t chara_index,
                 return a.first < b.first;
             });
 
-    vbhn_array.flip();
+    vb.flip();
 
-    GL::ArrayBuffer vb = vbhn_array.get_glvb();
-    size_t vtx_data = (size_t)vb.MapMemory(gl_state);
+    GLuint glvb = vb.get_glvb();
+    size_t vtx_data = (size_t)gl_state.map_array_buffer(glvb);
     if (!vtx_data)
         return;
 
@@ -800,7 +800,7 @@ void rob_chara_age_age_object::disp(size_t chara_index,
         memmove((void*)(vtx_data + vertex_array_size * i),
             (void*)((size_t)vertex_data + vertex_array_size * v44[i].second), vertex_array_size);
 
-    vb.UnmapMemory(gl_state);
+    gl_state.unmap_array_buffer(glvb);
 
     mesh.num_vertex = disp_count * num_vertex;
     sub_mesh.num_index = disp_count * num_index;
@@ -817,7 +817,7 @@ void rob_chara_age_age_object::disp(size_t chara_index,
         = (prj::vector<GLuint>*(FASTCALL*)(rob_chara_age_age_object * rob_age_age_obj))0x000000014045A8E0;
     disp_manager->entry_obj_by_obj(mat4_identity, &obj,
         rob_chara_age_age_object__get_obj_set_texture(this),
-        &vbhn_array, &ibhn_array, 0, 1.0f);
+        &vb, &ib, 0, 1.0f);
 }
 
 ::obj* rob_chara_age_age_object::get_obj_set_obj() {
@@ -894,7 +894,7 @@ void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
     static int32_t(FASTCALL * VertexBuffer__create)(VertexBuffer * This, uint32_t size, void * buf, uint32_t num_flip)
         = (int32_t(FASTCALL*)(VertexBuffer * This, uint32_t size, void*  buf, uint32_t num_flip))0x0000000140461650;
 
-    VertexBuffer__create(&vbhn_array, vertex_data_size, vertex_data, 2);
+    VertexBuffer__create(&vb, vertex_data_size, vertex_data, 2);
     this->num_index = num_index + 1;
     int32_t num_idx_data = (int32_t)(count * (num_index + 1));
 
@@ -912,11 +912,7 @@ void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
         index_offset += num_vertex;
     }
 
-    {
-        GL::ElementArrayBuffer ib;
-        ib.Create(gl_state, sizeof(uint16_t) * num_idx_data, idx_data);
-        ibhn_array.ib = ib;
-    }
+    ib.create(sizeof(uint16_t) * num_idx_data, idx_data);
     _operator_delete(idx_data);
 
     material[0] = o->material_array[0];
@@ -967,19 +963,19 @@ void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
     sub_mesh.num_index = num_idx_data;
     sub_mesh.attrib = sm->attrib;
     memmove(sub_mesh.reserved, sm->reserved, sizeof(uint32_t) * 4);
-    sub_mesh.aabb = &axis_aligned_bounding_box;
+    sub_mesh.aabb = &aabb;
     sub_mesh.min_index = 0;
     sub_mesh.max_index = num_vertex * count;
     sub_mesh.index_offset = 0;
 
-    axis_aligned_bounding_box = *sm->aabb;
+    aabb = *sm->aabb;
 
     if (mesh.num_vertex && mesh.vertex_array.position)
         for (int32_t i = 0; i < 2; i++) {
             disp_manager->add_vertex_array(&mesh, &sub_mesh, material,
-                vbhn_array.get_glvb(), 0, ibhn_array.get_glib(), 0, 0);
+                vb.get_glvb(), 0, ib.get_glib(), 0, 0);
 
-            vbhn_array.flip();
+            vb.flip();
         }
 }
 

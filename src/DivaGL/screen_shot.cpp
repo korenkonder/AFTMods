@@ -220,7 +220,7 @@ HOOK(void, FASTCALL, ScreenShotImpl__copy, 0x0000000140557F50, ScreenShotImpl* i
     quad.g_color = 0.0f;
     quad.g_texture_lod = 0.0f;
 
-    rctx->quad_ubo.WriteMemory(rend_data_ctx.state, quad);
+    rend_data_ctx.state.write_uniform_buffer(rctx->quad_ubo, quad);
     rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->quad_ubo);
 
     rend_data_ctx.state.disable_depth_test();

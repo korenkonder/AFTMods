@@ -1015,7 +1015,7 @@ namespace mdl {
             gl_state.bind_element_array_buffer(0);
         }
 
-        vbo.WriteMemory(gl_state, 0, vertex_buffer.size(), vertex_buffer.data());
+        gl_state.write_array_buffer(vbo, 0, vertex_buffer.size(), vertex_buffer.data());
 
         if (ebo_index_count < index_buffer.size()) {
             if (!ebo_index_count)
@@ -1033,7 +1033,7 @@ namespace mdl {
             gl_state.bind_element_array_buffer(0);
         }
 
-        ebo.WriteMemory(gl_state, 0, sizeof(uint32_t) * index_buffer.size(), index_buffer.data());
+        gl_state.write_element_array_buffer(ebo, 0, sizeof(uint32_t) * index_buffer.size(), index_buffer.data());
 
         gl_state.bind_array_buffer(0);
         gl_state.bind_element_array_buffer(0);

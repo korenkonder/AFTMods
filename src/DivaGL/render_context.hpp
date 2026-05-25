@@ -582,15 +582,15 @@ struct render_context {
     mdl::ObjList obj_screen[mdl::OBJ_TYPE_SCREEN_MAX];
     mdl::ObjList obj_reflect[mdl::OBJ_TYPE_REFLECT_MAX];
 
-    uint32_t max_uniform_block_size = 0;
-    uint32_t max_storage_block_size = 0;
-
     prj::vector<render_context::shared_storage_buffer> shared_storage_buffers;
     prj::unordered_map<size_t, shared_buffer_entry> shared_storage_buffer_entries;
     prj::vector<render_context::shared_uniform_buffer> shared_uniform_buffers;
     prj::unordered_map<size_t, shared_buffer_entry> shared_uniform_buffer_entries;
     prj::vector<render_context::texture_skinning_buffer> texture_skinning_buffers;
     prj::unordered_map<size_t, texture_skinning_buffer_entry> texture_skinning_buffer_entries;
+
+    static uint32_t max_uniform_block_size;
+    static uint32_t max_storage_block_size;
 
     render_context();
     ~render_context();

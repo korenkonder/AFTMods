@@ -361,7 +361,7 @@ namespace renderer {
         shader_data.g_dof_param.y = dof_param_prefilter_tap_num;
         shader_data.g_dof_param.z = dof_param_sample_division;
         shader_data.g_dof_param.w = dof_param_upsample_tap_num;
-        common_ubo.WriteMemory(rend_data_ctx.state, shader_data);
+        rend_data_ctx.state.write_uniform_buffer(common_ubo, shader_data);
     }
 
     template <int32_t sample_division>

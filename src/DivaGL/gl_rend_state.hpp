@@ -6,7 +6,7 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
-#include "gl.hpp"
+#include "wrap.hpp"
 
 enum gl_rend_state_index {
     GL_REND_STATE_PRE_3D = 0,
@@ -32,6 +32,7 @@ struct p_gl_rend_state {
     void active_bind_texture_cube_map(int32_t index, GLuint texture);
     void active_texture(int32_t index);
     void begin_event(const char* message, int32_t length);
+    void begin_query(GLenum target, GLuint id);
     void bind_framebuffer(GLuint framebuffer);
     void bind_read_framebuffer(GLuint framebuffer);
     void bind_draw_framebuffer(GLuint framebuffer);
@@ -54,6 +55,7 @@ struct p_gl_rend_state {
     GLenum check_framebuffer_status(GLenum target);
     void clear(GLbitfield mask);
     void clear_buffer(GLenum buffer, GLint drawbuffer, const GLfloat* value);
+    void clear_buffer(GLenum buffer, GLint drawbuffer, const GLint* value);
     void clear_color(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
     void clear_depth(GLfloat depth);
     void clear_stencil(GLint stencil);
@@ -83,6 +85,7 @@ struct p_gl_rend_state {
     void enable_scissor_test();
     void enable_stencil_test();
     void end_event();
+    void end_query(GLenum target);
     void finish();
     void generate_mipmap(GLenum target);
     void generate_texture_mipmap(GLuint texture);
@@ -93,6 +96,10 @@ struct p_gl_rend_state {
     void get_scissor(GLint& x, GLint& y, GLsizei& width, GLsizei& height);
     gl_rend_state_rect get_viewport();
     void get_viewport(GLint& x, GLint& y, GLsizei& width, GLsizei& height);
+    void* map_array_buffer(GLuint buffer);
+    void* map_element_array_buffer(GLuint buffer);
+    void* map_uniform_buffer(GLuint buffer);
+    void* map_shader_storage_buffer(GLuint buffer);
     void set_blend_func(GLenum src, GLenum dst);
     void set_blend_func_separate(GLenum src_rgb, GLenum dst_rgb,
         GLenum src_alpha, GLenum dst_alpha);
@@ -114,10 +121,38 @@ struct p_gl_rend_state {
     void set_viewport(GLint x, GLint y, GLsizei width, GLsizei height);
     void tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset,
         GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels);
+    void unmap_array_buffer(GLuint buffer);
+    void unmap_element_array_buffer(GLuint buffer);
+    void unmap_uniform_buffer(GLuint buffer);
+    void unmap_shader_storage_buffer(GLuint buffer);
     void use_program(GLuint program);
+    void write_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
+    void write_element_array_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
+    void write_uniform_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
+    void write_shader_storage_buffer(GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
 
     template <size_t size>
     inline void begin_event(const char(&str)[size]) {
         begin_event(str, (GLsizei)(size - 1));
+    }
+
+    template<typename T>
+    inline void write_array_buffer(GLuint buffer, const T& data) {
+        write_array_buffer(buffer, 0, sizeof(T), &data);
+    }
+
+    template<typename T>
+    inline void write_element_array_buffer(GLuint buffer, const T& data) {
+        write_element_array_buffer(buffer, 0, sizeof(T), &data);
+    }
+
+    template<typename T>
+    inline void write_uniform_buffer(GLuint buffer, const T& data) {
+        write_uniform_buffer(buffer, 0, sizeof(T), &data);
+    }
+
+    template<typename T>
+    inline void write_shader_storage_buffer(GLuint buffer, const T& data) {
+        write_shader_storage_buffer(buffer, 0, sizeof(T), &data);
     }
 };

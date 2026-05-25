@@ -1082,7 +1082,7 @@ namespace rndr {
 
         quad_shader_data quad_data = {};
         quad_data.g_texcoord_modifier = { 0.5f, 0.5f, 0.5f, 0.5f };
-        rctx->quad_ubo.WriteMemory(rend_data_ctx.state, quad_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx->quad_ubo, quad_data);
 
         contour_params_shader_data contour_params_data = {};
         const double_t max_distance = cam.get_max_distance();
@@ -1092,7 +1092,7 @@ namespace rndr {
             (float_t)(-(max_distance * min_distance) * (1.0 / (max_distance - min_distance))),
             (float_t)min_distance, (float_t)max_distance
         };
-        rctx->contour_params_ubo.WriteMemory(rend_data_ctx.state, contour_params_data);
+        rend_data_ctx.state.write_uniform_buffer(rctx->contour_params_ubo, contour_params_data);
 
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_CONTOUR_NPR);
         rend_data_ctx.state.active_bind_texture_2d(14, rt->GetDepthTex());
@@ -1147,13 +1147,13 @@ void image_filter_scale(render_data_context& rend_data_ctx,
     image_filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = { 1.0f, 1.0f, 0.0f, 0.0f };
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
-    rctx->image_filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
+    rend_data_ctx.state.write_uniform_buffer(rctx->image_filter_scene_ubo, filter_scene);
 
     image_filter_batch_shader_data image_filter_batch = {};
     image_filter_batch.g_color_scale = scale;
     image_filter_batch.g_color_offset = 0.0f;
     image_filter_batch.g_texture_lod = 0.0f;
-    rctx->image_filter_batch_ubo.WriteMemory(rend_data_ctx.state, image_filter_batch);
+    rend_data_ctx.state.write_uniform_buffer(rctx->image_filter_batch_ubo, image_filter_batch);
 
     rend_data_ctx.shader_flags.arr[U_IMAGE_FILTER] = 5;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_IMGFILT);
@@ -1364,7 +1364,7 @@ static void apply_esm_filter(render_data_context& rend_data_ctx,
     esm_filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = 0.0f;
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
-    rctx->esm_filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
+    rend_data_ctx.state.write_uniform_buffer(rctx->esm_filter_scene_ubo, filter_scene);
 
     esm_filter_batch_shader_data esm_filter_batch = {};
     double_t v6 = 1.0 / (sqrt(M_PI * 2.0) * sigma);
@@ -1381,7 +1381,7 @@ static void apply_esm_filter(render_data_context& rend_data_ctx,
 
     buf->Bind(rend_data_ctx.state);
     esm_filter_batch.g_params = { 1.0f / (float_t)dst_tex->width, 0.0f, far_texel_offset, far_texel_offset };
-    rctx->esm_filter_batch_ubo.WriteMemory(rend_data_ctx.state, esm_filter_batch);
+    rend_data_ctx.state.write_uniform_buffer(rctx->esm_filter_batch_ubo, esm_filter_batch);
 
     rend_data_ctx.state.active_bind_texture_2d(0, src_tex->glid);
     rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
@@ -1390,7 +1390,7 @@ static void apply_esm_filter(render_data_context& rend_data_ctx,
 
     dst->Bind(rend_data_ctx.state);
     esm_filter_batch.g_params = { 0.0f, 1.0f / (float_t)dst_tex->height, far_texel_offset, far_texel_offset };
-    rctx->esm_filter_batch_ubo.WriteMemory(rend_data_ctx.state, esm_filter_batch);
+    rend_data_ctx.state.write_uniform_buffer(rctx->esm_filter_batch_ubo, esm_filter_batch);
 
     rend_data_ctx.state.active_bind_texture_2d(0, buf_tex->glid);
     rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
@@ -1415,7 +1415,7 @@ static void apply_esm_min_filter(render_data_context& rend_data_ctx,
     esm_filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = 0.0f;
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
-    rctx->esm_filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
+    rend_data_ctx.state.write_uniform_buffer(rctx->esm_filter_scene_ubo, filter_scene);
 
     esm_filter_batch_shader_data esm_filter_batch = {};
     esm_filter_batch.g_gauss[0] = 0.0f;
@@ -1429,7 +1429,7 @@ static void apply_esm_min_filter(render_data_context& rend_data_ctx,
     buf->Bind(rend_data_ctx.state);
     esm_filter_batch.g_params = { 1.0f / (float_t)src_tex->width,
         1.0f / (float_t)src_tex->height, 0.0f, 0.0f };
-    rctx->esm_filter_batch_ubo.WriteMemory(rend_data_ctx.state, esm_filter_batch);
+    rend_data_ctx.state.write_uniform_buffer(rctx->esm_filter_batch_ubo, esm_filter_batch);
 
     rend_data_ctx.shader_flags.arr[U_ESM_FILTER] = 0;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_ESMFILT);
@@ -1443,7 +1443,7 @@ static void apply_esm_min_filter(render_data_context& rend_data_ctx,
     dst->Bind(rend_data_ctx.state);
     esm_filter_batch.g_params = { 0.75f / (float_t)buf_tex->width,
         0.75f / (float_t)buf_tex->height, 0.0f, 0.0f };
-    rctx->esm_filter_batch_ubo.WriteMemory(rend_data_ctx.state, esm_filter_batch);
+    rend_data_ctx.state.write_uniform_buffer(rctx->esm_filter_batch_ubo, esm_filter_batch);
 
     rend_data_ctx.shader_flags.arr[U_ESM_FILTER] = 1;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_ESMFILT);
@@ -2053,7 +2053,7 @@ static void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderText
     float_t h = res_scale.y / (float_t)src->GetHeight();
     filter_scene.g_transform = { w, h, 0.0f, 0.0f };
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
-    rctx->image_filter_scene_ubo.WriteMemory(rend_data_ctx.state, filter_scene);
+    rend_data_ctx.state.write_uniform_buffer(rctx->image_filter_scene_ubo, filter_scene);
 
     image_filter_batch_shader_data image_filter_batch = {};
     if (filter == BLUR_FILTER_32)
@@ -2062,7 +2062,7 @@ static void apply_blur_filter_sub(render_data_context& rend_data_ctx, RenderText
         image_filter_batch.g_color_scale = scale * (float_t)(1.0 / 4.0);
     image_filter_batch.g_color_offset = offset;
     image_filter_batch.g_texture_lod = 0.0f;
-    rctx->image_filter_batch_ubo.WriteMemory(rend_data_ctx.state, image_filter_batch);
+    rend_data_ctx.state.write_uniform_buffer(rctx->image_filter_batch_ubo, image_filter_batch);
 
     rend_data_ctx.shader_flags.arr[U_IMAGE_FILTER] = filter == BLUR_FILTER_32 ? 1 : 0;
     rend_data_ctx.state.bind_vertex_array(rctx->box_vao);
