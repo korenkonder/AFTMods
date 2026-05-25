@@ -720,6 +720,8 @@ inline void gl_rend_state::active_texture(int32_t index) {
 inline void gl_rend_state::begin_event(const char* message, int32_t length) {
     if (DIVA_GL_VERSION_4_3)
         glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, (GLsizei)length, message);
+    else if (DIVA_GL_EXT_debug_marker)
+        glPushGroupMarkerEXT((GLsizei)length, message);
 }
 
 inline void gl_rend_state::begin_query(GLenum target, GLuint id) {
@@ -1122,6 +1124,8 @@ inline void gl_rend_state::enable_stencil_test() {
 inline void gl_rend_state::end_event() {
     if (DIVA_GL_VERSION_4_3)
         glPopDebugGroup();
+    else if (DIVA_GL_EXT_debug_marker)
+        glPopGroupMarkerEXT();
 }
 
 inline void gl_rend_state::end_query(GLenum target) {

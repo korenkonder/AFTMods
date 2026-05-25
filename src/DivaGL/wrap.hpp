@@ -1266,6 +1266,8 @@ typedef void (GLAPIENTRY * PFNGLGETNAMEDBUFFERPARAMETERIVPROC)(GLuint buffer, GL
 typedef void (GLAPIENTRY * PFNGLTEXTURESUBIMAGE2DPROC) (GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void * pixels);
 typedef void (GLAPIENTRY * PFNGLGENERATETEXTUREMIPMAPPROC) (GLuint texture);
 typedef void (GLAPIENTRY * PFNGLBINDTEXTUREUNITPROC) (GLuint unit, GLuint texture);
+typedef void (GLAPIENTRY * PFNGLPUSHGROUPMARKEREXTPROC) (GLsizei length, const GLchar * marker);
+typedef void (GLAPIENTRY * PFNGLPOPGROUPMARKEREXTPROC) ();
 
 extern PFNGLALPHAFUNCDLLPROC* divagl_glAlphaFuncDLL;
 extern PFNGLBEGINDLLPROC* divagl_glBeginDLL;
@@ -2525,6 +2527,8 @@ extern PFNGLGETNAMEDBUFFERPARAMETERIVPROC divagl_glGetNamedBufferParameteriv;
 extern PFNGLTEXTURESUBIMAGE2DPROC divagl_glTextureSubImage2D;
 extern PFNGLGENERATETEXTUREMIPMAPPROC divagl_glGenerateTextureMipmap;
 extern PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit;
+extern PFNGLPUSHGROUPMARKEREXTPROC divagl_glPushGroupMarkerEXT;
+extern PFNGLPOPGROUPMARKEREXTPROC divagl_glPopGroupMarkerEXT;
 
 #define glAlphaFuncDLL (*divagl_glAlphaFuncDLL)
 #define glBeginDLL (*divagl_glBeginDLL)
@@ -3784,6 +3788,8 @@ extern PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit;
 #define glTextureSubImage2D divagl_glTextureSubImage2D
 #define glGenerateTextureMipmap divagl_glGenerateTextureMipmap
 #define glBindTextureUnit divagl_glBindTextureUnit
+#define glPushGroupMarkerEXT divagl_glPushGroupMarkerEXT
+#define glPopGroupMarkerEXT divagl_glPopGroupMarkerEXT
 
 extern bool DIVA_GL_VERSION_4_1;
 extern bool DIVA_GL_VERSION_4_2;
@@ -3791,6 +3797,8 @@ extern bool DIVA_GL_VERSION_4_3;
 extern bool DIVA_GL_VERSION_4_4;
 extern bool DIVA_GL_VERSION_4_5;
 extern bool DIVA_GL_VERSION_4_6;
+
+extern bool DIVA_GL_EXT_debug_marker;
 
 extern void wrap_addresses();
 extern void wrap_patch();

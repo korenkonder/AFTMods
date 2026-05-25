@@ -19,6 +19,8 @@ bool DIVA_GL_VERSION_4_4 = false;
 bool DIVA_GL_VERSION_4_5 = false;
 bool DIVA_GL_VERSION_4_6 = false;
 
+bool DIVA_GL_EXT_debug_marker = false;
+
 extern size_t glut_handle;
 
 PFNGLALPHAFUNCDLLPROC* divagl_glAlphaFuncDLL
@@ -2473,6 +2475,8 @@ PFNGLGETNAMEDBUFFERPARAMETERIVPROC divagl_glGetNamedBufferParameteriv = 0;
 PFNGLTEXTURESUBIMAGE2DPROC divagl_glTextureSubImage2D = 0;
 PFNGLGENERATETEXTUREMIPMAPPROC divagl_glGenerateTextureMipmap = 0;
 PFNGLBINDTEXTUREUNITPROC divagl_glBindTextureUnit = 0;
+PFNGLPUSHGROUPMARKEREXTPROC divagl_glPushGroupMarkerEXT = 0;
+PFNGLPOPGROUPMARKEREXTPROC divagl_glPopGroupMarkerEXT = 0;
 
 PFNGLGETBOOLEANVDLLPROC divagl_glGetBooleanvDLL_orig = 0;
 PFNGLTEXIMAGE1DDLLPROC divagl_glTexImage1DDLL_orig = 0;
@@ -2631,6 +2635,12 @@ HOOK(void, FASTCALL, wglGetProcAddresses, 0x0000000140461B50) {
         glGenerateTextureMipmap = (PFNGLGENERATETEXTUREMIPMAPPROC)wglGetProcAddressDLL("glGenerateTextureMipmap");
         glBindTextureUnit = (PFNGLBINDTEXTUREUNITPROC)wglGetProcAddressDLL("glBindTextureUnit");
     }
+
+    // GL_EXT_debug_marker
+    glPushGroupMarkerEXT = (PFNGLPUSHGROUPMARKEREXTPROC)wglGetProcAddressDLL("glPushGroupMarkerEXT");
+    glPopGroupMarkerEXT = (PFNGLPOPGROUPMARKEREXTPROC)wglGetProcAddressDLL("glPopGroupMarkerEXT");
+
+    DIVA_GL_EXT_debug_marker = glPushGroupMarkerEXT && glPopGroupMarkerEXT;
 
 #undef REPLACE_FUNC
 }
