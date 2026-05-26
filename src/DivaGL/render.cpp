@@ -1937,7 +1937,7 @@ namespace rndr {
         }
 
         if (DIVA_GL_VERSION_4_5)
-            glTextureSubImage2D(tonemap_lut_texture, 0, 0, 0,
+            p_gl_rend_st.texture_sub_image_2d(tonemap_lut_texture, 0, 0, 0,
                 16 * TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, tex_data);
         else {
             p_gl_rend_st.bind_texture_2d(tonemap_lut_texture);
