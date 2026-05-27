@@ -235,20 +235,20 @@ HOOK(void, FASTCALL, auth_3d_m_object_hrc_disp, 0x00000001401D0760, auth_3d_m_ob
             continue;
 
         mdl::ObjFlags flags = mdl::OBJ_SSS;
-        shadow_type_enum shadow_type = SHADOW_CHARA;
+        int32_t shadow_group = 0;
         if (auth->shadow || i.shadow) {
             enum_or(flags, mdl::OBJ_4 | mdl::OBJ_SHADOW);
-            shadow_type = SHADOW_STAGE;
+            shadow_group = 1;
         }
         if (auth->alpha < 1.0f)
             enum_or(flags, auth->obj_flags);
 
         disp_manager.set_obj_flags(flags);
-        disp_manager.set_shadow_type(shadow_type);
+        disp_manager.set_shadow_group(shadow_group);
 
-        Shadow* shad = shadow_ptr_get();
+        Shadow* shad = get_shadow();
         if (shad && (flags & mdl::OBJ_SHADOW)) {
-            disp_manager.set_shadow_type(SHADOW_STAGE);
+            disp_manager.set_shadow_group(1);
 
             mat4* m = &moh->model_transform.mat;
             for (auth_3d_object_node& j : moh->node)
@@ -263,8 +263,7 @@ HOOK(void, FASTCALL, auth_3d_m_object_hrc_disp, 0x00000001401D0760, auth_3d_m_ob
 
             vec3 pos;
             mat4_get_translation(&mat, &pos);
-            pos.y -= 0.2f;
-            shad->positions[shadow_type].push_back(pos);
+            shad->set_dist_base(shadow_group, &pos);
         }
 
         if (i.mats.size())
@@ -273,7 +272,7 @@ HOOK(void, FASTCALL, auth_3d_m_object_hrc_disp, 0x00000001401D0760, auth_3d_m_ob
     }
 
     disp_manager.set_obj_flags();
-    disp_manager.set_shadow_type(SHADOW_CHARA);
+    disp_manager.set_shadow_group(0);
 }
 
 HOOK(void, FASTCALL, auth_3d_object_hrc_disp, 0x00000001401D04A0, auth_3d_object_hrc* oh, auth_3d* auth) {
@@ -293,7 +292,7 @@ HOOK(void, FASTCALL, auth_3d_object_hrc_disp, 0x00000001401D04A0, auth_3d_object
         enum_or(flags, auth->obj_flags);
 
     disp_manager.set_obj_flags(flags);
-    disp_manager.set_shadow_type(SHADOW_CHARA);
+    disp_manager.set_shadow_group(0);
 
     mat4 mat = mat4_identity;
     if (auth->chara_id >= 0 && auth->chara_id < ROB_CHARA_COUNT) {
@@ -305,11 +304,11 @@ HOOK(void, FASTCALL, auth_3d_object_hrc_disp, 0x00000001401D04A0, auth_3d_object
                 : rob_chara_get_adjust_data_mat(rob_chr),
                 sub_140516740(rob_chr), &mat);
             if (auth->chara_id)
-                disp_manager.set_shadow_type(SHADOW_STAGE);
+                disp_manager.set_shadow_group(1);
         }
     }
     else if (flags & mdl::OBJ_SHADOW) {
-        disp_manager.set_shadow_type(SHADOW_STAGE);
+        disp_manager.set_shadow_group(1);
 
         mat4 mat = oh->node.front().model_transform.mat;
         for (auth_3d_object_node& i : oh->node)
@@ -319,12 +318,11 @@ HOOK(void, FASTCALL, auth_3d_object_hrc_disp, 0x00000001401D04A0, auth_3d_object
             }
         mat4_transpose(&mat, &mat);
 
-        Shadow* shad = shadow_ptr_get();
+        Shadow* shad = get_shadow();
         if (shad) {
             vec3 pos;
             mat4_get_translation(&mat, &pos);
-            pos.y -= 0.2f;
-            shad->positions[SHADOW_STAGE].push_back(pos);
+            shad->set_dist_base(1, &pos);
         }
     }
 
@@ -333,7 +331,7 @@ HOOK(void, FASTCALL, auth_3d_object_hrc_disp, 0x00000001401D04A0, auth_3d_object
             oh->object_info, 0, 0, auth->alpha, oh->node_bone_mats.data(), 0, 0, mat);
 
     disp_manager.set_obj_flags();
-    disp_manager.set_shadow_type(SHADOW_CHARA);
+    disp_manager.set_shadow_group(0);
 
     extern void FASTCALL implOfauth_3d_object_disp(auth_3d_object * o, auth_3d * auth);
 
@@ -373,7 +371,7 @@ HOOK(void, FASTCALL, auth_3d_object_disp, 0x00000001401D0970, auth_3d_object* o,
                 : rob_chara_get_adjust_data_mat(rob_chr),
                 sub_140516740(rob_chr), &m);
             mat4_mul(&m, &mat, &mat);
-            disp_manager.set_shadow_type(auth->chara_id ? SHADOW_STAGE : SHADOW_CHARA);
+            disp_manager.set_shadow_group(auth->chara_id ? 1 : 0);
         }
     }
 

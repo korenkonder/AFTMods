@@ -662,14 +662,14 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
     draw_object_material_set_uniform(rend_data_ctx, material, false);
     if (!rctx->draw_state_rend_data[rend_data_ctx.index].shadow)
         rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 0;
-    else if (!args->self_shadow)
-        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = args->sub_mesh->attrib.m.recieve_shadow ? 1 : 0;
-    else if (args->self_shadow != 1)
-        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 0;
-    else
+    else if (args->receive_shadow == mdl::RECEIVE_SHADOW_DEFAULT)
+        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = args->sub_mesh->attrib.m.receive_shadow ? 1 : 0;
+    else if (args->receive_shadow == mdl::RECEIVE_SHADOW_ENABLE)
         rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 1;
+    else // mdl::RECEIVE_SHADOW_DISABLE
+        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 0;
 
-    rend_data_ctx.shader_flags.arr[U_CHARA_SHADOW2] = args->shadow > SHADOW_CHARA ? 1 : 0;
+    rend_data_ctx.shader_flags.arr[U_CHARA_SHADOW2] = args->shadow_group > 0 ? 1 : 0;
     rend_data_ctx.shader_flags.arr[U_CHARA_SHADOW]
         = rctx->draw_state_rend_data[rend_data_ctx.index].self_shadow ? 1 : 0;
 

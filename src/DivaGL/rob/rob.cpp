@@ -481,19 +481,17 @@ HOOK(void, FASTCALL, rob_chara_item_equip_disp, 0x0000000140512950,
         enum_or(flags, mdl::OBJ_REFRACT);
 
     mdl::DispManager& disp_manager = *::disp_manager;
-    if (rob_item_equip->shadow_type != -1) {
+    if (rob_item_equip->shadow_group != -1) {
         if (rob_item_equip->field_A0 & 0x04) {
-            vec3 pos = rob_item_equip->position;
-            pos.y -= 0.2f;
-            shadow_ptr_get()->positions[rob_item_equip->shadow_type].push_back(pos);
+            get_shadow()->set_dist_base(rob_item_equip->shadow_group, &rob_item_equip->position);
 
             float_t v9;
             if (sub_140512F60(rob_item_equip) <= -0.2f)
                 v9 = -0.5f;
             else
                 v9 = 0.05f;
-            shadow_ptr_get()->field_1C0[rob_item_equip->shadow_type] = v9;
-            disp_manager.set_shadow_type(rob_item_equip->shadow_type);
+            get_shadow()->set_ground_ypos(rob_item_equip->shadow_group, v9);
+            disp_manager.set_shadow_group(rob_item_equip->shadow_group);
             enum_or(flags, mdl::OBJ_SHADOW);
         }
 
@@ -543,7 +541,7 @@ HOOK(void, FASTCALL, rob_chara_item_equip_disp, 0x0000000140512950,
     disp_manager.set_wet_param();
     disp_manager.set_chara_color();
     disp_manager.set_obj_flags();
-    disp_manager.set_shadow_type();
+    disp_manager.set_shadow_group();
 
     mdl::obj_reflect_enable = false;
 }
@@ -811,7 +809,7 @@ void rob_chara_age_age_object::disp(size_t chara_index,
         enum_or(flags, mdl::OBJ_CHARA_REFLECT);
     disp_manager->set_obj_flags(flags);
     disp_manager->set_chara_color(chara_color);
-    disp_manager->set_shadow_type(chara_index ? SHADOW_STAGE : SHADOW_CHARA);
+    disp_manager->set_shadow_group(chara_index ? 1 : 0);
 
     static prj::vector<GLuint>* (FASTCALL * rob_chara_age_age_object__get_obj_set_texture)(rob_chara_age_age_object * rob_age_age_obj)
         = (prj::vector<GLuint>*(FASTCALL*)(rob_chara_age_age_object * rob_age_age_obj))0x000000014045A8E0;

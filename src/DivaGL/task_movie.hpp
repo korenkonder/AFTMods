@@ -5,6 +5,6 @@
 
 #pragma once
 
-#include "../AFTModsShared/shared.hpp"
+#include "../KKdLib/default.hpp"
 
 extern void task_movie_patch();

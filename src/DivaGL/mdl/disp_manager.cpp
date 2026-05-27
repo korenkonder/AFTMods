@@ -88,9 +88,9 @@ namespace mdl {
     static void gen_sphere_vertices(etc_obj_vertex_data* data,
         int32_t slices, int32_t stacks, float_t radius);
 
-    ObjSubMeshArgs::ObjSubMeshArgs() : sub_mesh(), mesh(), material(), textures(), mat_count(), mats(),
-        vb(), vb_offset(), ib(), set_blend_color(), chara_color(), self_shadow(),
-        shadow(), morph_vb(), morph_vb_offset(), morph_weight(), texture_pattern_count(),
+    ObjSubMeshArgs::ObjSubMeshArgs() : sub_mesh(), mesh(), material(), textures(), mat_count(),
+        mats(), vb(), vb_offset(), ib(), set_blend_color(), chara_color(), receive_shadow(),
+        shadow_group(), morph_vb(), morph_vb_offset(), morph_weight(), texture_pattern_count(),
         texture_transform_count(), field_7C4(), field_7C8(), instances_count(), instances_mat(), func(), func_data() {
 
     }
@@ -334,8 +334,13 @@ namespace mdl {
         args->emission = emission;
 
         args->chara_color = disp_manager->chara_color;
-        args->self_shadow = !!(disp_manager->obj_flags & (mdl::OBJ_8 | mdl::OBJ_4));
-        args->shadow = disp_manager->shadow_type;
+        if (disp_manager->obj_flags & OBJ_4)
+            args->receive_shadow = RECEIVE_SHADOW_ENABLE;
+        else if (disp_manager->obj_flags & mdl::OBJ_8)
+            args->receive_shadow = RECEIVE_SHADOW_DISABLE;
+        else
+            args->receive_shadow = RECEIVE_SHADOW_DEFAULT;
+        args->shadow_group = disp_manager->shadow_group;
         args->texture_color_coefficients = disp_manager->texture_color_coefficients;
         args->texture_color_coefficients.w = disp_manager->wet_param;
         args->texture_color_offset = disp_manager->texture_color_offset;
@@ -2438,8 +2443,7 @@ namespace mdl {
                     morph_vb, morph_vb_offset, instances_count, instances_mat, func, func_data);
 
                 if (obj_flags & mdl::OBJ_SHADOW_OBJECT) {
-                    entry_list((ObjType)(OBJ_TYPE_SHADOW_OBJECT_CHARA
-                        + shadow_type), data);
+                    entry_list((ObjType)(OBJ_TYPE_SHADOW_OBJECT_CHARA + shadow_group), data);
                     if (obj_flags & mdl::OBJ_USER)
                         entry_list(OBJ_TYPE_USER, data);
                     continue;
@@ -2490,7 +2494,7 @@ namespace mdl {
                         && (attrib.punch_through || !(attrib.alpha_tex | attrib.alpha_mat))
                         && !sub_mesh->attrib.m.vertex_alpha) {
                         if (obj_flags & mdl::OBJ_SHADOW)
-                            entry_list((ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
+                            entry_list((ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_group), data);
 
                         if (obj_flags & mdl::OBJ_SSS)
                             entry_list(OBJ_TYPE_SSS, data);
@@ -2543,8 +2547,7 @@ namespace mdl {
                 }
 
                 if (obj_flags & mdl::OBJ_SHADOW)
-                    entry_list((ObjType)(OBJ_TYPE_SHADOW_CHARA
-                        + shadow_type), data);
+                    entry_list((ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_group), data);
                 if (obj_flags & mdl::OBJ_SILHOUETTE_HIGH)
                     entry_list(OBJ_TYPE_SILHOUETTE_HIGH, data);
                 if (obj_flags & mdl::OBJ_CHARA_REFLECT)
@@ -3164,7 +3167,7 @@ namespace mdl {
         data->init_etc(mat, first, count, etc);
         if (etc.color.a == 0xFF) {
             if (obj_flags & OBJ_SHADOW)
-                entry_list((mdl::ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
+                entry_list((mdl::ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_group), data);
             entry_list(OBJ_TYPE_OPAQUE, data);
         }
         else
@@ -3233,8 +3236,8 @@ namespace mdl {
         return obj_flags;
     }
 
-    shadow_type_enum DispManager::get_shadow_type() {
-        return shadow_type;
+    int32_t DispManager::get_shadow_group() {
+        return shadow_group;
     }
 
     void DispManager::get_texture_color_coeff(vec4& value) {
@@ -3488,9 +3491,9 @@ namespace mdl {
         morph.object = object;
     }
 
-    void DispManager::set_shadow_type(shadow_type_enum type) {
-        if (type == SHADOW_CHARA || type == SHADOW_STAGE)
-            shadow_type = type;
+    void DispManager::set_shadow_group(int32_t group) {
+        if (group >= 0 && group < 2)
+            shadow_group = group;
     }
 
     void DispManager::set_texture_color_coefficients(vec4& value) {
@@ -3552,9 +3555,9 @@ namespace mdl {
         mat4_rotate_zyx((vec3*)(a1 + 0x98), &mat);
 
         vec3 pos = 0.0f;
-        sub_1405E8A20(shadow_ptr_get(), 0, 0.0f);
+        get_shadow()->set_dist_base(0, &pos);
 
-        disp_manager->set_shadow_type(SHADOW_CHARA);
+        disp_manager->set_shadow_group(0);
         if (*(bool*)(a1 + 0xA4)) {
             for (int32_t i = 0; i < 5; i++) {
                 mat4 _mat;
@@ -3588,8 +3591,10 @@ namespace mdl {
         mat4_rotate_xyz(&rotation, &mat);
         mat4_transpose(&mat, &mat);
 
-        sub_1405E8A20(shadow_ptr_get(), 0, 0.0f);
-        disp_manager->set_shadow_type(SHADOW_CHARA);
+        vec3 pos = 0.0f;
+        get_shadow()->set_dist_base(0, &pos);
+
+        disp_manager->set_shadow_group(0);
         disp_manager->entry_obj_by_object_info(mat, object_info((uint16_t)id, (uint16_t)set_id));
         disp_manager->set_obj_flags((mdl::ObjFlags)0);
     }

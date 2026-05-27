@@ -163,7 +163,7 @@ struct obj_material_shader_attrib_member {
     obj_material_bump_map_type bump_map_type : 2;
     uint32_t fresnel_type : 4;
     uint32_t line_light : 4;
-    uint32_t recieve_shadow : 1;
+    uint32_t receive_shadow : 1;
     uint32_t cast_shadow : 1;
     obj_material_specular_quality specular_quality : 1;
     obj_material_aniso_direction aniso_direction : 2;
@@ -287,7 +287,7 @@ struct obj_material_data {
 static_assert(sizeof(obj_material_data) == 0x4B0, "\"obj_material_data\" struct should have a size of 0x4B0");
 
 struct obj_sub_mesh_attrib_member {
-    uint32_t recieve_shadow : 1;
+    uint32_t receive_shadow : 1;
     uint32_t cast_shadow : 1;
     uint32_t vertex_alpha : 1;
     uint32_t hide : 1;

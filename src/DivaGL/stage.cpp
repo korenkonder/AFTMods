@@ -80,10 +80,6 @@ static_assert(sizeof(stage) == 0x68, "\"stage\" struct should have a size of 0x6
 
 extern size_t(FASTCALL* stage_data_handler_get_stage_data_count)() = (size_t(FASTCALL*)())0x000000014064AFC0;
 
-static bool object_bounding_sphere_check_visibility_shadow(BSphere* bsphere, mat4* mat);
-static bool object_bounding_sphere_check_visibility_shadow_chara(const BSphere* bsphere);
-static bool object_bounding_sphere_check_visibility_shadow_stage(const BSphere* bsphere);
-
 bool& chara_reflect = *(bool*)0x00000001411ADAFC;
 
 HOOK(void, FASTCALL, stage__set, 0x0000000140647710, stage* prev, stage* curr) {
@@ -110,7 +106,7 @@ HOOK(void, FASTCALL, stage__set, 0x0000000140647710, stage* prev, stage* curr) {
                 const stage_data_reflect* reflect = frg_stage_data->reflect;
                 render_manager.pass_sw[rndr::RND_PASSID_REFLECT] = true;
                 render_manager.reflect_blur_num = reflect->blur_num;
-                render_manager.reflect_blur_filter = (blur_filter_mode)reflect->blur_filter;
+                render_manager.reflect_blur_filter = reflect->blur_filter;
                 render_manager.reflect = true;
                 reflect_refract_resolution_mode  mode = REFLECT_REFRACT_RESOLUTION_512x256;
                 if (frg_stage_data->reflect_type != STAGE_DATA_REFLECT_REFLECT_MAP)
@@ -175,18 +171,16 @@ HOOK(void, FASTCALL, stage__disp, 0x0000000140649560, stage* s) {
 static void stage__disp_shadow_object(object_info object, const mat4& mat) {
     mdl::DispManager& disp_manager = *::disp_manager;
 
-    for (int32_t i = SHADOW_CHARA; i < SHADOW_MAX; i++) {
-        disp_manager.set_shadow_type((shadow_type_enum)i);
-        disp_manager.set_culling_func(i == SHADOW_CHARA
-            ? object_bounding_sphere_check_visibility_shadow_chara
-            : object_bounding_sphere_check_visibility_shadow_stage);
+    for (int32_t i = 0; i < 2; i++) {
+        disp_manager.set_shadow_group(i);
+        get_shadow()->set_cull_func(i);
         disp_manager.set_obj_flags((mdl::ObjFlags)(mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_SHADOW_OBJECT));
         disp_manager.entry_obj_by_object_info(mat, object);
     }
 
     disp_manager.set_obj_flags();
     disp_manager.set_culling_func();
-    disp_manager.set_shadow_type();
+    disp_manager.set_shadow_group();
 }
 
 
@@ -205,39 +199,4 @@ void stage_patch() {
     INSTALL_HOOK(stage__set);
     INSTALL_HOOK(stage__disp);
     INSTALL_HOOK(stage__disp_shadow);
-}
-
-static bool object_bounding_sphere_check_visibility_shadow(const BSphere* bsphere, mat4* mat) {
-    mat4 view;
-    mat4_transpose(&camera_data.view, &view);
-
-    vec3 center;
-    mat4_transform_point(mat, &bsphere->center, &center);
-    mat4_transform_point(&view, &center, &center);
-    float_t radius = bsphere->radius;
-
-    Shadow* shad = shadow_ptr_get();
-    float_t shadow_range = shad->get_shadow_range();
-    if ((center.x + radius) < -shadow_range
-        || (center.x - radius) > shadow_range
-        || (center.y + radius) < -shadow_range
-        || (center.y - radius) > shadow_range
-        || (center.z - radius) > -shad->z_near
-        || (center.z + radius) < -shad->z_far)
-        return false;
-    return true;
-}
-
-static bool object_bounding_sphere_check_visibility_shadow_chara(const BSphere* bsphere) {
-    mat4 mat;
-    Shadow* shad = shadow_ptr_get();
-    mat4_look_at(&shad->view_point[0], &shad->interest[0], &mat);
-    return object_bounding_sphere_check_visibility_shadow(bsphere, &mat);
-}
-
-static bool object_bounding_sphere_check_visibility_shadow_stage(const BSphere* bsphere) {
-    mat4 mat;
-    Shadow* shad = shadow_ptr_get();
-    mat4_look_at(&shad->view_point[1], &shad->interest[1], &mat);
-    return object_bounding_sphere_check_visibility_shadow(bsphere, &mat);
 }

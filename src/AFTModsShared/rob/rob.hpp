@@ -12,7 +12,6 @@
 #include "../item_table.hpp"
 #include "../object.hpp"
 #include "../ogl_buffer_object.hpp"
-#include "../shadow.hpp"
 #include "../types.hpp"
 
 enum chara_index {
@@ -1487,7 +1486,7 @@ struct rob_chara_item_equip {
     item_id first_item_equip_object;
     item_id max_item_equip_object;
     int32_t field_A0;
-    shadow_type_enum shadow_type;
+    int32_t shadow_group;
     vec3 position;
     prj::vector<texture_pattern_struct> texture_pattern;
     object_info field_D0;

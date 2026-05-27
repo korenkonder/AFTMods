@@ -10,6 +10,7 @@
 #include "../gl_state.hpp"
 #include "../render_context.hpp"
 #include "../shader_ft.hpp"
+#include "../static_var.hpp"
 #include <streambuf>
 
 struct dof_common_shader_data {

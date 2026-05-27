@@ -23,6 +23,7 @@
 #include "shader_ft.hpp"
 #include "stage.hpp"
 #include "stage_param.hpp"
+#include "static_var.hpp"
 #include "texture.hpp"
 #include <Helpers.h>
 

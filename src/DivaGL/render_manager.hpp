@@ -29,6 +29,7 @@ struct draw_pre_process {
     void* data;
 };
 
+class Shadow;
 struct render_data_context;
 
 namespace rndr {
@@ -51,11 +52,11 @@ namespace rndr {
 
     struct RenderManager {
         bool pass_sw[RND_PASSID_NUM];
-        struct Shadow* shadow_ptr;
+        Shadow* shadow_ptr;
         bool reflect;
         bool refract;
         int32_t reflect_blur_num;
-        blur_filter_mode reflect_blur_filter;
+        ImgfBoxSampl reflect_blur_filter;
         rndr::Render* render;
         bool sync_gpu;
         double_t cpu_time[RND_PASSID_NUM];
@@ -104,7 +105,7 @@ namespace rndr {
         void set_npr_param(int32_t value);
         void set_pass_sw(rndr::RenderPassID id, bool value);
         void set_reflect(bool value);
-        void set_reflect_blur(int32_t reflect_blur_num, blur_filter_mode reflect_blur_filter);
+        void set_reflect_blur(int32_t reflect_blur_num, ImgfBoxSampl reflect_blur_filter);
         void set_reflect_resolution_mode(reflect_refract_resolution_mode mode);
         void set_reflect_type(stage_data_reflect_type type);
         void set_refract(bool value);
