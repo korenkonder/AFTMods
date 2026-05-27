@@ -282,7 +282,7 @@ namespace mdl {
             rend_data_ctx.set_batch_material_color_emission(args->emission);
             draw_object_material_set_uniform(rend_data_ctx, material, false);
             if (material->material.attrib.m.alpha_tex)
-                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 0;
+                rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 0;
             rend_data_ctx.set_shader(rctx->draw_state_rend_data[rend_data_ctx.index].shader_index);
         }
 
@@ -553,8 +553,8 @@ static void draw_object_chara_color_fog_set(render_data_context& rend_data_ctx,
 
     obj_material_attrib_member attrib = args->material->material.attrib.m;
     if (!attrib.no_z_fog && !disable_fog) {
-        rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = attrib.y_fog ? (attrib.y_fogmap ? 3 : 2) : 1;
-        rend_data_ctx.shader_flags.arr[U_FOG_CHARA] = draw_state.fog_height ? 2 : 1;
+        rend_data_ctx.shader_flags.arr[U_FOG] = attrib.y_fog ? (attrib.y_fogmap ? 3 : 2) : 1;
+        rend_data_ctx.shader_flags.arr[U_FOGMAP] = draw_state.fog_height ? 2 : 1;
     }
 }
 
@@ -661,16 +661,16 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
     bool disable_fog = draw_object_blend_set(rend_data_ctx, args, lighting_type);
     draw_object_material_set_uniform(rend_data_ctx, material, false);
     if (!rctx->draw_state_rend_data[rend_data_ctx.index].shadow)
-        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 0;
+        rend_data_ctx.shader_flags.arr[U_TEX_SHADOW] = 0;
     else if (args->receive_shadow == mdl::RECEIVE_SHADOW_DEFAULT)
-        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = args->sub_mesh->attrib.m.receive_shadow ? 1 : 0;
+        rend_data_ctx.shader_flags.arr[U_TEX_SHADOW] = args->sub_mesh->attrib.m.receive_shadow ? 1 : 0;
     else if (args->receive_shadow == mdl::RECEIVE_SHADOW_ENABLE)
-        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 1;
+        rend_data_ctx.shader_flags.arr[U_TEX_SHADOW] = 1;
     else // mdl::RECEIVE_SHADOW_DISABLE
-        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW] = 0;
+        rend_data_ctx.shader_flags.arr[U_TEX_SHADOW] = 0;
 
-    rend_data_ctx.shader_flags.arr[U_CHARA_SHADOW2] = args->shadow_group > 0 ? 1 : 0;
-    rend_data_ctx.shader_flags.arr[U_CHARA_SHADOW]
+    rend_data_ctx.shader_flags.arr[U_SHADOW_SAMPLE] = args->shadow_group > 0 ? 1 : 0;
+    rend_data_ctx.shader_flags.arr[U_SELF_SHADOW]
         = rctx->draw_state_rend_data[rend_data_ctx.index].self_shadow ? 1 : 0;
 
     const obj_material_texture_data* texdata = material->material.texdata;
@@ -705,16 +705,16 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
         if (texdata->attrib.m.ignore) {
             switch (tex_type) {
             case OBJ_MATERIAL_TEXTURE_NORMAL:
-                rend_data_ctx.shader_flags.arr[U_NORMAL] = 0;
+                rend_data_ctx.shader_flags.arr[U_TEX_NORMAL] = 0;
                 break;
             case OBJ_MATERIAL_TEXTURE_SPECULAR:
-                rend_data_ctx.shader_flags.arr[U_SPECULAR] = 0;
+                rend_data_ctx.shader_flags.arr[U_TEX_SPECULAR] = 0;
                 break;
             case OBJ_MATERIAL_TEXTURE_TRANSLUCENCY:
-                rend_data_ctx.shader_flags.arr[U_TRANSLUCENCY] = 0;
+                rend_data_ctx.shader_flags.arr[U_TEX_LUCENCY] = 0;
                 break;
             case OBJ_MATERIAL_TEXTURE_TRANSPARENCY:
-                rend_data_ctx.shader_flags.arr[U_TRANSPARENCY] = 0;
+                rend_data_ctx.shader_flags.arr[U_TEX_PARENCY] = 0;
                 break;
             }
             continue;
@@ -749,7 +749,7 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
         }
 
         if (material->material.shader.index == SHADER_FT_SKY) {
-            uniform_name uni_type = U_TEX_0_TYPE;
+            UniformName uni_type = U_TEX_0_TYPE;
             if (tex_index == 1)
                 uni_type = U_TEX_1_TYPE;
 
@@ -765,13 +765,13 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
         }
 
         if (tex_index >= 0 && tex_index <= 1)
-            rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = texdata->attrib.get_blend();
+            rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = texdata->attrib.get_blend();
     }
 
     if (material->material.attrib.m.double_sided) {
         rend_data_ctx.state.disable_cull_face();
         if (!material->material.attrib.m.normal_dir_light)
-            rend_data_ctx.shader_flags.arr[U0B] = 1;
+            rend_data_ctx.shader_flags.arr[U_DOUBLE_SIDE] = 1;
     }
     else
         rend_data_ctx.state.enable_cull_face();
@@ -791,12 +791,12 @@ static void draw_object_material_set_default(render_data_context& rend_data_ctx,
 
         float_t luma = vec3::dot(*(vec3*)&specular, { 0.30f, 0.59f, 0.11f });
         if (luma >= 0.01f || args->texture_color_coefficients.w >= 0.1f)
-            rend_data_ctx.shader_flags.arr[U_SPECULAR_IBL] = 1;
+            rend_data_ctx.shader_flags.arr[U_SPECULAR] = 1;
         else
-            rend_data_ctx.shader_flags.arr[U_SPECULAR_IBL] = 0;
+            rend_data_ctx.shader_flags.arr[U_SPECULAR] = 0;
 
         if (!material->material.shader_info.m.fresnel_type)
-            rend_data_ctx.shader_flags.arr[U_TRANSLUCENCY] = 0;
+            rend_data_ctx.shader_flags.arr[U_TEX_LUCENCY] = 0;
 
         line_light = (float_t)material->material.shader_info.m.line_light * (float_t)(1.0 / 9.0);
     }
@@ -923,43 +923,43 @@ static void draw_object_material_set_uniform(render_data_context& rend_data_ctx,
     if (shader_compo.color) {
         if (!shader_compo.color_l2)
             if (shader_compo.color_l1) {
-                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 2;
+                rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 2;
                 v4 = 3;
             }
             else {
-                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 1;
+                rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 1;
                 v4 = 1;
             }
     }
     else if (shader_compo.color_l1 && !shader_compo.color_l2) {
-        rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 1;
+        rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 1;
         v4 = 1;
     }
     else
-        rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 0;
+        rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 0;
 
     if (shader_compo.normal_01)
-        rend_data_ctx.shader_flags.arr[U_NORMAL] = 1;
+        rend_data_ctx.shader_flags.arr[U_TEX_NORMAL] = 1;
     if (shader_compo.specular)
-        rend_data_ctx.shader_flags.arr[U_SPECULAR] = 1;
+        rend_data_ctx.shader_flags.arr[U_TEX_SPECULAR] = 1;
     if (shader_compo.transparency) {
-        rend_data_ctx.shader_flags.arr[U_TRANSPARENCY] = 1;
+        rend_data_ctx.shader_flags.arr[U_TEX_PARENCY] = 1;
         v4 |= 2;
     }
     if (shader_compo.translucency) {
-        rend_data_ctx.shader_flags.arr[U_TRANSLUCENCY] = 1;
+        rend_data_ctx.shader_flags.arr[U_TEX_LUCENCY] = 1;
         v4 |= 2;
     }
     if (shader_compo.env_cube)
-        rend_data_ctx.shader_flags.arr[U_ENV_MAP] = 1;
+        rend_data_ctx.shader_flags.arr[U_TEX_ENVMAP] = 1;
 
     if (shader_info.aniso_direction != OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
-        rend_data_ctx.shader_flags.arr[U_ANISO] = shader_info.aniso_direction;
+        rend_data_ctx.shader_flags.arr[U_ANISO_TANGENT] = shader_info.aniso_direction;
 
     if (v4 == 1)
-        rend_data_ctx.shader_flags.arr[U45] = 0;
+        rend_data_ctx.shader_flags.arr[U_UV_LAYER] = 0;
     else if (v4 == 2 || v4 == 3)
-        rend_data_ctx.shader_flags.arr[U45] = 1;
+        rend_data_ctx.shader_flags.arr[U_UV_LAYER] = 1;
 }
 
 static void draw_object_vertex_attrib_reset_cheap(
@@ -971,7 +971,7 @@ static void draw_object_vertex_attrib_reset_cheap(
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
 
     if (args->morph_vb) {
-        rend_data_ctx.shader_flags.arr[U_MORPH] = 0;
+        rend_data_ctx.shader_flags.arr[U_MORPH_POS_NORMAL_UV] = 0;
         rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 0;
     }
 
@@ -987,7 +987,7 @@ static void draw_object_vertex_attrib_reset_default(
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
 
     if (args->morph_vb) {
-        rend_data_ctx.shader_flags.arr[U_MORPH] = 0;
+        rend_data_ctx.shader_flags.arr[U_MORPH_POS_NORMAL_UV] = 0;
         rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 0;
     }
 
@@ -1026,7 +1026,7 @@ static void draw_object_vertex_attrib_set_cheap(
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
 
     if (args->morph_vb) {
-        rend_data_ctx.shader_flags.arr[U_MORPH] = 1;
+        rend_data_ctx.shader_flags.arr[U_MORPH_POS_NORMAL_UV] = 1;
 
         if (vertex_format & OBJ_VERTEX_COLOR0)
             rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 1;
@@ -1036,7 +1036,7 @@ static void draw_object_vertex_attrib_set_cheap(
         rend_data_ctx.set_batch_morph_weight(args->morph_weight);
     }
     else {
-        rend_data_ctx.shader_flags.arr[U_MORPH] = 0;
+        rend_data_ctx.shader_flags.arr[U_MORPH_POS_NORMAL_UV] = 0;
         rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 0;
     }
 }
@@ -1089,7 +1089,7 @@ static void draw_object_vertex_attrib_set_default(
         rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
 
     if (args->morph_vb) {
-        rend_data_ctx.shader_flags.arr[U_MORPH] = 1;
+        rend_data_ctx.shader_flags.arr[U_MORPH_POS_NORMAL_UV] = 1;
 
         if (vertex_format & OBJ_VERTEX_COLOR0)
             rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 1;
@@ -1099,7 +1099,7 @@ static void draw_object_vertex_attrib_set_default(
         rend_data_ctx.set_batch_morph_weight(args->morph_weight);
     }
     else {
-        rend_data_ctx.shader_flags.arr[U_MORPH] = 0;
+        rend_data_ctx.shader_flags.arr[U_MORPH_POS_NORMAL_UV] = 0;
         rend_data_ctx.shader_flags.arr[U_MORPH_COLOR] = 0;
     }
 

@@ -206,13 +206,13 @@ HOOK(void, FASTCALL, ScreenShotImpl__copy, 0x0000000140557F50, ScreenShotImpl* i
     float_t ratio = (float_t)(impl->curr_height * impl->curr_width) / (float_t)(impl->width * impl->height);
     float_t scale = 1.0f;
     if (ratio < 0.1f)
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 1;
+        rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 1;
     else if (ratio < 0.6f) {
         scale = 0.75f;
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 1;
+        rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 1;
     }
     else
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+        rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
 
     quad_shader_data quad = {};
     quad.g_texcoord_modifier = { 0.5f, 0.5f, 0.5f, 0.5f };

@@ -160,27 +160,27 @@ namespace Glitter {
             if (rend_group->mask_texture) {
                 mask_texture = rend_group->mask_texture;
 
-                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 2;
+                rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 2;
                 switch (rend_group->mask_blend_mode) {
                 default:
-                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
+                    rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = 0;
                     break;
                 case PARTICLE_BLEND_MULTIPLY:
-                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 1;
+                    rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = 1;
                     break;
                 case PARTICLE_BLEND_ADD:
-                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 2;
+                    rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = 2;
                     break;
                 }
             }
             else {
-                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 1;
-                rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
+                rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 1;
+                rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = 0;
             }
         }
         else {
-            rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 0;
-            rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
+            rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 0;
+            rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = 0;
         }
 
         rend_data_ctx.state.active_bind_texture_2d(0, texture);
@@ -190,13 +190,13 @@ namespace Glitter {
         case PARTICLE_QUAD:
             switch (rend_group->fog_type) {
             default:
-                rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 0;
+                rend_data_ctx.shader_flags.arr[U_FOG] = 0;
                 break;
             case Glitter::FOG_DEPTH:
-                rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 1;
+                rend_data_ctx.shader_flags.arr[U_FOG] = 1;
                 break;
             case Glitter::FOG_HEIGHT:
-                rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 2;
+                rend_data_ctx.shader_flags.arr[U_FOG] = 2;
                 break;
             }
 
@@ -232,7 +232,7 @@ namespace Glitter {
         case PARTICLE_LINE:
             rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
             rend_data_ctx.shader_flags.arr[U_ALPHA_BLEND] = 2;
-            rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 0;
+            rend_data_ctx.shader_flags.arr[U_FOG] = 0;
 
             rend_data_ctx.state.enable_depth_test();
             rend_data_ctx.state.set_depth_mask(GL_FALSE);
@@ -243,7 +243,7 @@ namespace Glitter {
         case PARTICLE_LOCUS:
             rend_data_ctx.shader_flags.arr[U_ALPHA_TEST] = 0;
             rend_data_ctx.shader_flags.arr[U_ALPHA_BLEND] = 2;
-            rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 0;
+            rend_data_ctx.shader_flags.arr[U_FOG] = 0;
 
             rend_data_ctx.state.enable_depth_test();
             rend_data_ctx.state.set_depth_mask(GL_FALSE);
@@ -1889,27 +1889,27 @@ namespace Glitter {
             if (rend_group->mask_texture) {
                 mask_texture = rend_group->mask_texture;
 
-                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 2;
+                rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 2;
                 switch (rend_group->mask_blend_mode) {
                 default:
-                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
+                    rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = 0;
                     break;
                 case PARTICLE_BLEND_MULTIPLY:
-                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 1;
+                    rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = 1;
                     break;
                 case PARTICLE_BLEND_ADD:
-                    rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 2;
+                    rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = 2;
                     break;
                 }
             }
             else {
-                rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 1;
-                rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
+                rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 1;
+                rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = 0;
             }
         }
         else {
-            rend_data_ctx.shader_flags.arr[U_TEXTURE_COUNT] = 0;
-            rend_data_ctx.shader_flags.arr[U_TEXTURE_BLEND] = 0;
+            rend_data_ctx.shader_flags.arr[U_TEX_COLOR] = 0;
+            rend_data_ctx.shader_flags.arr[U_BLEND_FUNC_01] = 0;
         }
 
         rend_data_ctx.state.active_bind_texture_2d(0, texture);
@@ -1917,13 +1917,13 @@ namespace Glitter {
 
         switch (rend_group->fog_type) {
         default:
-            rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 0;
+            rend_data_ctx.shader_flags.arr[U_FOG] = 0;
             break;
         case Glitter::FOG_DEPTH:
-            rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 1;
+            rend_data_ctx.shader_flags.arr[U_FOG] = 1;
             break;
         case Glitter::FOG_HEIGHT:
-            rend_data_ctx.shader_flags.arr[U_FOG_STAGE] = 2;
+            rend_data_ctx.shader_flags.arr[U_FOG] = 2;
             break;
         }
 

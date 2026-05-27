@@ -65,9 +65,9 @@ namespace rndr {
 
             texture* t = render_textures_data[i];
             if (render_width[0] > t->width * 2 || render_height[0] > t->height * 2)
-                rend_data_ctx.shader_flags.arr[U_REDUCE] = 1;
+                rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 1;
             else
-                rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+                rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
 
             rend_data_ctx.state.set_viewport(0, 0, t->width, t->height);
             rend_data_ctx.state.active_bind_texture_2d(0, taa_tex[taa_texture_selector]->glid);
@@ -116,7 +116,7 @@ namespace rndr {
                 mat4 mat;
                 mat4_invert(&cam_view_projection, &mat);
                 mat4_mul(&cam_view_projection_prev, &mat, &mat);
-                rend_data_ctx.shader_flags.arr[U_REDUCE] = 6;
+                rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 6;
 
                 camera_blur_shader_data shader_data = {};
                 shader_data.g_transform[0] = mat.row0;
@@ -132,7 +132,7 @@ namespace rndr {
                     taa_texture_selector = 0;
                 rend_data_ctx.state.active_bind_texture_2d(1, taa_tex[taa_texture_selector]->glid);
                 rend_data_ctx.state.bind_sampler(1, sampler);
-                rend_data_ctx.shader_flags.arr[U_REDUCE] = 5;
+                rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 5;
             }
 
             shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
@@ -156,7 +156,7 @@ namespace rndr {
             rend_data_ctx.state.active_bind_texture_2d(0, taa_tex[taa_texture]->glid);
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
             rend_data_ctx.shader_flags.arr[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
-            rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+            rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
             shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
             draw_quad(rend_data_ctx, render_post_width[0], render_post_height[0],
                 render_post_width_scale, render_post_height_scale,
@@ -951,7 +951,7 @@ namespace rndr {
                     movie_textures[0].Bind(rend_data_ctx.state);
                     rend_data_ctx.state.set_viewport(0, 0, movie_textures_data[0]->width, movie_textures_data[0]->height);
                     rend_data_ctx.state.active_bind_texture_2d(0, movie_texture->glid);
-                    rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+                    rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
                     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
                     draw_quad(rend_data_ctx, movie_texture->width, movie_texture->height,
                         1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
@@ -1072,7 +1072,7 @@ namespace rndr {
     }
 
     void Render::downsample(render_data_context& rend_data_ctx) {
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 1;
+        rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 1;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
         for (int32_t i = 1; i < downsample_count - 1; i++) {
             rend_texture[i].Bind(rend_data_ctx.state);
@@ -1085,7 +1085,7 @@ namespace rndr {
                 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
         }
 
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 3;
+        rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 3;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
 
         int32_t downsample = max_def(downsample_count - 2, 0);
@@ -1111,7 +1111,7 @@ namespace rndr {
             else
             {
                 scale = 0.75;
-                rend_data_ctx.shader_flags.arr[U_REDUCE] = 1;
+                rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 1;
                 shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
             }
 
@@ -1151,7 +1151,7 @@ namespace rndr {
 
         render_textures[index].Bind(rend_data_ctx.state);
         texture* rend_tex = render_textures_data[index];
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+        rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
 
         rend_data_ctx.state.set_viewport(0, 0, rend_tex->width, rend_tex->height);
         rend_data_ctx.state.active_bind_texture_2d(0, rctx->screen_buffer.GetColorTex());
@@ -1297,7 +1297,7 @@ namespace rndr {
             taa_buffer[destination].Bind(rend_data_ctx.state);
             rend_data_ctx.state.active_bind_texture_2d(0, taa_tex[source]->glid);
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
-            rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+            rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
             shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
             draw_quad(rend_data_ctx, render_post_width[0], render_post_height[0],
                 render_post_width_scale, render_post_height_scale,
@@ -1362,7 +1362,7 @@ namespace rndr {
         const vec2& lens_flare_pos, float_t lens_shaft_scale, float_t lens_flare_coef, float_t lens_shaft_coef,
         GLuint contour_color_tex, GLuint contour_depth_tex, GLuint scene_depth_tex,
         bool npr1, bool a31, bool npr_mask) {
-        rend_data_ctx.shader_flags.arr[U_TONE_MAP] = (int32_t)tone_map;
+        rend_data_ctx.shader_flags.arr[U_TONE_MAP_METHOD] = (int32_t)tone_map;
         rend_data_ctx.shader_flags.arr[U_FLARE] = 0;
         rend_data_ctx.shader_flags.arr[U_COMPOSITE_BACK] = 0;
         rend_data_ctx.shader_flags.arr[U_LIGHT_PROJ] = 0;
@@ -1710,7 +1710,7 @@ namespace rndr {
                 rend_data_ctx.state.active_bind_texture_2d(0, j.type == FRAME_TEXTURE_PRE_PP ? pre_pp_tex : post_pp_tex);
                 rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
                 rend_data_ctx.state.set_viewport(0, 0, dst_tex->width, dst_tex->height);
-                rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+                rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
                 shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
                 draw_quad(rend_data_ctx, dst_tex->width, dst_tex->height,
                     1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
@@ -1819,7 +1819,7 @@ namespace rndr {
         rend_data_ctx.state.enable_blend();
         rend_data_ctx.state.set_blend_func(GL_ONE, GL_ONE);
 
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 4;
+        rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 4;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
         rend_data_ctx.state.active_bind_texture_2d(0, lens_ghost_texture);
         rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
@@ -1886,7 +1886,7 @@ namespace rndr {
             1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
             intensity.x * 0.5f, intensity.y * 0.5f, intensity.z * 0.5f, 1.0f);
 
-        rend_data_ctx.shader_flags.arr[U_REDUCE] = 7;
+        rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 7;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
 
         rend_data_ctx.state.set_viewport(0, 0, reduce_width[0], reduce_height[0]);

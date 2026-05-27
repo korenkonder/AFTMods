@@ -76,7 +76,7 @@ namespace renderer {
 
         if (!DIVA_GL_VERSION_4_3) {
             rend_data_ctx.state.disable_depth_test();
-            rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+            rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
             shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
             rend_data_ctx.state.active_bind_texture_2d(0, texture);
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);

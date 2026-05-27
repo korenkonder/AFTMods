@@ -342,7 +342,7 @@ void Shadow::bind_shadow(render_data_context& rend_data_ctx) {
     vec4 shadow_ambient1;
     if (m_num_group > 0) {
         rctx->draw_state_rend_data[rend_data_ctx.index].shadow = true;
-        rend_data_ctx.shader_flags.arr[U_STAGE_SHADOW2] = m_num_group > 1 ? 1 : 0;
+        rend_data_ctx.shader_flags.arr[U_NUM_SHADOWMAP] = m_num_group > 1 ? 1 : 0;
 
         float_t distance = get_distance();
         for (int32_t i = 0; i < 2; i++) {

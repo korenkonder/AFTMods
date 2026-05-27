@@ -944,224 +944,224 @@ static const shader_sub_table TRANSPARENCY_table[] = {
 
 #undef shader_sub_table_struct
 
-static const uniform_name BLINN_uniform[] = {
+static const UniformName BLINN_uniform[] = {
     U_SKINNING,
-    U_MORPH,
+    U_MORPH_POS_NORMAL_UV,
     U_ALPHA_TEST,
 };
 
-static const uniform_name ITEM_uniform[] = {
+static const UniformName ITEM_uniform[] = {
     U_SKINNING,
-    U_MORPH,
+    U_MORPH_POS_NORMAL_UV,
     U_ALPHA_TEST,
 };
 
-static const uniform_name STAGE_uniform[] = {
+static const UniformName STAGE_uniform[] = {
     U_SKINNING,
-    U_MORPH,
+    U_MORPH_POS_NORMAL_UV,
     U_ALPHA_TEST,
 };
 
-static const uniform_name SKIN_uniform[] = {
-    U_SKINNING,
-    U_ALPHA_TEST,
-};
-
-static const uniform_name SSS_SKIN_uniform[] = {
+static const UniformName SKIN_uniform[] = {
     U_SKINNING,
     U_ALPHA_TEST,
 };
 
-static const uniform_name SSS_FILT_uniform[] = {
+static const UniformName SSS_SKIN_uniform[] = {
+    U_SKINNING,
+    U_ALPHA_TEST,
+};
+
+static const UniformName SSS_FILT_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name HAIR_uniform[] = {
+static const UniformName HAIR_uniform[] = {
     U_SKINNING,
     U_ALPHA_TEST,
 };
 
-static const uniform_name CLOTH_uniform[] = {
+static const UniformName CLOTH_uniform[] = {
     U_SKINNING,
     U_ALPHA_TEST,
 };
 
-static const uniform_name TIGHTS_uniform[] = {
+static const UniformName TIGHTS_uniform[] = {
     U_SKINNING,
     U_ALPHA_TEST,
 };
 
-static const uniform_name SKY_uniform[] = {
-    U_MORPH,
+static const UniformName SKY_uniform[] = {
+    U_MORPH_POS_NORMAL_UV,
 };
 
-static const uniform_name GLASEYE_uniform[] = {
+static const UniformName GLASEYE_uniform[] = {
     U_SKINNING,
 };
 
-static const uniform_name ESMGAUSS_uniform[] = {
+static const UniformName ESMGAUSS_uniform[] = {
     U_LIGHT_PROJ,
 };
 
-static const uniform_name ESMFILT_uniform[] = {
+static const UniformName ESMFILT_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name LITPROJ_uniform[] = {
+static const UniformName LITPROJ_uniform[] = {
     U_SKINNING,
     U_ALPHA_TEST,
 };
 
-static const uniform_name SIMPLE_uniform[] = {
+static const UniformName SIMPLE_uniform[] = {
     U_SKINNING,
     U_ALPHA_TEST,
 };
 
-static const uniform_name SIL_uniform[] = {
+static const UniformName SIL_uniform[] = {
     U_SKINNING,
-    U_MORPH,
+    U_MORPH_POS_NORMAL_UV,
     U_ALPHA_TEST,
     U_DEPTH,
 };
 
-static const uniform_name LAMBERT_uniform[] = {
+static const UniformName LAMBERT_uniform[] = {
     U_SKINNING,
-    U_MORPH,
+    U_MORPH_POS_NORMAL_UV,
     U_ALPHA_TEST,
 };
 
-static const uniform_name CONSTANT_uniform[] = {
+static const UniformName CONSTANT_uniform[] = {
     U_SKINNING,
-    U_MORPH,
+    U_MORPH_POS_NORMAL_UV,
     U_ALPHA_TEST,
 };
 
-static const uniform_name TONEMAP_uniform[] = {
-    U_TONE_MAP,
+static const UniformName TONEMAP_uniform[] = {
+    U_TONE_MAP_METHOD,
     U_COMPOSITE_BACK,
 };
 
-static const uniform_name REDUCE_uniform[] = {
+static const UniformName REDUCE_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name MAGNIFY_uniform[] = {
+static const UniformName MAGNIFY_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name MLAA_uniform[] = {
+static const UniformName MLAA_uniform[] = {
     U_ALPHA_MASK,
     U_MLAA_SEARCH,
 };
 
-static const uniform_name CONTOUR_uniform[] = {
+static const UniformName CONTOUR_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name CONTOUR_NPR_uniform[] = {
+static const UniformName CONTOUR_NPR_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name EXPOSURE_uniform[] = {
+static const UniformName EXPOSURE_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name GAUSS_uniform[] = {
+static const UniformName GAUSS_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name SUN_uniform[] = {
+static const UniformName SUN_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name SUN_NO_TEXTURED_uniform[] = {
+static const UniformName SUN_NO_TEXTURED_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name WATER01_uniform[] = {
-    U_MORPH,
+static const UniformName WATER01_uniform[] = {
+    U_MORPH_POS_NORMAL_UV,
 };
 
-static const uniform_name W_PTCL_uniform[] = {
+static const UniformName W_PTCL_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name SNOW_PT_uniform[] = {
+static const UniformName SNOW_PT_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name LEAF_PT_uniform[] = {
+static const UniformName LEAF_PT_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name STAR_uniform[] = {
+static const UniformName STAR_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name FLOOR_uniform[] = {
-    U_MORPH,
+static const UniformName FLOOR_uniform[] = {
+    U_MORPH_POS_NORMAL_UV,
     U_ALPHA_TEST,
 };
 
-static const uniform_name PUDDLE_uniform[] = {
+static const UniformName PUDDLE_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name S_REFL_uniform[] = {
+static const UniformName S_REFL_uniform[] = {
     U_SKINNING,
-    U_MORPH,
+    U_MORPH_POS_NORMAL_UV,
     U_ALPHA_TEST,
     U_CLIP_PLANE,
 };
 
-static const uniform_name S_REFR_uniform[] = {
+static const UniformName S_REFR_uniform[] = {
     U_SKINNING,
 };
 
-static const uniform_name RIPEMIT_uniform[] = {
-    U_RIPPLE,
+static const UniformName RIPEMIT_uniform[] = {
+    U_TEX_FORMAT,
     U_RIPPLE_EMIT,
 };
 
-static const uniform_name RAIN_uniform[] = {
+static const UniformName RAIN_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name RIPPLE_uniform[] = {
-    U_RIPPLE,
+static const UniformName RIPPLE_uniform[] = {
+    U_TEX_FORMAT,
 };
 
-static const uniform_name FOGPTCL_uniform[] = {
+static const UniformName FOGPTCL_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name PARTICL_uniform[] = {
+static const UniformName PARTICL_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name GLITTER_PT_uniform[] = {
+static const UniformName GLITTER_PT_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name FONT_uniform[] = {
+static const UniformName FONT_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name IMGFILT_uniform[] = {
+static const UniformName IMGFILT_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name SPRITE_uniform[] = {
+static const UniformName SPRITE_uniform[] = {
     U_TEX_0_TYPE,
     U_TEX_1_TYPE,
     U_COMBINER,
 };
 
-static const uniform_name DOF_uniform[] = {
+static const UniformName DOF_uniform[] = {
     U_DOF,
 };
 
-static const uniform_name TRANSPARENCY_uniform[] = {
+static const UniformName TRANSPARENCY_uniform[] = {
     U_INVALID,
 };
 
@@ -1194,7 +1194,7 @@ struct glass_eye_struct {
     SHADER_FT_##n, \
     sizeof(n##_table) / sizeof(shader_sub_table), \
     n##_table, \
-    n##_uniform[0] > 0 ? sizeof(n##_uniform) / sizeof(uniform_name) : 0, \
+    n##_uniform[0] > 0 ? sizeof(n##_uniform) / sizeof(UniformName) : 0, \
     n##_uniform, \
 }
 
@@ -1554,14 +1554,14 @@ static void glass_eye_set(p_gl_rend_state& p_gl_rend_st, glass_eye_struct* glass
 
 static void shader_bind_blinn(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad) {
-    shad->bind(p_gl_rend_st, shader_flags, set, shader_flags.arr[U_NORMAL]
+    shad->bind(p_gl_rend_st, shader_flags, set, shader_flags.arr[U_TEX_NORMAL]
         ? SHADER_FT_SUB_BLINN_FRAG : SHADER_FT_SUB_BLINN_VERT);
 }
 
 static void shader_bind_cloth(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad) {
     shad->bind(p_gl_rend_st, shader_flags, set, shader_flags.arr[U_NPR] ? SHADER_FT_SUB_CLOTH_NPR1
-        : (shader_flags.arr[U_ANISO] ? SHADER_FT_SUB_CLOTH_ANISO : SHADER_FT_SUB_CLOTH_DEFAULT));
+        : (shader_flags.arr[U_ANISO_TANGENT] ? SHADER_FT_SUB_CLOTH_ANISO : SHADER_FT_SUB_CLOTH_DEFAULT));
 }
 
 static void shader_bind_hair(p_gl_rend_state& p_gl_rend_st,
@@ -1611,7 +1611,7 @@ static void shader_bind_esm_filter(p_gl_rend_state& p_gl_rend_st,
 
 static void shader_bind_reduce_tex(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad) {
-    switch (shader_flags.arr[U_REDUCE]) {
+    switch (shader_flags.arr[U_REDUCE_TEX]) {
     case 0:
         switch (shader_flags.arr[U_ALPHA_MASK]) {
         case 0:
@@ -1732,7 +1732,7 @@ static void shader_bind_gauss(p_gl_rend_state& p_gl_rend_st,
 
 static void shader_bind_snow_particle(p_gl_rend_state& p_gl_rend_st,
     uniform_value& shader_flags, shader_set_data* set, shader* shad) {
-    switch (shader_flags.arr[U_SNOW_PARTICLE]) {
+    switch (shader_flags.arr[U_SNOW_TYPE]) {
     case 0:
         shad->bind(p_gl_rend_st, shader_flags, set, SHADER_FT_SUB_SNOW_PARTICLE_CPU);
         break;
