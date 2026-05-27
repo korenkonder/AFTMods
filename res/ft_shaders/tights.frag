@@ -86,7 +86,7 @@ void main() {
     tights_alpha.x = mix(clamp(tights_alpha.y * tmp, 0.0, 1.0), 1.0, tights_alpha.x);
 
     vec3 env;
-    if (SHADER_FLAGS_ENV_MAP != 0)
+    if (SHADER_FLAGS_TEX_ENVMAP != 0)
         env = texture(g_envmap, reflect_vec).rgb;
     else
         env = vec3(0.0);
@@ -124,7 +124,7 @@ void main() {
     ibl_spec *= g_light_env_chara_specular.rgb;
     ibl_spec *= tights_alpha.x;
 
-    if (SHADER_FLAGS_SPECULAR == 1)
+    if (SHADER_FLAGS_TEX_SPECULAR == 1)
         spec_ratio *= texture(g_specular, frg_texcoord.xy);
 
     spec_ratio.rgb += g_texture_color_coefficients.w;
@@ -132,7 +132,7 @@ void main() {
     diff *= 0.96;
     diff += ibl_spec * spec_ratio.rgb;
 
-    if (SHADER_FLAGS_ENV_MAP != 0) {
+    if (SHADER_FLAGS_TEX_ENVMAP != 0) {
         env *= (lc.z * 0.5 + 0.5) * g_light_env_chara_specular.w;
         diff += env * spec_ratio.w;
     }

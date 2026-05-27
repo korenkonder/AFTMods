@@ -46,7 +46,7 @@ void main() {
     vec4 col0 = texture(g_diffuse, frg_texcoord.xy);
     col0.a = max(col0.a, g_max_alpha.w);
 
-    if (SHADER_FLAGS_TRANSPARENCY == 1) {
+    if (SHADER_FLAGS_TEX_PARENCY == 1) {
         col0.a = texture(g_transparency, frg_texcoord.zw).r;
         col0.a = max(col0.a, g_max_alpha.w);
     }
@@ -88,7 +88,7 @@ void main() {
     col *= diff;
     col += g_light_env_chara_ambient.rgb;
 
-    if (SHADER_FLAGS_ANISO != 0) {
+    if (SHADER_FLAGS_ANISO_TANGENT != 0) {
         vec3 aniso_tangent = normalize(frg_aniso_tangent);
         float aniso_mix = clamp(1.05 - abs(dot(normalize(eye + g_light_chara_dir.xyz), aniso_tangent)), 0.0, 1.0);
         aniso_mix = pow(aniso_mix, 12.0) * (lc.z * 0.75 + 0.25);

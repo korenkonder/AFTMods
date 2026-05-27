@@ -41,7 +41,7 @@ void main() {
     vec4 col0 = texture(g_diffuse, frg_texcoord.xy);
     col0.rgb *= g_texture_color_coefficients.x;
 
-    if (SHADER_FLAGS_TRANSPARENCY == 1)
+    if (SHADER_FLAGS_TEX_PARENCY == 1)
         col0.a = texture(g_transparency, frg_texcoord.zw).a;
 
     #if ALPHA_TEST_DEF
@@ -68,11 +68,11 @@ void main() {
     lc.x = lc.x * 0.6 + 0.4;
 
     vec3 aniso_normal = normalize(tangent - dot(normal, tangent) * normal);
-    if (SHADER_FLAGS_ANISO == 1)
+    if (SHADER_FLAGS_ANISO_TANGENT == 1)
         aniso_normal = mix(aniso_normal, normal, 0.1);
-    else if (SHADER_FLAGS_ANISO == 3)
+    else if (SHADER_FLAGS_ANISO_TANGENT == 3)
         aniso_normal = mix(aniso_normal, normal, 0.9);
-    else if (SHADER_FLAGS_ANISO == 2)
+    else if (SHADER_FLAGS_ANISO_TANGENT == 2)
         aniso_normal = mix(aniso_normal, normal, 0.5);
     aniso_normal = normalize(aniso_normal);
 
@@ -97,7 +97,7 @@ void main() {
     vec3 luce = textureLod(g_ibl_diffuse, -eye, 0.0).rgb * tmp.x;
 
     vec3 env;
-    if (SHADER_FLAGS_ENV_MAP != 0)
+    if (SHADER_FLAGS_TEX_ENVMAP != 0)
         env = texture(g_envmap, reflect_vec).rgb;
     else
         env = vec3(0.0);
@@ -113,11 +113,11 @@ void main() {
     if (SHADER_FLAGS_TONE_CURVE == 1)
         diff += get_tone_curve(org_normal);
 
-    if (SHADER_FLAGS_ANISO == 1)
+    if (SHADER_FLAGS_ANISO_TANGENT == 1)
         tmp.y = tmp.y * 0.6 + 0.4;
-    else if (SHADER_FLAGS_ANISO == 2)
+    else if (SHADER_FLAGS_ANISO_TANGENT == 2)
         tmp.y = tmp.y * 0.7 + 0.3;
-    else if (SHADER_FLAGS_ANISO == 3)
+    else if (SHADER_FLAGS_ANISO_TANGENT == 3)
         tmp.y = tmp.y * 0.8 + 0.2;
 
     diff *= mix(g_material_state_ambient.rgb, col0.rgb, tmp.y);
@@ -130,7 +130,7 @@ void main() {
     ibl_spec = mix(ibl_spec_shad, ibl_spec, lc.z);
     ibl_spec *= g_light_env_chara_specular.rgb;
 
-    if (SHADER_FLAGS_SPECULAR != 0)
+    if (SHADER_FLAGS_TEX_SPECULAR != 0)
         spec_ratio *= texture(g_specular, frg_texcoord.xy);
 
     spec_ratio.rgb += g_texture_color_coefficients.w;
@@ -143,7 +143,7 @@ void main() {
     diff *= 0.96;
     diff += ibl_spec * spec_ratio.rgb;
 
-    if (SHADER_FLAGS_ENV_MAP != 0) {
+    if (SHADER_FLAGS_TEX_ENVMAP != 0) {
         env *= lc.z * 0.5 + 0.5;
         diff += env * spec_ratio.w;
     }

@@ -23,13 +23,13 @@ float get_face_offset(in const vec3 normal_v, in const vec3 eye) {
 }
 
 float get_fog_chara(sampler2D effect_tex, in const vec4 pos_m, in const vec3 pos_w, out vec3 fog_color) {
-    if (SHADER_FLAGS_FOG_CHARA == 1) {
+    if (SHADER_FLAGS_FOGMAP == 1) {
         float depth = dot(g_forward_z_projection_row2.zw, vec2(dot(g_worldview[2], pos_m), 1.0));
         float fog = clamp((depth - g_fog_state_params.y) * g_fog_state_params.w, 0.0, 1.0);
         fog_color = g_fog_depth_color.rgb;
         return fog * g_fog_state_params.x;
     }
-    else if (SHADER_FLAGS_FOG_CHARA == 2) {
+    else if (SHADER_FLAGS_FOGMAP == 2) {
         vec2 texcoord = pos_w.xz * vec2(0.0625, -0.0625) + 0.5;
 
         float eff_val = texture(effect_tex, texcoord).x;
@@ -66,7 +66,7 @@ vec3 get_ibl_diffuse(samplerCube diffuse_tex, in const vec3 ray, in const float 
 
 vec3 get_light_coef_chara(sampler2D shadow_tex, in const vec3 normal, in const vec3 texcoord) {
     vec3 lc;
-    if (SHADER_FLAGS_CHARA_SHADOW != 0) {
+    if (SHADER_FLAGS_SELF_SHADOW != 0) {
         lc.x = texture(shadow_tex, texcoord.xy).x;
         lc.x = (lc.x - texcoord.z) * g_esm_param.x;
         lc.x = clamp(exp2(lc.x * g_material_state_emission.w), 0.0, 1.0);
@@ -94,7 +94,7 @@ vec3 get_texcoord_shadow_chara(in const vec3 pos) {
     vec4 _pos = vec4(pos, 1.0);
 
     vec3 texcoord_shadow;
-    if (SHADER_FLAGS_CHARA_SHADOW2 == 0)
+    if (SHADER_FLAGS_SHADOW_SAMPLE == 0)
         texcoord_shadow = vec4(pos, 1.0) * g_self_shadow_receivers[0];
     else
         texcoord_shadow = vec4(pos, 1.0) * g_self_shadow_receivers[1];

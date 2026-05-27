@@ -77,8 +77,8 @@ vec3 disp_lod_no_mipmap() {
 }
 
 void main() {
-    if (SHADER_FLAGS_DISP_LOD == 0) {
-        if (SHADER_FLAGS_TEXTURE_COUNT != 0) {
+    if (SHADER_FLAGS_SHOW_MIPMAP == 0) {
+        if (SHADER_FLAGS_TEX_COLOR != 0) {
             result = texture(g_color, frg_texcoord) * frg_color + frg_offset_color;
         } else {
             result = frg_color + frg_offset_color;
@@ -100,15 +100,15 @@ void main() {
             level = 0.0;
         }
 
-        if (SHADER_FLAGS_DISP_LOD == 1) {
+        if (SHADER_FLAGS_SHOW_MIPMAP == 1) {
             result.rgb = disp_lod_nearest(level);
-        } else if (SHADER_FLAGS_DISP_LOD == 2) {
+        } else if (SHADER_FLAGS_SHOW_MIPMAP == 2) {
             result.rgb = disp_lod_linear(level);
         } else {
             result.rgb = disp_lod_no_mipmap();
         }
 
-        if (SHADER_FLAGS_TEXTURE_COUNT != 0) {
+        if (SHADER_FLAGS_TEX_COLOR != 0) {
             result.a = texture(g_color, frg_texcoord).a;
         } else {
             result.a = 1.0;

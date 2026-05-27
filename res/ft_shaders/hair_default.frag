@@ -34,7 +34,7 @@ layout(location = 7) in vec4 frg_fog_color; //xyz=fog_color, w=fresnel
 layout(location = 8) in vec3 frg_aniso_tangent;
 
 void main() {
-    if (SHADER_FLAGS_ANISO == 0) {
+    if (SHADER_FLAGS_ANISO_TANGENT == 0) {
         result = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }
@@ -53,7 +53,7 @@ void main() {
 
     vec3 luce = g_light_chara_luce.rgb * tmp.x;
 
-    if (SHADER_FLAGS_TRANSLUCENCY == 1)
+    if (SHADER_FLAGS_TEX_LUCENCY == 1)
         luce *= texture(g_translucency, frg_texcoord.zw).rgb;
 
     luce *= lc.z;
@@ -92,7 +92,7 @@ void main() {
 
     vec3 spec = g_light_chara_spec.rgb * aniso_coef.y * lc.z + g_light_chara_back.rgb * aniso_coef.z;
     spec += g_texture_color_coefficients.w;
-    if (SHADER_FLAGS_SPECULAR == 1)
+    if (SHADER_FLAGS_TEX_SPECULAR == 1)
         spec *= texture(g_specular, frg_texcoord.xy).rgb;
 
     diff *= aniso_coef.x;
@@ -104,7 +104,7 @@ void main() {
 
     result.a = max(col0.a, g_max_alpha.w);
 
-    if (SHADER_FLAGS_TRANSPARENCY == 1) {
+    if (SHADER_FLAGS_TEX_PARENCY == 1) {
         col0.a = texture(g_transparency, frg_texcoord.zw).r;
         result.a = max(col0.a, g_max_alpha.w);
     }

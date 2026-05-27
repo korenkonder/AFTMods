@@ -24,8 +24,8 @@ layout(location = 0) in vec4 frg_texcoord; //xy=texcoord0, zw=texcoord1
 layout(location = 1) in vec2 frg_linear_depth;
 
 void main() {
-    if (SHADER_FLAGS_TRANSPARENCY != 0) {
-        if (SHADER_FLAGS_TRANSPARENCY == 1)
+    if (SHADER_FLAGS_TEX_PARENCY != 0) {
+        if (SHADER_FLAGS_TEX_PARENCY == 1)
             result.a = texture(g_transparency, frg_texcoord.zw).a;
         else
             result.a = 0.0;

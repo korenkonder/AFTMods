@@ -31,13 +31,13 @@ layout(location = 7) in vec4 frg_bump; //xyz=unused, w=bump
 
 void main() {
     vec4 color_map;
-    if (SHADER_FLAGS_TEXTURE_COUNT == 0)
+    if (SHADER_FLAGS_TEX_COLOR == 0)
         color_map = frg_color;
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 1) {
+    else if (SHADER_FLAGS_TEX_COLOR == 1) {
         color_map = texture(g_diffuse, frg_texcoord.xy);
         color_map *= frg_color;
     }
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 2) {
+    else if (SHADER_FLAGS_TEX_COLOR == 2) {
         color_map = texture_blend_apply(0,
             texture(g_diffuse, frg_texcoord.xy), texture(g_mask, frg_texcoord.zw));
         color_map *= frg_color;
@@ -47,7 +47,7 @@ void main() {
 
     vec3 normal_t;
     vec3 normal_w;
-    if (SHADER_FLAGS_NORMAL == 1) {
+    if (SHADER_FLAGS_TEX_NORMAL == 1) {
         normal_t.xy = texture(g_normal, frg_texcoord.xy).wy * 2.0 - 1.0;
         normal_t.z = frg_bump.w * 0.15;
         normal_t = normalize(normal_t);
@@ -63,7 +63,7 @@ void main() {
     }
 
     vec3 reflect_map;
-    if (SHADER_FLAGS_WATER_REFLECT == 1) {
+    if (SHADER_FLAGS_TEX_REFLECTMAP == 1) {
         vec2 screen_uv = gl_FragCoord.xy * g_framebuffer_size.xy + normal_t.xy * g_reflect_uv_scale.xy;
         reflect_map = texture(g_reflect, screen_uv).rgb;
     }
@@ -71,13 +71,13 @@ void main() {
         reflect_map = vec3(0.0);
 
     vec3 eye = normalize(frg_eye);
-    if (SHADER_FLAGS_ENV_MAP == 1) {
+    if (SHADER_FLAGS_TEX_ENVMAP == 1) {
         vec3 reflect_vec = -reflect(eye, normal_w);
         vec4 cube_map = texture(g_envmap, reflect_vec);
         reflect_map += cube_map.rgb * (cube_map.w * 25.5 * g_intensity.x);
     }
 
-    if (SHADER_FLAGS_SPECULAR == 1)
+    if (SHADER_FLAGS_TEX_SPECULAR == 1)
         reflect_map *= texture(g_specular, frg_texcoord.xy).rgb;
 
     reflect_map *= g_material_state_specular.rgb;
@@ -86,7 +86,7 @@ void main() {
     fres = get_fresnel_coefficient(fres, 10.0).x;
     fres *= g_material_state_specular.w;
 
-    bool has_fog = SHADER_FLAGS_FOG_STAGE == 1;
+    bool has_fog = SHADER_FLAGS_FOG == 1;
     vec4 color;
     color.rgb = color_map.rgb + reflect_map * fres;
     color.a = color_map.a;

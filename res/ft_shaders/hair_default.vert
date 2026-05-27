@@ -38,14 +38,14 @@ layout(location = 8) in vec2 a_texcoords[2];
 
 vec3 get_aniso_tangent(in vec2 texcoord, in vec3 normal_w, in vec3 tangent_w, in vec3 binormal_w) {
     vec3 aniso_tangent = vec3(0.0);
-    if (SHADER_FLAGS_NORMAL != 1)
+    if (SHADER_FLAGS_TEX_NORMAL != 1)
         return aniso_tangent;
 
-    if (SHADER_FLAGS_ANISO == 1)
+    if (SHADER_FLAGS_ANISO_TANGENT == 1)
         aniso_tangent = tangent_w;
-    else if (SHADER_FLAGS_ANISO == 2)
+    else if (SHADER_FLAGS_ANISO_TANGENT == 2)
         aniso_tangent = binormal_w;
-    else if (SHADER_FLAGS_ANISO == 3) {
+    else if (SHADER_FLAGS_ANISO_TANGENT == 3) {
         vec3 t_normal_w;
         vec2 tmp;
         tmp.x = binormal_w.x;

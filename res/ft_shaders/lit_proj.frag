@@ -33,7 +33,7 @@ layout(location = 7) in vec4 frg_texcoord_litproj_depth;
 
 void main() {
     vec3 normal;
-    if (SHADER_FLAGS_NORMAL == 1)
+    if (SHADER_FLAGS_TEX_NORMAL == 1)
         normal = sample_normal_texture(g_normal, frg_texcoord.xy, frg_normal, frg_tangent, frg_binormal);
     else
         normal = normalize(frg_normal);
@@ -44,7 +44,7 @@ void main() {
     vec4 lc = get_light_coef_stage(normal, eye, lit_dir);
 
     vec4 col0 = texture(g_diffuse, frg_texcoord.xy);
-    if (SHADER_FLAGS_TRANSPARENCY == 1)
+    if (SHADER_FLAGS_TEX_PARENCY == 1)
         col0.a = texture(g_transparency, frg_texcoord.zw).r;
     result.a = col0.a;
 
@@ -52,7 +52,7 @@ void main() {
     diff *= lc.y;
 
     vec3 spec;
-    if (SHADER_FLAGS_SPECULAR == 1)
+    if (SHADER_FLAGS_TEX_SPECULAR == 1)
         spec = texture(g_specular, frg_texcoord.xy).rgb;
     else
         spec = g_material_state_specular.rgb;

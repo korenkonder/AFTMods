@@ -30,7 +30,7 @@ void main() {
     vec4 color_map = texture(g_diffuse, frg_texcoord);
 
     vec3 normal_w;
-    if (SHADER_FLAGS_NORMAL == 1)
+    if (SHADER_FLAGS_TEX_NORMAL == 1)
         normal_w = texture(g_normal, frg_texcoord).xzy * 2.0 - 1.0;
     else
         normal_w = frg_normal;
@@ -50,7 +50,7 @@ void main() {
     vec4 diff = color_map;
     vec4 spec = frg_spec_color;
 
-    if (SHADER_FLAGS_STAGE_SHADOW != 0)
+    if (SHADER_FLAGS_TEX_SHADOW != 0)
         apply_stage_shadow(g_shadow0, g_shadow1, g_shadow_depth1,
             frg_texcoord_shadow0.xyz, frg_texcoord_shadow1.xyz, diff, spec);
 

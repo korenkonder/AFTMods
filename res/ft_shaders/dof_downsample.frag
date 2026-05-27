@@ -110,7 +110,7 @@ vec3 prefilter(in const float coc_center_pixel, in const float depth_center) {
     float w_t = 1.0; //Center tap has a weight of 1 because depth difference is 0
     if (PREFILTER_TAP_NUM == 5) {
         //concentric_mapping
-        const vec2 offsets[5] = vec2[5](
+        vec2 offsets[5] = vec2[5](
             vec2(        1.0 / tw,         0.0 / th),
             vec2( 0.30901699 / tw, -0.95105652 / th),
             vec2( 0.30901699 / tw,  0.95105652 / th),
@@ -128,7 +128,7 @@ vec3 prefilter(in const float coc_center_pixel, in const float depth_center) {
     }
     else if (PREFILTER_TAP_NUM == 4) {
         //concentric_mapping
-        const vec2 offsets[4] = vec2[4](
+        vec2 offsets[4] = vec2[4](
             vec2(        1.0 / tw,         0.0 / th),
             vec2(        0.0 / tw,        -1.0 / th),
             vec2(       -1.0 / tw,         0.0 / th),
@@ -145,7 +145,7 @@ vec3 prefilter(in const float coc_center_pixel, in const float depth_center) {
     }
     else if (PREFILTER_TAP_NUM == 3) {
         //concentric_mapping
-        const vec2 offsets[3] = vec2[3](
+        vec2 offsets[3] = vec2[3](
             vec2(        1.0 / tw,         0.0 / th),
             vec2(-0.30901699 / tw, -0.86602540 / th),
             vec2(-0.30901699 / tw,  0.86602540 / th)
@@ -161,7 +161,7 @@ vec3 prefilter(in const float coc_center_pixel, in const float depth_center) {
     }
     else {
         //concentric_mapping
-        const vec2 offsets[8] = vec2[8](
+        vec2 offsets[8] = vec2[8](
             vec2(-0.70710678 / tw, -0.70710678 / th),
             vec2(        0.0 / tw,        -1.0 / th),
             vec2( 0.70710678 / tw, -0.70710678 / th),

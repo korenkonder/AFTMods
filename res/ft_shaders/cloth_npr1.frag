@@ -35,7 +35,7 @@ layout(location = 7) in vec4 frg_fog_color; //xyz=fog_color, w=fresnel
 void main() {
     vec4 col0 = texture(g_diffuse, frg_texcoord.xy);
 
-    if (SHADER_FLAGS_TRANSPARENCY == 1)
+    if (SHADER_FLAGS_TEX_PARENCY == 1)
         col0.a = texture(g_transparency, frg_texcoord.zw).a;
 
     #if ALPHA_TEST_DEF
@@ -46,7 +46,7 @@ void main() {
     col0.a = get_max_alpha(col0.a);
 
     vec3 normal;
-    if (SHADER_FLAGS_NORMAL == 1) {
+    if (SHADER_FLAGS_TEX_NORMAL == 1) {
         vec2 normal_t = texture(g_normal, frg_texcoord.xy).wy * 2.0 - 1.0;
 
         normal = frg_normal;
@@ -94,7 +94,7 @@ void main() {
             discard;
     #endif
 
-    if (SHADER_FLAGS_SPECULAR != 0) {
+    if (SHADER_FLAGS_TEX_SPECULAR != 0) {
         vec3 dir = normalize(vec3(-1.0, 1.0, -0.5));
 
         vec4 spec = textureLod(g_specular, frg_texcoord.xy, 3.0);

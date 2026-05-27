@@ -20,7 +20,7 @@ layout(location = 2) in vec2 frg_texcoord;
 
 void main() {
     vec4 color_map = texture(g_diffuse, frg_texcoord);
-    if (SHADER_FLAGS_TRANSPARENCY == 1)
+    if (SHADER_FLAGS_TEX_PARENCY == 1)
         color_map.a = texture(g_transparency, frg_texcoord).r;
 
     if (color_map.a < 0.5)

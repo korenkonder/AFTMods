@@ -42,7 +42,7 @@ void main() {
     vec4 col0 = texture(g_diffuse, frg_texcoord.xy);
     col0.rgb *= g_texture_color_coefficients.x;
 
-    if (SHADER_FLAGS_TRANSPARENCY == 1)
+    if (SHADER_FLAGS_TEX_PARENCY == 1)
         col0.a = texture(g_transparency, frg_texcoord.zw).a;
 
     #if ALPHA_TEST_DEF
@@ -53,7 +53,7 @@ void main() {
     col0.a = get_max_alpha(col0.a);
 
     vec3 normal;
-    if (SHADER_FLAGS_NORMAL == 1)
+    if (SHADER_FLAGS_TEX_NORMAL == 1)
         normal = sample_normal_texture(g_normal, frg_texcoord.xy, frg_normal, frg_tangent, frg_binormal);
     else
         normal = normalize(frg_normal);
@@ -80,7 +80,7 @@ void main() {
 
     vec4 spec_ratio = g_material_state_specular;
 
-    if (SHADER_FLAGS_SPECULAR != 0)
+    if (SHADER_FLAGS_TEX_SPECULAR != 0)
         spec_ratio *= texture(g_specular, frg_texcoord.xy);
 
     luce *= clamp(1.3 - 3.0 * dot(spec_ratio.rgb, vec3(1.0)), 0.0, 1.0);
@@ -90,7 +90,7 @@ void main() {
     spec_ratio += g_texture_color_coefficients.w;
 
     vec3 env;
-    if (SHADER_FLAGS_ENV_MAP != 0)
+    if (SHADER_FLAGS_TEX_ENVMAP != 0)
         env = texture(g_envmap, reflect_vec).rgb;
     else
         env = vec3(0.0);
@@ -112,7 +112,7 @@ void main() {
     diff *= col0.rgb;
     diff *= 0.96;
 
-    if (SHADER_FLAGS_SPECULAR_IBL != 0) {
+    if (SHADER_FLAGS_SPECULAR != 0) {
         vec3 ibl_spec = get_ibl_specular(g_ibl_specular,
             g_ibl_specular_rough, reflect_vec, g_material_state_shininess.x).rgb;
         vec3 ibl_spec_shad = get_ibl_specular(g_ibl_specular_shadowed,
@@ -129,7 +129,7 @@ void main() {
             discard;
     #endif
 
-    if (SHADER_FLAGS_ENV_MAP != 0) {
+    if (SHADER_FLAGS_TEX_ENVMAP != 0) {
         env *= (lc.z * 0.5 + 0.5) * g_light_env_chara_specular.w;
         diff += env * spec_ratio.w;
     }

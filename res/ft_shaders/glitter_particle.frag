@@ -51,10 +51,10 @@ vec4 texture_blend_apply_glitter(in const uint blend, in const vec4 col0, in con
 
 void main() {
     vec4 col;
-    if (SHADER_FLAGS_TEXTURE_COUNT == 1)
+    if (SHADER_FLAGS_TEX_COLOR == 1)
         col = texture(g_color, frg_texcoord0.xy);
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 2)
-        col = texture_blend_apply_glitter(SHADER_FLAGS_TEXTURE_BLEND,
+    else if (SHADER_FLAGS_TEX_COLOR == 2)
+        col = texture_blend_apply_glitter(SHADER_FLAGS_BLEND_FUNC_01,
             texture(g_color, frg_texcoord0.xy), texture(g_mask, frg_texcoord1.xy));
     else
         col = g_state_material_diffuse;

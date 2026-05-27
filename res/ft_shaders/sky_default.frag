@@ -58,15 +58,15 @@ vec4 sample_tex(in const uint tex_type, sampler2D tex, in const vec2 texcoord) {
 
 void main() {
     vec4 tex_col;
-    if (SHADER_FLAGS_TEXTURE_COUNT == 0)
+    if (SHADER_FLAGS_TEX_COLOR == 0)
         tex_col = g_material_state_diffuse;
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 1 || SHADER_FLAGS_TEXTURE_COUNT == 2) {
+    else if (SHADER_FLAGS_TEX_COLOR == 1 || SHADER_FLAGS_TEX_COLOR == 2) {
         vec4 col0 = sample_tex(SHADER_FLAGS_TEX_0_TYPE, g_diffuse, frg_texcoord.xy);
 
-        if (SHADER_FLAGS_TEXTURE_COUNT == 2) {
+        if (SHADER_FLAGS_TEX_COLOR == 2) {
             vec4 col1 = sample_tex(SHADER_FLAGS_TEX_1_TYPE, g_mask, frg_texcoord.zw);
 
-            tex_col = texture_blend_apply(SHADER_FLAGS_TEXTURE_BLEND, col0, col1);
+            tex_col = texture_blend_apply(SHADER_FLAGS_BLEND_FUNC_01, col0, col1);
         }
         else
             tex_col = col0;

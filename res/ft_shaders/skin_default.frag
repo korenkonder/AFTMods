@@ -47,7 +47,7 @@ void main() {
     result.a = get_max_alpha(col0.a);
 
     vec3 normal;
-    if (SHADER_FLAGS_NORMAL == 1)
+    if (SHADER_FLAGS_TEX_NORMAL == 1)
         normal = sample_normal_texture(g_normal, frg_texcoord.xy, frg_normal, frg_tangent, frg_binormal);
     else
         normal = normalize(frg_normal);

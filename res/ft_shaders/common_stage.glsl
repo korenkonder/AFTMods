@@ -2,16 +2,16 @@
 #define COMMON_STAGE
 
 vec3 apply_fog_stage_depth(in const vec3 color, in const float fog) {
-    if (SHADER_FLAGS_FOG_STAGE == 2 || SHADER_FLAGS_FOG_STAGE == 3)
+    if (SHADER_FLAGS_FOG == 2 || SHADER_FLAGS_FOG == 3)
         return mix(color.rgb, g_fog_height_color.rgb, fog);
     else
         return mix(color.rgb, g_fog_depth_color.rgb, fog);
 }
 
 vec3 apply_fog_stage(in const vec3 color, in float fog) {
-    if (SHADER_FLAGS_FOG_STAGE == 2 || SHADER_FLAGS_FOG_STAGE == 3)
+    if (SHADER_FLAGS_FOG == 2 || SHADER_FLAGS_FOG == 3)
         return mix(color, g_fog_height_color.rgb, fog);
-    else if (SHADER_FLAGS_FOG_STAGE == 1)
+    else if (SHADER_FLAGS_FOG == 1)
         return mix(color, g_fog_depth_color.rgb, fog);
     else
         return color;
@@ -25,13 +25,13 @@ void apply_stage_shadow(sampler2D shadow0_tex,
     sampler2D shadow1_tex, sampler2D shadow_depth_tex,
     in const vec3 texcoord_shadow0, in const vec3 texcoord_shadow1,
     inout vec4 diff, inout vec4 spec) {
-    if (SHADER_FLAGS_STAGE_SHADOW2 == 0) {
+    if (SHADER_FLAGS_NUM_SHADOWMAP == 0) {
         vec4 shadow = get_shadow_stage(shadow0_tex,
             shadow_depth_tex, texcoord_shadow0);
 
         spec *= shadow;
         diff *= g_shadow_ambient1 * shadow + g_shadow_ambient;
-    } else if (SHADER_FLAGS_STAGE_SHADOW2 == 1) {
+    } else if (SHADER_FLAGS_NUM_SHADOWMAP == 1) {
         vec4 shadow = get_shadow_stage(shadow0_tex, shadow1_tex,
             shadow_depth_tex, texcoord_shadow0, texcoord_shadow1);
 
@@ -43,11 +43,11 @@ void apply_stage_shadow(sampler2D shadow0_tex,
 float get_fog_stage(sampler2D effect_tex, in const vec4 pos_m, in const vec3 pos_w) {
     float depth = dot(vec2(dot(pos_m, g_worldview[2]), 1.0), g_forward_z_projection_row2.zw);
 
-    if (SHADER_FLAGS_FOG_STAGE == 1) {
+    if (SHADER_FLAGS_FOG == 1) {
         float fog = clamp((depth - g_fog_state_params.y) * g_fog_state_params.w, 0.0, 1.0);
         return fog * g_fog_state_params.x;
     }
-    else if (SHADER_FLAGS_FOG_STAGE == 2) {
+    else if (SHADER_FLAGS_FOG == 2) {
         float fog = clamp((depth - g_fog_state_params.y) * g_fog_state_params.w, 0.0, 1.0);
         fog = fog * g_fog_state_params.x;
 
@@ -56,7 +56,7 @@ float get_fog_stage(sampler2D effect_tex, in const vec4 pos_m, in const vec3 pos
 
         return max(fog, fog_height);
     }
-    else if (SHADER_FLAGS_FOG_STAGE == 3) {
+    else if (SHADER_FLAGS_FOG == 3) {
         vec2 texcoord = pos_w.xz * vec2(0.0625, -0.0625) + vec2(0.5, 0.5);
 
         float eff_val = texture(effect_tex, texcoord).x;
@@ -108,7 +108,7 @@ vec4 get_shadow_stage(sampler2D shadow0_tex, sampler2D shadow1_tex,
 }
 
 void get_texcoord_shadow_stage(in const vec3 pos, out vec3 texcoord_shadow0, out vec3 texcoord_shadow1) {
-    if (SHADER_FLAGS_STAGE_SHADOW != 0) {
+    if (SHADER_FLAGS_TEX_SHADOW != 0) {
         texcoord_shadow0 = vec4(pos, 1.0) * g_self_shadow_receivers[0];
         texcoord_shadow1 = vec4(pos, 1.0) * g_self_shadow_receivers[1];
     }

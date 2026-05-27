@@ -35,12 +35,12 @@ void main() {
     #endif
 
     vec4 color_map;
-    if (SHADER_FLAGS_TEXTURE_COUNT == 1)
+    if (SHADER_FLAGS_TEX_COLOR == 1)
         color_map = texture(g_diffuse, frg_texcoord.xy);
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 2)
-        color_map = texture_blend_apply(SHADER_FLAGS_TEXTURE_BLEND,
+    else if (SHADER_FLAGS_TEX_COLOR == 2)
+        color_map = texture_blend_apply(SHADER_FLAGS_BLEND_FUNC_01,
             texture(g_diffuse, frg_texcoord.xy), texture(g_mask, frg_texcoord.zw));
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 0)
+    else if (SHADER_FLAGS_TEX_COLOR == 0)
         color_map = g_material_state_diffuse;
     else
         color_map = vec4(1.0, 0.0, 0.0, 1.0);

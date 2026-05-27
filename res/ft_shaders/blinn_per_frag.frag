@@ -42,10 +42,10 @@ layout(location = 8) in vec4 frg_offset_color;
 
 vec4 apply_fog_stage(in const vec4 color, in const vec4 color_height, in const float fog) {
     vec4 col;
-    if (SHADER_FLAGS_FOG_STAGE == 1) {
+    if (SHADER_FLAGS_FOG == 1) {
         col.rgb = mix(color.rgb, g_fog_depth_color.rgb, fog);
         col.a = color.a;
-    } else if (SHADER_FLAGS_FOG_STAGE == 2 || SHADER_FLAGS_FOG_STAGE == 3) {
+    } else if (SHADER_FLAGS_FOG == 2 || SHADER_FLAGS_FOG == 3) {
         col.rgb = mix(color_height.rgb, g_fog_height_color.rgb, fog);
         col.a = color_height.a;
     } else {
@@ -57,7 +57,7 @@ vec4 apply_fog_stage(in const vec4 color, in const vec4 color_height, in const f
 
 vec4 get_specular_reflection(in const vec3 reflect_vec, in const vec3 spec_map) {
     vec4 spec;
-    if (SHADER_FLAGS_ENV_MAP == 1) {
+    if (SHADER_FLAGS_TEX_ENVMAP == 1) {
         spec = texture(g_envmap, reflect_vec);
         spec.a = g_material_state_specular.w * g_light_env_stage_specular.w;
         spec.rgb *= spec.a;
@@ -73,7 +73,7 @@ vec4 get_specular_reflection(in const vec3 reflect_vec, in const vec3 spec_map) 
 
 vec4 get_specular(in const vec2 texcoord, in const vec3 reflect_vec) {
     vec4 spec;
-    if (SHADER_FLAGS_SPECULAR == 1)
+    if (SHADER_FLAGS_TEX_SPECULAR == 1)
         spec = get_specular_reflection(reflect_vec, texture(g_specular, texcoord).rgb);
     else
         spec = get_specular_reflection(reflect_vec, vec3(1.0));
@@ -82,18 +82,18 @@ vec4 get_specular(in const vec2 texcoord, in const vec3 reflect_vec) {
 
 void main() {
     vec4 tex_col;
-    if (SHADER_FLAGS_TEXTURE_COUNT == 1)
+    if (SHADER_FLAGS_TEX_COLOR == 1)
         tex_col = texture(g_diffuse, frg_texcoord.xy);
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 2)
-        tex_col = texture_blend_apply(SHADER_FLAGS_TEXTURE_BLEND,
+    else if (SHADER_FLAGS_TEX_COLOR == 2)
+        tex_col = texture_blend_apply(SHADER_FLAGS_BLEND_FUNC_01,
             texture(g_diffuse, frg_texcoord.xy), texture(g_mask, frg_texcoord.zw));
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 0)
+    else if (SHADER_FLAGS_TEX_COLOR == 0)
         tex_col = g_material_state_diffuse;
     else
         tex_col = vec4(1.0, 0.0, 0.0, 1.0);
 
     vec3 org_normal;
-    if (SHADER_FLAGS_NORMAL == 1) {
+    if (SHADER_FLAGS_TEX_NORMAL == 1) {
         org_normal.xy = texture(g_normal, frg_texcoord.xy).wy * 2.0 - 1.0;
         org_normal.z = 0.8;
     }
@@ -114,7 +114,7 @@ void main() {
     vec4 spec = get_specular(frg_texcoord.xy, reflect_vec);
     spec.rgb *= g_light_env_stage_specular.rgb * g_material_state_specular.rgb;
 
-    if (SHADER_FLAGS_STAGE_SHADOW != 0)
+    if (SHADER_FLAGS_TEX_SHADOW != 0)
         apply_stage_shadow(g_shadow0, g_shadow1, g_shadow_depth1,
             frg_texcoord_shadow0.xyz, frg_texcoord_shadow1.xyz, diff, spec);
 

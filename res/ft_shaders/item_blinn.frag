@@ -38,7 +38,7 @@ layout(location = 7) in vec4 frg_fog_color; //xyz=fog_color, w=fresnel(unused)
 
 void main() {
     vec4 col0;
-    if (SHADER_FLAGS_TEXTURE_COUNT == 0)
+    if (SHADER_FLAGS_TEX_COLOR == 0)
         col0 = g_material_state_diffuse;
     else
         col0 = texture(g_diffuse, frg_texcoord.xy);
@@ -51,7 +51,7 @@ void main() {
     result.a = get_max_alpha(col0.a);
 
     vec3 normal;
-    if (SHADER_FLAGS_NORMAL == 1)
+    if (SHADER_FLAGS_TEX_NORMAL == 1)
         normal = sample_normal_texture(g_normal, frg_texcoord.xy, frg_normal, frg_tangent, frg_binormal);
     else
         normal = normalize(frg_normal);
@@ -74,7 +74,7 @@ void main() {
     spec_ratio *= get_fresnel_coefficient(fres, 10.0);
 
     vec3 env;
-    if (SHADER_FLAGS_ENV_MAP != 0) {
+    if (SHADER_FLAGS_TEX_ENVMAP != 0) {
         env = texture(g_envmap, reflect_vec).rgb;
     } else {
         env = vec3(0.0);
@@ -94,13 +94,13 @@ void main() {
     diff *= col0.rgb;
     diff *= 0.96;
 
-    if (SHADER_FLAGS_SPECULAR_IBL != 0) {
+    if (SHADER_FLAGS_SPECULAR != 0) {
         vec3 ibl_spec = get_ibl_specular(g_ibl_specular,
             g_ibl_specular_rough, reflect_vec, g_material_state_shininess.x).rgb;
         ibl_spec = mix(min(ibl_spec, vec3(3.0)), ibl_spec, lc.z);
         ibl_spec *= g_light_env_chara_specular.rgb;
 
-        if (SHADER_FLAGS_SPECULAR == 1)
+        if (SHADER_FLAGS_TEX_SPECULAR == 1)
             spec_ratio *= texture(g_specular, frg_texcoord.xy);
 
         diff += ibl_spec * spec_ratio.rgb;
@@ -111,7 +111,7 @@ void main() {
             discard;
     #endif
 
-    if (SHADER_FLAGS_ENV_MAP != 0)
+    if (SHADER_FLAGS_TEX_ENVMAP != 0)
         diff += env * ((lc.z * 0.5 + 0.5) * g_light_env_chara_specular.w) * spec_ratio.w;
 
     result.rgb = apply_fog_chara(diff, frg_fog_color.rgb, frg_texcoord_shadow0.w);

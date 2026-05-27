@@ -30,12 +30,12 @@ layout(location = 3) in vec4 frg_texcoord_shadow1; //xyz=texcoord_shadow1, w=
 
 void main() {
     vec4 tex_col;
-    if (SHADER_FLAGS_TEXTURE_COUNT == 1)
+    if (SHADER_FLAGS_TEX_COLOR == 1)
         tex_col = texture(g_diffuse, frg_texcoord.xy);
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 2)
-        tex_col = texture_blend_apply(SHADER_FLAGS_TEXTURE_BLEND,
+    else if (SHADER_FLAGS_TEX_COLOR == 2)
+        tex_col = texture_blend_apply(SHADER_FLAGS_BLEND_FUNC_01,
             texture(g_diffuse, frg_texcoord.xy), texture(g_mask, frg_texcoord.zw));
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 0)
+    else if (SHADER_FLAGS_TEX_COLOR == 0)
         tex_col = g_material_state_diffuse;
     else
         tex_col = vec4(1.0, 0.0, 0.0, 1.0);
@@ -43,7 +43,7 @@ void main() {
     vec4 diff = frg_color;
     vec4 spec = vec4(1.0);
 
-    if (SHADER_FLAGS_STAGE_SHADOW != 0)
+    if (SHADER_FLAGS_TEX_SHADOW != 0)
         apply_stage_shadow(g_shadow0, g_shadow1, g_shadow_depth1,
             frg_texcoord_shadow0.xyz, frg_texcoord_shadow1.xyz, diff, spec);
 

@@ -38,7 +38,7 @@ layout(location = 8) in vec4 frg_spec_color;
 
 void main() {
     vec3 normal;
-    if (SHADER_FLAGS_NORMAL == 1)
+    if (SHADER_FLAGS_TEX_NORMAL == 1)
         normal = sample_normal_texture(g_normal, frg_texcoord.xy, frg_normal, frg_tangent, frg_binormal);
     else
         normal = normalize(frg_normal);
@@ -49,7 +49,7 @@ void main() {
     vec4 diff = vec4(1.0);
     vec4 spec = vec4(1.0);
 
-    if (SHADER_FLAGS_STAGE_SHADOW != 0)
+    if (SHADER_FLAGS_TEX_SHADOW != 0)
         apply_stage_shadow(g_shadow0, g_shadow1, g_shadow_depth1,
             frg_texcoord_shadow0.xyz, frg_texcoord_shadow1.xyz, diff, spec);
 
@@ -72,12 +72,12 @@ void main() {
     diff.rgb += g_material_state_emission.rgb;
 
     vec4 tex_col;
-    if (SHADER_FLAGS_TEXTURE_COUNT == 1)
+    if (SHADER_FLAGS_TEX_COLOR == 1)
         tex_col = texture(g_diffuse, frg_texcoord.xy);
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 2)
-        tex_col = texture_blend_apply(SHADER_FLAGS_TEXTURE_BLEND,
+    else if (SHADER_FLAGS_TEX_COLOR == 2)
+        tex_col = texture_blend_apply(SHADER_FLAGS_BLEND_FUNC_01,
             texture(g_diffuse, frg_texcoord.xy), texture(g_mask, frg_texcoord.zw));
-    else if (SHADER_FLAGS_TEXTURE_COUNT == 0)
+    else if (SHADER_FLAGS_TEX_COLOR == 0)
         tex_col = g_material_state_diffuse;
     else
         tex_col = vec4(1.0, 0.0, 0.0, 1.0);
@@ -95,7 +95,7 @@ void main() {
     diff.rgb *= 0.96;
     diff.rgb += spec_ratio.rgb * spec.rgb;
 
-    if (SHADER_FLAGS_ENV_MAP != 0) {
+    if (SHADER_FLAGS_TEX_ENVMAP != 0) {
         vec3 env = texture(g_envmap, reflect_vec).rgb;
         diff.rgb += env * (g_light_env_stage_specular.w * lc.z) * spec_ratio.w;
     }
