@@ -89,7 +89,7 @@ struct texture {
 
 static_assert(sizeof(texture) == 0x24, "\"texture\" struct should have a size of 0x24");
 
-extern void(FASTCALL* texture_apply_color_tone)(texture* chg_tex, texture* org_tex, color_tone* col_tone);
+extern void(FASTCALL* texture_apply_color_tone)(texture* chg_tex, texture* org_tex, const ImgfColorToneParam* color);
 extern texture* (FASTCALL* texture_alloc)(texture_id id);
 extern int32_t(FASTCALL* texture_get_size)(AFTGLenum internal_format, int32_t width, int32_t height);
 extern texture* (FASTCALL* texture_create_copy_texture)(texture_id id, texture* org_tex);

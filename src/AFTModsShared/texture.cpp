@@ -5,8 +5,8 @@
 
 #include "texture.hpp"
 
-void(FASTCALL* texture_apply_color_tone)(texture* chg_tex, texture* org_tex, color_tone* col_tone)
-    = (void(FASTCALL*)(texture * chg_tex, texture * org_tex, color_tone * col_tone))0x00000001403B5DF0;
+void(FASTCALL* texture_apply_color_tone)(texture* chg_tex, texture* org_tex, const ImgfColorToneParam* color)
+    = (void(FASTCALL*)(texture * chg_tex, texture * org_tex, const ImgfColorToneParam * color))0x00000001403B5DF0;
 texture* (FASTCALL* texture_alloc)(texture_id id) = (texture * (FASTCALL*)(texture_id id))0x000000014069A390;
 int32_t(FASTCALL* texture_get_size)(AFTGLenum internal_format, int32_t width, int32_t height)
     = (int32_t(FASTCALL *)(AFTGLenum internal_format, int32_t width, int32_t height))0x000000014069A6D0;

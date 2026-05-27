@@ -11,6 +11,6 @@
 #include "wrap.hpp"
 
 extern texture* texture_create_copy_texture_apply_color_tone(
-    texture_id id, texture* org_tex, const color_tone* col_tone);
+    texture_id id, texture* org_tex, const ImgfColorToneParam* color);
 
 extern void texture_patch();

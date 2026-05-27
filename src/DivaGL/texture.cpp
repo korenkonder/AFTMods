@@ -47,8 +47,8 @@ static void texture_set_params(GLenum target, int32_t max_mipmap_level, bool use
 texture_manager*& texture_manager_work_ptr = *(texture_manager**)0x000000014CC96988;
 
 texture* texture_create_copy_texture_apply_color_tone(
-    texture_id id, texture* org_tex, const color_tone* col_tone) {
-    if (!org_tex || !col_tone || org_tex->target != GL_TEXTURE_2D)
+    texture_id id, texture* org_tex, const ImgfColorToneParam* color) {
+    if (!org_tex || !color || org_tex->target != GL_TEXTURE_2D)
         return 0;
 
     GLenum format = GL_ZERO;
@@ -74,16 +74,16 @@ texture* texture_create_copy_texture_apply_color_tone(
 
             glGetCompressedTexImage(org_tex->target, i, data);
             if (org_tex->internal_format == GL_COMPRESSED_RGB_S3TC_DXT1_EXT)
-                dxt1_image_apply_color_tone(width_align, height_align, size, (dxt1_block*)data, col_tone);
+                dxt1_image_apply_color_tone(width_align, height_align, size, (dxt1_block*)data, color);
             else
-                dxt5_image_apply_color_tone(width_align, height_align, size, (dxt5_block*)data, col_tone);
+                dxt5_image_apply_color_tone(width_align, height_align, size, (dxt5_block*)data, color);
         }
         else if (org_tex->internal_format == GL_RGB5) {
             int32_t width_align = org_tex->get_width_align_mip_level(i);
             int32_t height_align = org_tex->get_height_align_mip_level(i);
 
             glGetTexImageDLL(org_tex->target, i, format, type, data);
-            rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, col_tone);
+            rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, color);
         }
         else
             glGetTexImageDLL(org_tex->target, i, format, type, data);
@@ -116,8 +116,8 @@ inline texture_id texture_manager_get_copy_id(uint32_t id) {
 }
 
 HOOK(void, FASTCALL, texture_apply_color_tone, 0x00000001403B5DF0,
-    texture* chg_tex, texture* org_tex, color_tone* col_tone) {
-    if (!chg_tex || !org_tex || !col_tone
+    texture* chg_tex, texture* org_tex, const ImgfColorToneParam* color) {
+    if (!chg_tex || !org_tex || !color
         || chg_tex->internal_format != org_tex->internal_format
         || chg_tex->width != org_tex->width
         || chg_tex->height != org_tex->height
@@ -137,9 +137,9 @@ HOOK(void, FASTCALL, texture_apply_color_tone, 0x00000001403B5DF0,
             texture_bind(org_tex->target, org_tex->glid);
             glGetCompressedTexImage(org_tex->target, i, data);
             if (org_tex->internal_format == GL_COMPRESSED_RGB_S3TC_DXT1_EXT)
-                dxt1_image_apply_color_tone(width_align, height_align, size, (dxt1_block*)data, col_tone);
+                dxt1_image_apply_color_tone(width_align, height_align, size, (dxt1_block*)data, color);
             else
-                dxt5_image_apply_color_tone(width_align, height_align, size, (dxt5_block*)data, col_tone);
+                dxt5_image_apply_color_tone(width_align, height_align, size, (dxt5_block*)data, color);
 
             texture_bind(chg_tex->target, chg_tex->glid);
             int32_t width = org_tex->get_width_mip_level(i);
@@ -153,7 +153,7 @@ HOOK(void, FASTCALL, texture_apply_color_tone, 0x00000001403B5DF0,
 
             texture_bind(org_tex->target, org_tex->glid);
             glGetTexImageDLL(org_tex->target, i, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
-            rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, col_tone);
+            rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, color);
 
             texture_bind(chg_tex->target, chg_tex->glid);
             int32_t width = org_tex->get_width_mip_level(i);

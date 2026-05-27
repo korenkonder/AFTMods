@@ -45,8 +45,8 @@ public:
     bool set;
     int32_t color_change_index;
     prj::vector<::texture*> texture;
-    prj::vector<::color_tone> color_tone;
-    ::color_tone color_tone_temp;
+    prj::vector<ImgfColorToneParam> color_tone;
+    ImgfColorToneParam color_tone_temp;
     bool show;
     bool auto_resize;
     ::chara_index chara_index;
@@ -54,8 +54,8 @@ public:
     size_t item_texture_index;
 
     ::texture* GetChgTex();
-    ::color_tone* GetColorTone();
-    void GetColorToneDefault(::color_tone& value);
+    ImgfColorToneParam* GetColorTone();
+    void GetColorToneDefault(ImgfColorToneParam& value);
     ::texture* GetOrgTex();
     void GetSetColorTone();
     bool LoadColorTone();
@@ -88,7 +88,7 @@ HOOK(void, FASTCALL, ColorChangeDw__Draw, 0x00000001402C2170, ColorChangeDw* Thi
 
     ::texture* org_tex = This->GetOrgTex();
     ::texture* chg_tex = This->GetChgTex();
-    ::color_tone* col_tone = This->GetColorTone();
+    ImgfColorToneParam* col_tone = This->GetColorTone();
 
     //if (org_tex && chg_tex && col_tone)
     //    texture_apply_color_tone(org_tex, chg_tex, col_tone);
@@ -195,13 +195,13 @@ void color_change_dw_patch() {
     return 0;
 }
 
-::color_tone* ColorChangeDw::GetColorTone() {
+ImgfColorToneParam* ColorChangeDw::GetColorTone() {
     if (color_change_index >= 0 && color_change_index < color_tone.size())
         return &color_tone.data()[color_change_index];
     return 0;
 }
 
-void ColorChangeDw::GetColorToneDefault(::color_tone& value) {
+void ColorChangeDw::GetColorToneDefault(ImgfColorToneParam& value) {
     value = {};
 }
 
@@ -213,15 +213,15 @@ void ColorChangeDw::GetColorToneDefault(::color_tone& value) {
 }
 
 void ColorChangeDw::GetSetColorTone() {
-    ::color_tone* col_tone = GetColorTone();
+    ImgfColorToneParam* col_tone = GetColorTone();
     if (col_tone) {
         inverse->SetValue(col_tone->inverse);
-        blend_r->scroll_bar->SetValue(col_tone->blend.x);
-        blend_g->scroll_bar->SetValue(col_tone->blend.y);
-        blend_b->scroll_bar->SetValue(col_tone->blend.z);
-        offset_r->scroll_bar->SetValue(col_tone->offset.x);
-        offset_g->scroll_bar->SetValue(col_tone->offset.y);
-        offset_b->scroll_bar->SetValue(col_tone->offset.z);
+        blend_r->scroll_bar->SetValue(col_tone->blend_color.x);
+        blend_g->scroll_bar->SetValue(col_tone->blend_color.y);
+        blend_b->scroll_bar->SetValue(col_tone->blend_color.z);
+        offset_r->scroll_bar->SetValue(col_tone->offset_color.x);
+        offset_g->scroll_bar->SetValue(col_tone->offset_color.y);
+        offset_b->scroll_bar->SetValue(col_tone->offset_color.z);
         hue->scroll_bar->SetValue(col_tone->hue);
         saturation->scroll_bar->SetValue(col_tone->saturation);
         value->scroll_bar->SetValue(col_tone->value);
@@ -235,7 +235,7 @@ bool ColorChangeDw::LoadColorTone() {
     if (!texture.size())
         return false;
 
-    ::color_tone col_tone;
+    ImgfColorToneParam col_tone;
     GetColorToneDefault(col_tone);
     color_tone.resize(texture.size(), col_tone);
     return true;

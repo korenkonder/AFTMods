@@ -139,7 +139,7 @@ static_assert(sizeof(item_table_item_data_tex) == 0x08, "\"item_table_item_data_
 struct item_table_item_data_col {
     int32_t tex_id;
     int32_t flag;
-    color_tone col_tone;
+    ImgfColorToneParam color;
 };
 
 static_assert(sizeof(item_table_item_data_col) == 0x54, "\"item_table_item_data_col\" struct should have a size of 0x54");
