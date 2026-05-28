@@ -1208,16 +1208,11 @@ namespace rndr {
             }
         }
         else {
-            /*float_t round_val = ssaa ? 1.0f : 16.0f;
+            float_t round_val = ssaa ? 1.0f : 16.0f;
             render_width[0] = (int32_t)(prj::ceilf((float_t)screen_width
                 * (float_t)inner_width / (float_t)width * (1.0f / round_val)) * round_val);
             render_height[0] = (int32_t)(prj::ceilf((float_t)screen_height
-                * (float_t)inner_height / (float_t)height * (1.0f / round_val)) * round_val);*/
-
-            render_width[0] = (int32_t)prj::ceilf((float_t)screen_width
-                * (float_t)inner_width / (float_t)width);
-            render_height[0] = (int32_t)prj::ceilf((float_t)screen_height
-                * (float_t)inner_height / (float_t)height);
+                * (float_t)inner_height / (float_t)height * (1.0f / round_val)) * round_val);
         }
 
         int32_t downsample = 1;
