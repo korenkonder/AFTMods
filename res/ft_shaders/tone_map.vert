@@ -9,6 +9,8 @@
 #define    RGB_LINEAR2_DEF (_0 == 2)
 #define COMPOSITE_BACK_DEF (_1 == 1)
 
+const vec4 c_texcoord_modifier = vec4(0.5, 0.5, 0.5, 0.5);
+
 layout(set = 1, binding = 1) uniform ToneMap {
     vec4 g_exposure;
     vec4 g_fade_color;
@@ -40,9 +42,8 @@ void main() {
     pos.y = 1.0 - float(gl_VertexID % 2) * 2.0;
     result_position = vec4(pos, 0.0, 1.0);
 
-    vec2 texcoord = pos * 0.5 + 0.5;
-    result_texcoord0.xy = texcoord;
-    result_texcoord0.zw = texcoord;
+    result_texcoord0.xy = pos * g_texcoord_modifier.xy + g_texcoord_modifier.zw;
+    result_texcoord0.zw = pos * c_texcoord_modifier.xy + c_texcoord_modifier.zw;
 
     result_texcoord1.x = dot(g_texcoord_transforms[0].xy, pos) + g_texcoord_transforms[0].z;
     result_texcoord1.y = dot(g_texcoord_transforms[1].xy, pos) + g_texcoord_transforms[1].z;

@@ -33,8 +33,13 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
     rend_data_ctx.state.active_texture(0);
     if (downsample) {
         textures[0].Bind(rend_data_ctx.state);
-        rend_data_ctx.state.set_viewport(0, 0, 640, 360);
         rndr::Render* rend = render_get();
+        float_t render_width;
+        float_t render_height;
+        float_t render_post_width;
+        float_t render_post_height;
+        rend->get_render_resolution(&render_width, &render_height, &render_post_width, &render_post_height);
+        rend_data_ctx.state.set_viewport(0, 0, 640, 360);
         rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
         RenderTexture& rt = reflect_draw
@@ -43,7 +48,7 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
         rend_data_ctx.state.bind_texture_2d(rt.GetColorTex());
         rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
         sss_draw_quad(rend_data_ctx, rt.GetWidth(), rt.GetHeight(),
-            1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
+            render_width / render_post_width, render_height / render_post_height, 1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     textures[2].Bind(rend_data_ctx.state);

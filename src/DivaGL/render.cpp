@@ -1494,8 +1494,7 @@ namespace rndr {
         taa_buffer[2].Bind(rend_data_ctx.state);
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_TONEMAP);
         rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->tone_map_ubo);
-        rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
-        rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+        draw_quad(rend_data_ctx, width, height, v35, v36, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
         rend_data_ctx.state.active_bind_texture_2d(2, 0);
     }
 

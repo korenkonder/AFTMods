@@ -43,7 +43,7 @@ layout(set = 1, binding = 0) uniform Shader {
 #define SHADER_FLAGS_MORPH_POS_NORMAL_UV      (bitfieldExtract(g_shader_flags.y, 25, 1)) // bit 32+25
 #define SHADER_FLAGS_MOVIE                    (bitfieldExtract(g_shader_flags.y, 26, 2)) // bit 32+26:27
 #define SHADER_FLAGS_U24                      (bitfieldExtract(g_shader_flags.y, 28, 2)) // bit 32+28:29
-#define SHADER_FLAGS_NPR_MASK                 (bitfieldExtract(g_shader_flags.y, 30, 1)) // bit 32+30
+#define SHADER_FLAGS_U25                      (bitfieldExtract(g_shader_flags.y, 30, 1)) // bit 32+30
 #define SHADER_FLAGS_NPR_NORMAL               (bitfieldExtract(g_shader_flags.y, 31, 1)) // bit 32+31
 
 #define SHADER_FLAGS_NPR                      (bitfieldExtract(g_shader_flags.z, 0, 1)) // bit 64+0
