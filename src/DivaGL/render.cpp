@@ -332,27 +332,26 @@ namespace rndr {
         mat4_invert(&cam.get_view_proj_mat(), &inv_view_proj_mat);
         mat4_transform_vector(&inv_view_proj_mat, &v44, &v44);
 
-        void (FASTCALL * pos_scale__get_screen_pos_scale)(vec3 * data, vec3 * trans, __int64 r8, bool apply_offset)
-            = (void(FASTCALL*)(vec3 * data, vec3 * trans, __int64 r8, bool apply_offset))0x00000001401F7EE0;
-        pos_scale__get_screen_pos_scale(&lens_flare_pos, &position, 0, false);
+        void (FASTCALL * calc_screen_pos_r)(vec3 * dst, const vec3 * src, float_t r, bool apply_offset)
+            = (void(FASTCALL*)(vec3 * dst, const vec3 * src, float_t r, bool apply_offset))0x00000001401F7EE0;
+        calc_screen_pos_r(&lens_flare_pos, &position, 0.0f, false);
 
         float_t v17 = lens_flare_pos.x - (float_t)width * 0.5f;
-        float_t v19 = v5 / (float_t)height * 0.5f;
+        float_t v19 = v5 / ((float_t)height * 0.5f);
         float_t v20 = lens_flare_pos.y - (float_t)height * 0.5f;
 
         float_t v22 = sqrtf((v17 * v19) * (v17 * v19) + (v20 * v19) * (v20 * v19) + 1.0f);
-        float_t v23 = ((float_t)render_width[0] * (flt_1411ACB8C / v5)) * (v22 * v22 * 0.5f)
+        float_t v23 = (v22 * v22 * 0.5f)
+            * ((float_t)render_width[0] * (flt_1411ACB8C / v5))
             * ((float_t)render_height[0] * (flt_1411ACB8C / v5));
         float_t v24 = vec3::distance(position, view_point) * flt_1411ACB84;
-        emission *= 1.0f / (float_t)(1.0f - cosf((float_t)(3.0 * DEG_TO_RAD)));
+        emission *= 1.0f / (1.0f - cosf((float_t)(3.0 * DEG_TO_RAD)));
 
         sun_quad_shader_data shader_data = {};
         shader_data.g_emission = emission;
 
         rend_data_ctx.state.active_bind_texture_2d(0, tex);
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SUN);
-        rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
-        rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->sun_quad_ubo);
 
         int32_t query_index = (lens_flare_query_index + 1) % 3;
         lens_flare_query_index = query_index;
@@ -382,6 +381,8 @@ namespace rndr {
         rend_data_ctx.state.write_uniform_buffer(rctx->sun_quad_ubo, shader_data);
 
         rend_data_ctx.state.begin_query(GL_SAMPLES_PASSED, lens_shaft_query[next_query_index]);
+        rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
+        rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->sun_quad_ubo);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         rend_data_ctx.state.end_query(GL_SAMPLES_PASSED);
 
@@ -398,6 +399,8 @@ namespace rndr {
         rend_data_ctx.state.write_uniform_buffer(rctx->sun_quad_ubo, shader_data);
 
         rend_data_ctx.state.begin_query(GL_SAMPLES_PASSED, lens_flare_query[next_query_index]);
+        rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
+        rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->sun_quad_ubo);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         rend_data_ctx.state.end_query(GL_SAMPLES_PASSED);
 
@@ -436,6 +439,8 @@ namespace rndr {
             shader_data.g_transform[3] = mat.row3;
             rend_data_ctx.state.write_uniform_buffer(rctx->sun_quad_ubo, shader_data);
 
+            rend_data_ctx.state.bind_vertex_array(rctx->common_vao);
+            rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->sun_quad_ubo);
             rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
             rend_data_ctx.state.disable_blend();
@@ -1747,21 +1752,21 @@ namespace rndr {
     }
 
     void Render::draw_lens_ghost(render_data_context& rend_data_ctx) {
-        static const float_t v13[16] = {
+        static const float_t pos_scale_array[16] = {
             -0.70f, -0.30f,  0.35f,  0.50f,
             -0.45f, -0.80f,  0.20f,  0.41f,
-             0.17f, -0.10f,  0.06f,  0.10f,
+            -0.17f, -0.10f,  0.06f,  0.10f,
              0.14f,  0.04f, -0.13f, -0.22f,
         };
 
-        static const float_t v14[16] = {
+        static const float_t opacity_array[16] = {
             0.8f, 1.0f, 1.0f, 1.0f,
             0.4f, 0.5f, 0.8f, 0.8f,
             0.6f, 0.7f, 0.8f, 0.7f,
             0.8f, 0.7f, 0.6f, 0.8f,
         };
 
-        static const float_t v15[16] = {
+        static const float_t scale_array[16] = {
              1.3f, 1.5f, 1.00f, 1.1f,
              2.5f, 0.8f, 0.50f, 0.5f,
              0.7f, 0.4f, 0.35f, 0.5f,
@@ -1795,12 +1800,12 @@ namespace rndr {
         const float_t lens_ghost = this->lens_ghost;
         const int32_t lens_ghost_count = this->lens_ghost_count;
         for (int32_t i = 0; i < lens_ghost_count; i++) {
-            float_t opacity = v9 * v14[i] * lens_ghost;
+            float_t opacity = v9 * opacity_array[i] * lens_ghost;
 
-            float_t scale = (v9a * 0.03f + 0.02f) * v15[i];
+            float_t scale = (v9a * 0.03f + 0.02f) * scale_array[i];
 
             mat4 mat;
-            mat4_translate(v13[i] * v7 + 0.5f, v13[i] * v8 + 0.5f, 0.0f, &mat);
+            mat4_translate(pos_scale_array[i] * v7 + 0.5f, pos_scale_array[i] * v8 + 0.5f, 0.0f, &mat);
             mat4_scale_rot(&mat, scale, scale * aspect, 1.0f, &mat);
             mat4_mul_rotate_z(&mat, angle_sin, angle_cos, &mat);
             make_ghost_quad((uint8_t)(i & 0x03), opacity, &mat, data);
