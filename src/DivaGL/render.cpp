@@ -257,9 +257,9 @@ namespace rndr {
             shader_data.g_emission = 0.0f;
             rend_data_ctx.state.write_uniform_buffer(rctx->sun_quad_ubo, shader_data);
 
-            glBeginQuery(GL_SAMPLES_PASSED, chara_data->query[next_query_index]);
+            rend_data_ctx.state.begin_query(GL_SAMPLES_PASSED, chara_data->query[next_query_index]);
             rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-            glEndQuery(GL_SAMPLES_PASSED);
+            rend_data_ctx.state.end_query(GL_SAMPLES_PASSED);
 
             if (chara_data->query_data[next_query_index] == -1)
                 chara_data->query_data[next_query_index] = 0;
@@ -381,9 +381,9 @@ namespace rndr {
         shader_data.g_transform[3] = mat.row3;
         rend_data_ctx.state.write_uniform_buffer(rctx->sun_quad_ubo, shader_data);
 
-        glBeginQuery(GL_SAMPLES_PASSED, lens_shaft_query[next_query_index]);
+        rend_data_ctx.state.begin_query(GL_SAMPLES_PASSED, lens_shaft_query[next_query_index]);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-        glEndQuery(GL_SAMPLES_PASSED);
+        rend_data_ctx.state.end_query(GL_SAMPLES_PASSED);
 
         mat4_mul_translate(&cam.get_view_mat(), (vec3*)&v44, &mat);
         mat4_clear_rot(&mat, &mat);
@@ -397,9 +397,9 @@ namespace rndr {
         shader_data.g_transform[3] = mat.row3;
         rend_data_ctx.state.write_uniform_buffer(rctx->sun_quad_ubo, shader_data);
 
-        glBeginQuery(GL_SAMPLES_PASSED, lens_flare_query[next_query_index]);
+        rend_data_ctx.state.begin_query(GL_SAMPLES_PASSED, lens_flare_query[next_query_index]);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-        glEndQuery(GL_SAMPLES_PASSED);
+        rend_data_ctx.state.end_query(GL_SAMPLES_PASSED);
 
         rend_data_ctx.state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
