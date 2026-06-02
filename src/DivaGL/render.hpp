@@ -7,10 +7,9 @@
 
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/vec.hpp"
-#include "renderer/dof.hpp"
-#include "renderer/transparency.hpp"
-#include "camera.hpp"
 #include "GL/uniform_buffer.hpp"
+#include "camera.hpp"
+#include "render_texture.hpp"
 
 enum tone_map_method {
     TONE_MAP_YCC_EXPONENT = 0,
@@ -22,6 +21,11 @@ enum tone_map_method {
 struct cam_data;
 struct p_gl_rend_state;
 struct render_data_context;
+
+namespace renderer {
+    class DOF3;
+    class Transparency;
+};
 
 namespace rndr {
     struct Render {
@@ -206,8 +210,8 @@ namespace rndr {
         void set_screen_res(int32_t x_offset, int32_t y_offset, int32_t width, int32_t height);
         void take_ss(render_data_context& rend_data_ctx,
             texture* tex, bool vertical, float_t horizontal_offset);
-        void transparency_combine(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha);
-        void transparency_copy(render_data_context& rend_data_ctx, RenderTexture* rt);
+        void end_render_transparency(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha);
+        void begin_render_transparency(render_data_context& rend_data_ctx, RenderTexture* rt);
         void update_res(bool set, int32_t base_downsample);
 
     private:

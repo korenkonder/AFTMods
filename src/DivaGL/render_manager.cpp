@@ -1515,7 +1515,7 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
         alpha_array, opaque, transparent, translucent, cam);
     for (int32_t i = 0; i < count; i++) {
         int32_t alpha = alpha_array[i];
-        rend->transparency_copy(rend_data_ctx, &rt);
+        rend->begin_render_transparency(rend_data_ctx, &rt);
         if (render_manager.draw_pass_3d[DRAW_PASS_3D_OPAQUE] && disp_manager->get_obj_count(opaque))
             disp_manager->draw(rend_data_ctx, opaque, cam, 0, true, alpha);
         if (render_manager.draw_pass_3d[DRAW_PASS_3D_TRANSPARENT] && disp_manager->get_obj_count(transparent))
@@ -1525,7 +1525,7 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
             disp_manager->draw(rend_data_ctx, translucent, cam, 0, true, alpha);
             rend_data_ctx.state.disable_blend();
         }
-        rend->transparency_combine(rend_data_ctx, &rt, (float_t)alpha * (float_t)(1.0 / 255.0));
+        rend->end_render_transparency(rend_data_ctx, &rt, (float_t)alpha * (float_t)(1.0 / 255.0));
     }
 }
 
@@ -1546,7 +1546,7 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
         alpha_array, opaque, transparent, translucent, cam);
     for (int32_t i = 0; i < count; i++) {
         int32_t alpha = alpha_array[i];
-        rend->transparency_copy(rend_data_ctx, &rt);
+        rend->begin_render_transparency(rend_data_ctx, &rt);
         if (render_manager.draw_pass_3d[DRAW_PASS_3D_OPAQUE] && disp_manager->get_obj_count(opaque))
             disp_manager->draw(rend_data_ctx, opaque, cam, 0, true, alpha);
         if (render_manager.draw_pass_3d[DRAW_PASS_3D_TRANSPARENT] && disp_manager->get_obj_count(transparent))
@@ -1556,7 +1556,7 @@ static void draw_pass_3d_translucent(render_data_context& rend_data_ctx,
             disp_manager->draw(rend_data_ctx, translucent, cam, 0, true, alpha);
             rend_data_ctx.state.disable_blend();
         }
-        rend->transparency_combine(rend_data_ctx, &rt, (float_t)alpha * (float_t)(1.0 / 255.0));
+        rend->end_render_transparency(rend_data_ctx, &rt, (float_t)alpha * (float_t)(1.0 / 255.0));
     }
 }
 
