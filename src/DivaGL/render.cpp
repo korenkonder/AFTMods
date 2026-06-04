@@ -63,7 +63,7 @@ namespace rndr {
             if (!render_textures_data[i])
                 continue;
 
-            render_textures[i].Bind(rend_data_ctx.state);
+            render_textures[i].begin_render(rend_data_ctx.state);
 
             texture* t = render_textures_data[i];
             if (render_width[0] > t->width * 2 || render_height[0] > t->height * 2)
@@ -80,7 +80,7 @@ namespace rndr {
                 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
         }
 
-        copy_to_frame_texture(rend_data_ctx, rend_texture[0].GetColorTex(),
+        copy_to_frame_texture(rend_data_ctx, rend_texture[0].get_texture_glid(),
             render_width[0], render_height[0], taa_tex[taa_texture_selector]->glid);
 
         if (taa) {
@@ -106,13 +106,13 @@ namespace rndr {
             }
 
             taa_texture = 2;
-            taa_buffer[2].Bind(rend_data_ctx.state);
+            taa_buffer[2].begin_render(rend_data_ctx.state);
             rend_data_ctx.state.set_viewport(0, 0, render_width[0], render_height[0]);
             rend_data_ctx.state.active_bind_texture_2d(0, taa_tex[taa_texture_selector]->glid);
             rend_data_ctx.state.bind_sampler(0, sampler);
 
             if (blur) {
-                rend_data_ctx.state.active_bind_texture_2d(2, rend_texture[0].depth_texture->glid);
+                rend_data_ctx.state.active_bind_texture_2d(2, rend_texture[0].m_txhd_depth->glid);
                 rend_data_ctx.state.bind_sampler(2, sampler);
 
                 mat4 mat;
@@ -152,7 +152,7 @@ namespace rndr {
             this->taa_texture_selector = taa_texture_selector;
         }
 
-        rctx->screen_buffer.Bind(rend_data_ctx.state);
+        rctx->screen_buffer.begin_render(rend_data_ctx.state);
         rend_data_ctx.state.set_viewport(0, 0, rctx->screen_width, rctx->screen_height);
         if (ssaa) {
             rend_data_ctx.state.active_bind_texture_2d(0, taa_tex[taa_texture]->glid);
@@ -202,21 +202,27 @@ namespace rndr {
         for (int32_t i = 0; i < 8; i++)
             rend_data_ctx.state.bind_sampler(i, 0);
 
-        fbo_blit(rend_data_ctx.state, rctx->screen_buffer.fbos[0], 0,
+        fbo_blit(rend_data_ctx.state, rctx->screen_buffer.get_fb(), 0,
             0, 0, rctx->screen_width, rctx->screen_height,
             0, 0, rctx->screen_width, rctx->screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
         rend_data_ctx.state.bind_framebuffer(0);
     }
 
-    void Render::bind_render_texture(p_gl_rend_state& p_gl_rend_st, bool composite_back) {
+    // 0x1404A9350
+    void Render::begin_render(p_gl_rend_state& p_gl_rend_st, bool composite_back) {
         if (composite_back) {
-            composite_back_texture.Bind(p_gl_rend_st);
-            this->composite_back = 1;
+            composite_back_texture.begin_render(p_gl_rend_st);
+            this->composite_back = true;
         }
         else
-            rend_texture[0].Bind(p_gl_rend_st);
+            rend_texture[0].begin_render(p_gl_rend_st);
         p_gl_rend_st.set_viewport(0, 0, render_width[0], render_height[0]);
+    }
+
+    // 0x1404AE680
+    void Render::end_render(p_gl_rend_state& p_gl_rend_st) {
+        rend_texture[0].end_render(p_gl_rend_st);
     }
 
     void Render::calc_exposure_chara_data(render_data_context& rend_data_ctx, const cam_data& cam) {
@@ -517,26 +523,26 @@ namespace rndr {
 
     void Render::draw_sss_contour(render_data_context& rend_data_ctx, const cam_data& cam) {
         if (reflect_draw)
-            reflect_full_ptr->reflect_buffer_texture.Bind(rend_data_ctx.state);
+            reflect_full_ptr->reflect_buffer_texture.begin_render(rend_data_ctx.state);
         else
-            sss_contour_texture->Bind(rend_data_ctx.state);
+            sss_contour_texture->begin_render(rend_data_ctx.state);
 
         rend_data_ctx.state.enable_depth_test();
         rend_data_ctx.state.set_depth_func(GL_ALWAYS);
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
         if (reflect_draw) {
             RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
-            rend_data_ctx.state.set_viewport(0, 0, refl_tex.GetWidth(), refl_tex.GetHeight());
-            rend_data_ctx.state.active_bind_texture_2d(0, refl_tex.GetColorTex());
+            rend_data_ctx.state.set_viewport(0, 0, refl_tex.get_width(), refl_tex.get_height());
+            rend_data_ctx.state.active_bind_texture_2d(0, refl_tex.get_texture_glid());
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
-            rend_data_ctx.state.active_bind_texture_2d(1, refl_tex.GetDepthTex());
+            rend_data_ctx.state.active_bind_texture_2d(1, refl_tex.get_depth_texture_glid());
             rend_data_ctx.state.bind_sampler(1, rctx->render_samplers[1]);
         }
         else {
             rend_data_ctx.state.set_viewport(0, 0, render_width[0], render_height[0]);
-            rend_data_ctx.state.active_bind_texture_2d(0, rend_texture[0].GetColorTex());
+            rend_data_ctx.state.active_bind_texture_2d(0, rend_texture[0].get_texture_glid());
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
-            rend_data_ctx.state.active_bind_texture_2d(1, rend_texture[0].GetDepthTex());
+            rend_data_ctx.state.active_bind_texture_2d(1, rend_texture[0].get_depth_texture_glid());
             rend_data_ctx.state.bind_sampler(1, rctx->render_samplers[1]);
         }
         rend_data_ctx.state.active_texture(0);
@@ -569,7 +575,7 @@ namespace rndr {
 
         if (reflect_draw) {
             RenderTexture& refl_tex = reflect_full_ptr->reflect_texture;
-            draw_quad(rend_data_ctx, refl_tex.GetWidth(), refl_tex.GetHeight(),
+            draw_quad(rend_data_ctx, refl_tex.get_width(), refl_tex.get_height(),
                 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
         }
         else
@@ -583,7 +589,7 @@ namespace rndr {
         for (Render::FrameTexture& i : frame_texture) {
             for (Render::FrameTextureData& j : i.data) {
                 j.texture = 0;
-                j.render_texture.Free();
+                j.render_texture.destroy();
                 j.type = FRAME_TEXTURE_MAX;
             }
 
@@ -597,7 +603,7 @@ namespace rndr {
 
         for (Render::FrameTextureData& i : frame_texture[slot].data)
             if (!i.texture) {
-                i.render_texture.SetColorDepthTextures(tex->glid);
+                i.render_texture.attach_texture(tex->glid);
                 i.texture = tex;
                 i.type = type;
                 return (int32_t)(&i - frame_texture[slot].data);
@@ -611,7 +617,7 @@ namespace rndr {
 
         for (Render::FrameTextureData& i : frame_texture[slot].data)
             if (i.texture == tex) {
-                i.render_texture.Free();
+                i.render_texture.destroy();
                 i.texture = 0;
                 i.type = FRAME_TEXTURE_MAX;
                 return true;
@@ -641,10 +647,10 @@ namespace rndr {
             return;
 
         for (int32_t i = 0; i < downsample_max_count; i++)
-            rend_texture[i].Free();
+            rend_texture[i].destroy();
 
         for (int32_t i = 0; i < 3; i++) {
-            taa_buffer[i].Free();
+            taa_buffer[i].destroy();
 
             if (taa_tex[i]) {
                 texture_release(taa_tex[i]);
@@ -653,7 +659,7 @@ namespace rndr {
             }
         }
 
-        composite_back_texture.Free();
+        composite_back_texture.destroy();
 
         if (composite_back_tex) {
             texture_release(composite_back_tex);
@@ -661,16 +667,16 @@ namespace rndr {
             texture_counter--;
         }
 
-        mlaa_buffer.Free();
-        temp_buffer.Free();
+        mlaa_buffer.destroy();
+        temp_buffer.destroy();
 
         sss_contour_texture = 0;
 
-        downsample_texture.Free();
-        field_3E8.Free();
+        downsample_texture.destroy();
+        field_3E8.destroy();
 
         for (int32_t i = 0; i < 5; i++)
-            reduce_texture->Free();
+            reduce_texture[i].destroy();
 
         for (int32_t i = 0; i < 5; i++)
             if (reduce_tex[i]) {
@@ -685,7 +691,7 @@ namespace rndr {
             texture_counter--;
         }
 
-        exposure_texture.Free();
+        exposure_texture.destroy();
 
         if (exposure_tex) {
             glDeleteTexturesDLL(1, &exposure_tex);
@@ -770,49 +776,49 @@ namespace rndr {
 
         update_res(true, 1);
 
-        rend_texture[0].Init(render_post_width[0], render_post_height[0], 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
+        rend_texture[0].create_texture(render_post_width[0], render_post_height[0], 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
 
-        gl_state.bind_texture_2d(rend_texture[0].GetColorTex());
+        gl_state.bind_texture_2d(rend_texture[0].get_texture_glid());
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        gl_state.bind_texture_2d(rend_texture[0].GetDepthTex());
+        gl_state.bind_texture_2d(rend_texture[0].get_depth_texture_glid());
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
 
         for (int32_t i = 0; i < 3; i++) {
             taa_tex[i] = texture_load_tex_2d(0x25000000 | texture_counter++,
                 GL_RGBA8, render_post_width[0], render_post_height[0], 0, 0, 0);
-            taa_buffer[i].SetColorDepthTextures(taa_tex[i]->glid, 0, rend_texture[0].GetDepthTex());
+            taa_buffer[i].attach_texture(taa_tex[i]->glid, 0, rend_texture[0].get_depth_texture_glid());
         }
 
         composite_back_tex = texture_load_tex_2d(0x25000000 | texture_counter++,
             GL_RGBA8, render_post_width[0], render_post_height[0], 0, 0, 0);
-        composite_back_texture.SetColorDepthTextures(composite_back_tex->glid, 0, rend_texture[0].GetDepthTex());
+        composite_back_texture.attach_texture(composite_back_tex->glid, 0, rend_texture[0].get_depth_texture_glid());
 
-        mlaa_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
-        temp_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_ZERO);
+        mlaa_buffer.create_texture(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
+        temp_buffer.create_texture(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_ZERO);
         sss_contour_texture = &mlaa_buffer;
 
-        gl_state.bind_texture_2d(mlaa_buffer.GetDepthTex());
+        gl_state.bind_texture_2d(mlaa_buffer.get_depth_texture_glid());
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
 
         for (int32_t i = 1; i < downsample_count; i++) {
-            rend_texture[i].Init(render_post_width[i], render_post_height[i], 0, GL_RGBA16F, GL_ZERO);
+            rend_texture[i].create_texture(render_post_width[i], render_post_height[i], 0, GL_RGBA16F, GL_ZERO);
 
-            gl_state.bind_texture_2d(rend_texture[i].GetColorTex());
+            gl_state.bind_texture_2d(rend_texture[i].get_texture_glid());
             glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         }
 
-        downsample_texture.Init(reduce_width[0], reduce_height[0], 0, GL_RGBA16F, GL_ZERO);
+        downsample_texture.create_texture(reduce_width[0], reduce_height[0], 0, GL_RGBA16F, GL_ZERO);
 
-        gl_state.bind_texture_2d(downsample_texture.GetColorTex());
+        gl_state.bind_texture_2d(downsample_texture.get_texture_glid());
 
         const vec4 border_color = 0.0f;
         glTexParameterfvDLL(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-        field_3E8.Init(512, 256, 0, GL_RGBA8, GL_ZERO);
+        field_3E8.create_texture(512, 256, 0, GL_RGBA8, GL_ZERO);
 
         dof = new renderer::DOF3(render_post_width[0], render_post_height[0]);
 
@@ -821,7 +827,7 @@ namespace rndr {
                 GL_RGBA16F, render_post_width[0], render_post_height[0], 0, 0, 0);
 
         transparency = new renderer::Transparency(transparency_tex[0]->glid,
-            rend_texture[0].GetDepthTex(), render_post_width[0], render_post_height[0]);
+            rend_texture[0].get_depth_texture_glid(), render_post_width[0], render_post_height[0]);
     }
 
     void Render::init_post_process_buffers() {
@@ -836,7 +842,7 @@ namespace rndr {
             glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         }
 
-        reduce_texture[0].SetColorDepthTextures(reduce_tex[0]->glid);
+        reduce_texture[0].attach_texture(reduce_tex[0]->glid);
 
         exposure_history = texture_load_tex_2d(0x25000000 | texture_counter++,
             GL_RGBA16F, 32, 2, 0, 0, 0);
@@ -850,7 +856,7 @@ namespace rndr {
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         gl_state.bind_texture_2d(0);
 
-        exposure_texture.SetColorDepthTextures(exposure_tex);
+        exposure_texture.attach_texture(exposure_tex);
 
         glGenTexturesDLL(1, &tonemap_lut_texture);
         gl_state.bind_texture_2d(tonemap_lut_texture);
@@ -891,7 +897,7 @@ namespace rndr {
                 return -1;
 
         movie_textures_data[index] = movie_texture;
-        movie_textures[index].SetColorDepthTextures(movie_texture->glid);
+        movie_textures[index].attach_texture(movie_texture->glid);
         return index;
     }
 
@@ -905,7 +911,7 @@ namespace rndr {
                 return;
 
         movie_textures_data[index] = 0;
-        movie_textures[index].Free();
+        movie_textures[index].destroy();
     }
 
     void Render::post_proc() {
@@ -955,14 +961,14 @@ namespace rndr {
                     = (texture * (FASTCALL*)(size_t task_movie))0x000000014041ED80;
                 texture* movie_texture = sub_14041ED80(task_movie);
                 if (movie_texture) {
-                    movie_textures[0].Bind(rend_data_ctx.state);
+                    movie_textures[0].begin_render(rend_data_ctx.state);
                     rend_data_ctx.state.set_viewport(0, 0, movie_textures_data[0]->width, movie_textures_data[0]->height);
                     rend_data_ctx.state.active_bind_texture_2d(0, movie_texture->glid);
                     rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
                     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
                     draw_quad(rend_data_ctx, movie_texture->width, movie_texture->height,
                         1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-                    rend_data_ctx.state.bind_framebuffer(0);
+                    movie_textures[0].end_render(rend_data_ctx.state);
                 }
             }
         }
@@ -987,7 +993,7 @@ namespace rndr {
                     return -1;
 
         render_textures_data[index] = render_texture;
-        render_textures[index].SetColorDepthTextures(render_texture->glid);
+        render_textures[index].attach_texture(render_texture->glid);
         return index;
     }
 
@@ -1004,7 +1010,7 @@ namespace rndr {
                     return;
 
         render_textures_data[index] = 0;
-        render_textures[index].Free();
+        render_textures[index].destroy();
     }
 
     void Render::resize(int32_t width, int32_t height) {
@@ -1028,12 +1034,12 @@ namespace rndr {
 
         update_res(true, 1);
 
-        rend_texture[0].Init(render_post_width[0], render_post_height[0], 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
+        rend_texture[0].create_texture(render_post_width[0], render_post_height[0], 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
 
-        gl_state.bind_texture_2d(rend_texture[0].GetColorTex());
+        gl_state.bind_texture_2d(rend_texture[0].get_texture_glid());
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        gl_state.bind_texture_2d(rend_texture[0].GetDepthTex());
+        gl_state.bind_texture_2d(rend_texture[0].get_depth_texture_glid());
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
 
@@ -1042,26 +1048,26 @@ namespace rndr {
             texture_release(taa_tex[i]);
             taa_tex[i] = texture_load_tex_2d(id, GL_RGBA8,
                 render_post_width[0], render_post_height[0], 0, 0, 0);
-            taa_buffer[i].SetColorDepthTextures(taa_tex[i]->glid, 0, rend_texture[0].GetDepthTex());
+            taa_buffer[i].attach_texture(taa_tex[i]->glid, 0, rend_texture[0].get_depth_texture_glid());
         }
 
         texture_id composite_back_tex_id = composite_back_tex->id;
         texture_release(composite_back_tex);
         composite_back_tex = texture_load_tex_2d(composite_back_tex_id, GL_RGBA8,
             render_post_width[0], render_post_height[0], 0, 0, 0);
-        composite_back_texture.SetColorDepthTextures(composite_back_tex->glid, 0, rend_texture[0].GetDepthTex());
+        composite_back_texture.attach_texture(composite_back_tex->glid, 0, rend_texture[0].get_depth_texture_glid());
 
-        mlaa_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
-        temp_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_ZERO);
+        mlaa_buffer.create_texture(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
+        temp_buffer.create_texture(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_ZERO);
         sss_contour_texture = &mlaa_buffer;
 
-        gl_state.bind_texture_2d(mlaa_buffer.GetDepthTex());
+        gl_state.bind_texture_2d(mlaa_buffer.get_depth_texture_glid());
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
 
         for (int32_t i = 1; i < downsample_count; i++) {
-            rend_texture[i].Init(render_post_width[i], render_post_height[i], 0, GL_RGBA16F, GL_ZERO);
+            rend_texture[i].create_texture(render_post_width[i], render_post_height[i], 0, GL_RGBA16F, GL_ZERO);
 
-            gl_state.bind_texture_2d(rend_texture[i].GetColorTex());
+            gl_state.bind_texture_2d(rend_texture[i].get_texture_glid());
             glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         }
 
@@ -1074,7 +1080,7 @@ namespace rndr {
                 render_post_width[0], render_post_height[0], 0, 0, 0);
         }
 
-        transparency->resize(transparency_tex[0]->glid, rend_texture[0].GetDepthTex(),
+        transparency->resize(transparency_tex[0]->glid, rend_texture[0].get_depth_texture_glid(),
             render_post_width[0], render_post_height[0]);
     }
 
@@ -1082,8 +1088,8 @@ namespace rndr {
         rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 1;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
         for (int32_t i = 1; i < downsample_count - 1; i++) {
-            rend_texture[i].Bind(rend_data_ctx.state);
-            rend_data_ctx.state.active_bind_texture_2d(0, rend_texture[i - 1].GetColorTex());
+            rend_texture[i].begin_render(rend_data_ctx.state);
+            rend_data_ctx.state.active_bind_texture_2d(0, rend_texture[i - 1].get_texture_glid());
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
             rend_data_ctx.state.set_viewport(0, 0, render_width[i], render_height[i]);
             draw_quad(rend_data_ctx,
@@ -1097,15 +1103,15 @@ namespace rndr {
 
         int32_t downsample = max_def(downsample_count - 2, 0);
         rend_data_ctx.state.set_viewport(0, 0, reduce_width[0], reduce_height[0]);
-        reduce_texture[0].Bind(rend_data_ctx.state);
-        rend_data_ctx.state.active_bind_texture_2d(0, rend_texture[downsample].GetColorTex());
+        reduce_texture[0].begin_render(rend_data_ctx.state);
+        rend_data_ctx.state.active_bind_texture_2d(0, rend_texture[downsample].get_texture_glid());
         rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
         draw_quad(rend_data_ctx,
             render_post_width[downsample], render_post_height[downsample],
             render_post_width_scale, render_post_height_scale,
             0.0f, 0.0f, 1.0f, 1.1f, 1.1f, 1.1f, 0.0f);
 
-        downsample_texture.Bind(rend_data_ctx.state);
+        downsample_texture.begin_render(rend_data_ctx.state);
         rend_data_ctx.state.active_bind_texture_2d(0, reduce_tex[0]->glid);
         rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[2]);
         for (int32_t i = 1; i < 5; i++) {
@@ -1156,18 +1162,18 @@ namespace rndr {
             x_max = center + area;
         }
 
-        render_textures[index].Bind(rend_data_ctx.state);
+        render_textures[index].begin_render(rend_data_ctx.state);
         texture* rend_tex = render_textures_data[index];
         rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
 
         rend_data_ctx.state.set_viewport(0, 0, rend_tex->width, rend_tex->height);
-        rend_data_ctx.state.active_bind_texture_2d(0, rctx->screen_buffer.GetColorTex());
+        rend_data_ctx.state.active_bind_texture_2d(0, rctx->screen_buffer.get_texture_glid());
         rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
         draw_quad(rend_data_ctx, rend_tex->width, rend_tex->height,
             x_max, 1.0f, x_min, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
         shader::unbind(rend_data_ctx.state);
-        rend_data_ctx.state.bind_framebuffer(0);
+        render_textures[index].end_render(rend_data_ctx.state);
         rend_data_ctx.state.active_bind_texture_2d(0, 0);
         rend_data_ctx.state.bind_sampler(0, 0);
 
@@ -1181,7 +1187,7 @@ namespace rndr {
 
     // 0x1404A93B0
     void Render::begin_render_transparency(render_data_context& rend_data_ctx, RenderTexture* rt) {
-        transparency->begin_render(rend_data_ctx, rt->GetColorTex());
+        transparency->begin_render(rend_data_ctx, rt->get_texture_glid());
     }
 
     void Render::update_res(bool set, int32_t base_downsample) {
@@ -1261,7 +1267,7 @@ namespace rndr {
         int32_t destination, int32_t source, int32_t mlaa) {
         rend_data_ctx.state.begin_event("PostProcess::mlaa");
         if (mlaa) {
-            mlaa_buffer.Bind(rend_data_ctx.state);
+            mlaa_buffer.begin_render(rend_data_ctx.state);
             rend_data_ctx.state.active_bind_texture_2d(0, taa_tex[source]->glid);
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
             rend_data_ctx.shader_flags.arr[U_MLAA] = 0;
@@ -1270,8 +1276,8 @@ namespace rndr {
                 render_post_width_scale, render_post_height_scale,
                 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
-            temp_buffer.Bind(rend_data_ctx.state);
-            rend_data_ctx.state.active_bind_texture_2d(0, mlaa_buffer.GetColorTex());
+            temp_buffer.begin_render(rend_data_ctx.state);
+            rend_data_ctx.state.active_bind_texture_2d(0, mlaa_buffer.get_texture_glid());
             rend_data_ctx.state.active_bind_texture_2d(1, mlaa_area_texture);
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
             rend_data_ctx.state.bind_sampler(1, rctx->render_samplers[3]);
@@ -1282,9 +1288,9 @@ namespace rndr {
                 render_post_width_scale, render_post_height_scale,
                 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
-            taa_buffer[destination].Bind(rend_data_ctx.state);
+            taa_buffer[destination].begin_render(rend_data_ctx.state);
             rend_data_ctx.state.active_bind_texture_2d(0, taa_tex[source]->glid);
-            rend_data_ctx.state.active_bind_texture_2d(1, temp_buffer.GetColorTex());
+            rend_data_ctx.state.active_bind_texture_2d(1, temp_buffer.get_texture_glid());
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
             rend_data_ctx.state.bind_sampler(1, rctx->render_samplers[1]);
             rend_data_ctx.shader_flags.arr[U_MLAA] = 2;
@@ -1298,7 +1304,7 @@ namespace rndr {
             rend_data_ctx.state.active_bind_texture_2d(1, 0);
         }
         else {
-            taa_buffer[destination].Bind(rend_data_ctx.state);
+            taa_buffer[destination].begin_render(rend_data_ctx.state);
             rend_data_ctx.state.active_bind_texture_2d(0, taa_tex[source]->glid);
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[1]);
             rend_data_ctx.shader_flags.arr[U_REDUCE_TEX] = 0;
@@ -1349,11 +1355,11 @@ namespace rndr {
         vec2 lens_flare_pos = *(vec2*)&this->lens_flare_pos;
 
         apply_tone_map(rend_data_ctx, 0, 0, render_width[0], render_height[0],
-            rend_texture[0].GetColorTex(), reduce_tex_draw, composite_back_tex, litproj_tex, litproj_quality,
+            rend_texture[0].get_texture_glid(), reduce_tex_draw, composite_back_tex, litproj_tex, litproj_quality,
             inner_width, inner_height, render_post_width_scale, render_post_height_scale,
             exposure, tone_trans_scale[tone_trans_index], tone_trans_offset[tone_trans_index], fade_func, fade_color,
             tone_map, gamma, lens_flare_pos, lens_shaft_scale, lens_flare_coef, lens_shaft_coef,
-            sss_contour_texture->GetColorTex(), sss_contour_texture->GetDepthTex(), rend_texture[0].GetDepthTex(),
+            sss_contour_texture->get_texture_glid(), sss_contour_texture->get_depth_texture_glid(), rend_texture[0].get_depth_texture_glid(),
             npr_param == 1, false, render_manager.npr_mask);
         rend_data_ctx.state.end_event();
     }
@@ -1495,7 +1501,7 @@ namespace rndr {
         rend_data_ctx.state.write_uniform_buffer(rctx->tone_map_ubo, shader_data);
 
         rend_data_ctx.state.set_viewport(0, 0, render_width, render_height);
-        taa_buffer[2].Bind(rend_data_ctx.state);
+        taa_buffer[2].begin_render(rend_data_ctx.state);
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_TONEMAP);
         rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->tone_map_ubo);
         draw_quad(rend_data_ctx, width, height, v35, v36, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
@@ -1609,7 +1615,7 @@ namespace rndr {
             rend_data_ctx.state.write_uniform_buffer(rctx->exposure_measure_ubo, exposure_measure);
 
             rend_data_ctx.state.set_viewport(0, 0, 32, 1);
-            downsample_texture.Bind(rend_data_ctx.state);
+            downsample_texture.begin_render(rend_data_ctx.state);
 
             rend_data_ctx.shader_flags.arr[U_EXPOSURE] = 1;
             shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_EXPOSURE);
@@ -1630,7 +1636,7 @@ namespace rndr {
         }
 
         rend_data_ctx.state.set_viewport(0, 0, 1, 1);
-        exposure_texture.Bind(rend_data_ctx.state);
+        exposure_texture.begin_render(rend_data_ctx.state);
         rend_data_ctx.shader_flags.arr[U_EXPOSURE] = 2;
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_EXPOSURE);
         rend_data_ctx.state.active_bind_texture_2d(0, exposure_history->glid);
@@ -1705,7 +1711,7 @@ namespace rndr {
                 continue;
 
             for (auto& j : i.data) {
-                if (!j.texture || j.render_texture.Bind(rend_data_ctx.state) < 0)
+                if (!j.texture || j.render_texture.begin_render(rend_data_ctx.state) < 0)
                     continue;
 
                 texture* dst_tex = j.texture;
@@ -1717,7 +1723,7 @@ namespace rndr {
                 shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
                 draw_quad(rend_data_ctx, dst_tex->width, dst_tex->height,
                     1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-                rend_data_ctx.state.bind_framebuffer(0);
+                j.render_texture.end_render(rend_data_ctx.state);
             }
 
             if (&i - frame_texture)
@@ -1818,7 +1824,7 @@ namespace rndr {
         rend_data_ctx.state.unmap_array_buffer(rctx->lens_ghost_vbo);
 
         rend_data_ctx.state.set_viewport(0, 0, render_width[0], render_height[0]);
-        rend_texture[0].Bind(rend_data_ctx.state);
+        rend_texture[0].begin_render(rend_data_ctx.state);
         rend_data_ctx.state.enable_blend();
         rend_data_ctx.state.set_blend_func(GL_ONE, GL_ONE);
 
@@ -1858,7 +1864,7 @@ namespace rndr {
         calc_gaussian_blur(rend_data_ctx, 1.0f, 1.0f, 7, 0.8f, 1.0f);
         rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->gaussian_coef_ubo);
 
-        downsample_texture.Bind(rend_data_ctx.state);
+        downsample_texture.begin_render(rend_data_ctx.state);
         for (int32_t i = 1; i < 4; i++) {
             rend_data_ctx.state.set_viewport(0, 0, reduce_width[i], reduce_height[i]);
             rend_data_ctx.state.active_bind_texture_2d(0, reduce_tex[i]->glid);
@@ -1893,8 +1899,8 @@ namespace rndr {
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
 
         rend_data_ctx.state.set_viewport(0, 0, reduce_width[0], reduce_height[0]);
-        reduce_texture[0].Bind(rend_data_ctx.state);
-        rend_data_ctx.state.active_bind_texture_2d(0, downsample_texture.GetColorTex());
+        reduce_texture[0].begin_render(rend_data_ctx.state);
+        rend_data_ctx.state.active_bind_texture_2d(0, downsample_texture.get_texture_glid());
         rend_data_ctx.state.active_bind_texture_2d(1, reduce_tex[1]->glid);
         rend_data_ctx.state.active_bind_texture_2d(2, reduce_tex[2]->glid);
         rend_data_ctx.state.active_bind_texture_2d(3, reduce_tex[3]->glid);

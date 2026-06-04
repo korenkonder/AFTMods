@@ -32,7 +32,7 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
 
     rend_data_ctx.state.active_texture(0);
     if (downsample) {
-        textures[0].Bind(rend_data_ctx.state);
+        textures[0].begin_render(rend_data_ctx.state);
         rndr::Render* rend = render_get();
         float_t render_width;
         float_t render_height;
@@ -45,19 +45,19 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
         RenderTexture& rt = reflect_draw
             ? reflect_full_ptr->reflect_texture
             : rend->rend_texture[0];
-        rend_data_ctx.state.bind_texture_2d(rt.GetColorTex());
+        rend_data_ctx.state.bind_texture_2d(rt.get_texture_glid());
         rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
-        sss_draw_quad(rend_data_ctx, rt.GetWidth(), rt.GetHeight(),
+        sss_draw_quad(rend_data_ctx, rt.get_width(), rt.get_height(),
             render_width / render_post_width, render_height / render_post_height, 1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    textures[2].Bind(rend_data_ctx.state);
+    textures[2].begin_render(rend_data_ctx.state);
     rend_data_ctx.state.set_viewport(0, 0, 320, 180);
     rend_data_ctx.shader_flags.arr[U_SSS_FILTER] = 0;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SSS_FILT);
-    rend_data_ctx.state.bind_texture_2d(textures[0].GetColorTex());
+    rend_data_ctx.state.bind_texture_2d(textures[0].get_texture_glid());
     rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
-    sss_draw_quad(rend_data_ctx, textures[0].GetWidth(), textures[0].GetHeight(),
+    sss_draw_quad(rend_data_ctx, textures[0].get_width(), textures[0].get_height(),
         1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
 
     sss_filter_gaussian_coef_shader_data shader_data = {};
@@ -71,14 +71,14 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
         3, weights, r_radius, g_radius, b_radius, shader_data.g_coef);
 
     rend_data_ctx.state.write_uniform_buffer(rctx->sss_filter_gaussian_coef_ubo, shader_data);
-    textures[reflect_draw ? 3 : 1].Bind(rend_data_ctx.state);
+    textures[reflect_draw ? 3 : 1].begin_render(rend_data_ctx.state);
     rend_data_ctx.state.set_viewport(0, 0, 320, 180);
     rend_data_ctx.shader_flags.arr[U_SSS_FILTER] = 3;
     shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_SSS_FILT);
-    rend_data_ctx.state.bind_texture_2d(textures[2].GetColorTex());
+    rend_data_ctx.state.bind_texture_2d(textures[2].get_texture_glid());
     rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[0]);
     rend_data_ctx.state.bind_uniform_buffer_base(1, rctx->sss_filter_gaussian_coef_ubo);
-    sss_draw_quad(rend_data_ctx, textures[2].GetWidth(), textures[2].GetHeight(),
+    sss_draw_quad(rend_data_ctx, textures[2].get_width(), textures[2].get_height(),
         1.0f, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
     rend_data_ctx.state.bind_texture_2d(0);
 }
@@ -87,7 +87,7 @@ void sss_data::apply_filter(struct render_data_context& rend_data_ctx) {
 void sss_data::free() {
     if (init_data)
         for (RenderTexture& i : textures)
-            i.Free();
+            i.destroy();
 }
 
 // 0x140641890
@@ -95,10 +95,10 @@ void sss_data::init() {
     if (init_data)
         return;
 
-    textures[0].Init(640, 360, 0, GL_RGBA16F, GL_ZERO /*GL_DEPTH_COMPONENT32F*/);
-    textures[1].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
-    textures[2].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
-    textures[3].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[0].create_texture(640, 360, 0, GL_RGBA16F, GL_ZERO /*GL_DEPTH_COMPONENT32F*/);
+    textures[1].create_texture(320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[2].create_texture(320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[3].create_texture(320, 180, 0, GL_RGBA16F, GL_ZERO);
 
     param = { 0.0f, 0.0f, 0.0f, 1.0f };
     init_data = true;
@@ -184,11 +184,11 @@ bool sss_data::set(struct render_data_context& rend_data_ctx) {
     downsample = true; // Added
 
     if (downsample) {
-        rend->rend_texture[0].Bind(rend_data_ctx.state);
+        rend->rend_texture[0].begin_render(rend_data_ctx.state);
         rend_data_ctx.state.set_viewport(0, 0, (int32_t)render_width, (int32_t)render_height);
     }
     else {
-        textures[0].Bind(rend_data_ctx.state);
+        textures[0].begin_render(rend_data_ctx.state);
         rend_data_ctx.state.set_viewport(0, 0, 640, 360);
     }
 
@@ -206,19 +206,19 @@ bool sss_data::set(struct render_data_context& rend_data_ctx, RenderTexture& rt)
         return false;
     }
 
-    float_t render_width = (float_t)rt.GetWidth();
-    float_t render_height = (float_t)rt.GetHeight();
+    float_t render_width = (float_t)rt.get_width();
+    float_t render_height = (float_t)rt.get_height();
 
     if (render_width > 1280.0f)
         downsample = false;
     downsample = true; // Added
 
     if (downsample) {
-        rt.Bind(rend_data_ctx.state);
+        rt.begin_render(rend_data_ctx.state);
         rend_data_ctx.state.set_viewport(0, 0, (int32_t)render_width, (int32_t)render_height);
     }
     else {
-        textures[0].Bind(rend_data_ctx.state);
+        textures[0].begin_render(rend_data_ctx.state);
         rend_data_ctx.state.set_viewport(0, 0, 640, 360);
     }
 
@@ -229,7 +229,7 @@ bool sss_data::set(struct render_data_context& rend_data_ctx, RenderTexture& rt)
 
 // 0x140641190
 void sss_data::set_texture(struct p_gl_rend_state& p_gl_rend_st, int32_t texture_index) {
-    p_gl_rend_st.active_bind_texture_2d(16, textures[texture_index].GetColorTex());
+    p_gl_rend_st.active_bind_texture_2d(16, textures[texture_index].get_texture_glid());
     p_gl_rend_st.active_texture(0);
 }
 

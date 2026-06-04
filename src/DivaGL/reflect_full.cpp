@@ -26,10 +26,10 @@ void reflect_full_struct::free() {
         dof = 0;
     }
 
-    reflect_contour_texture.Free();
+    reflect_contour_texture.destroy();
 
-    reflect_buffer_texture.Free();
-    reflect_texture.Free();
+    reflect_buffer_texture.destroy();
+    reflect_texture.destroy();
 }
 
 void reflect_full_struct::init() {
@@ -42,10 +42,10 @@ void reflect_full_struct::init() {
     int32_t render_height = (int32_t)prj::roundf((float_t)render->render_height[0] * res_scale);
     render_height = min_def(max_def(render_height, 72), render->render_height[0]);
 
-    reflect_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
-    reflect_buffer_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
+    reflect_texture.create_texture(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
+    reflect_buffer_texture.create_texture(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
 
-    reflect_contour_texture.SetColorDepthTextures(reflect_texture.GetColorTex());
+    reflect_contour_texture.attach_texture(reflect_texture.get_texture_glid());
 
     if (dof)
         dof->resize(render_width, render_height);

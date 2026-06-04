@@ -72,24 +72,24 @@ namespace renderer {
 
         rend_data_ctx.state.disable_blend();
         rend_data_ctx.state.disable_depth_test();
-        rctx->render_buffer.Bind(rend_data_ctx.state);
+        rctx->render_buffer.begin_render(rend_data_ctx.state);
         shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_TRANSPARENCY);
         rend_data_ctx.state.bind_uniform_buffer_base(0, rctx->transparency_batch_ubo);
         rend_data_ctx.state.active_bind_texture_2d(0, m_fbo.get_tex());
-        rend_data_ctx.state.active_bind_texture_2d(1, rt->GetColorTex());
+        rend_data_ctx.state.active_bind_texture_2d(1, rt->get_texture_glid());
         rend_data_ctx.state.bind_vertex_array(m_vao);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         rend_data_ctx.state.enable_depth_test();
 
         if (DIVA_GL_VERSION_4_3)
             rend_data_ctx.state.copy_image_sub_data(
-                rctx->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
-                rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, m_fbo.get_width(), m_fbo.get_height(), 1);
+                rctx->render_buffer.get_texture_glid(), GL_TEXTURE_2D, 0, 0, 0, 0,
+                rt->get_texture_glid(), GL_TEXTURE_2D, 0, 0, 0, 0, m_fbo.get_width(), m_fbo.get_height(), 1);
         else
-            fbo_blit(rend_data_ctx.state, rctx->render_buffer.fbos[0], rt->fbos[0],
+            fbo_blit(rend_data_ctx.state, rctx->render_buffer.get_fb(), rt->get_fb(),
                 0, 0, m_fbo.get_width(), m_fbo.get_height(),
                 0, 0, m_fbo.get_width(), m_fbo.get_height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        rt->Bind(rend_data_ctx.state);
+        rt->begin_render(rend_data_ctx.state);
     }
 
     // Added

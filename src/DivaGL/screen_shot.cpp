@@ -147,7 +147,7 @@ HOOK(void, FASTCALL, ScreenShotData__get_data, 0x0000000140557BE0, ScreenShotDat
     render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
 
     rndr::Render* rend = render_get();
-    rend->taa_buffer[rend->taa_texture].Bind(rend_data_ctx.state, 0);
+    rend->taa_buffer[rend->taa_texture].begin_render(rend_data_ctx.state);
 
     std::pair<resolution_mode, rectangle> v20[2] = {};
     for (int32_t i = 0; i < 2; i++) {
@@ -164,8 +164,8 @@ HOOK(void, FASTCALL, ScreenShotData__get_data, 0x0000000140557BE0, ScreenShotDat
     rend_data_ctx.state.disable_depth_test();
     rend_data_ctx.state.enable_blend();
     rend_data_ctx.state.disable_cull_face();
-    sprite_manager_draw(rend_data_ctx, 0, 0, rend->temp_buffer.color_texture);
-    sprite_manager_draw(rend_data_ctx, 3, 0, rend->temp_buffer.color_texture);
+    sprite_manager_draw(rend_data_ctx, 0, 0, rend->temp_buffer.get_texture());
+    sprite_manager_draw(rend_data_ctx, 3, 0, rend->temp_buffer.get_texture());
 
     vec2 v17 = 0.0f;
     resolution_mode_scale_pos(v17, v20[1].first,
@@ -183,7 +183,7 @@ HOOK(void, FASTCALL, ScreenShotData__get_data, 0x0000000140557BE0, ScreenShotDat
     rend_data_ctx.state.enable_cull_face();
     rend_data_ctx.state.disable_blend();
     rend_data_ctx.state.enable_depth_test();
-    rend_data_ctx.state.bind_framebuffer(0);
+    rend->taa_buffer[rend->taa_texture].end_render(rend_data_ctx.state);
 
     for (int32_t i = 0; i < 2; i++)
         sprite_manager_sub_14063F140(i, v20[i].first, v20[i].second);

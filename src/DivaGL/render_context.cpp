@@ -1222,16 +1222,16 @@ void render_context::ctrl(bool change_res) {
         render_manager.resize(screen_width, screen_height);
 
     /*if (render_res_change)
-          litproj_texture->Init(render_width, render_height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);*/
+          litproj_texture->create_texture(render_width, render_height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);*/
 
     /*sprite_manager_set_res((double_t)screen_width / (double_t)screen_height,
         screen_width, screen_height);*/
 
     /*if (render_res_change) {
         auto init_copy_buffer = [&](RenderTexture& src, RenderTexture& dst) {
-            dst.Init(src.GetWidth(),
-                src.GetHeight(), 0, src.color_texture->internal_format,
-                src.depth_texture ? src.depth_texture->internal_format : GL_ZERO);
+            dst.create_texture(src.get_width(),
+                src.get_height(), 0, src.m_txhd_color->internal_format,
+                src.depth_texture ? src.m_txhd_depth->internal_format : GL_ZERO);
         };
 
         RenderTexture& render_buffer = render->rend_texture[0];
@@ -1243,17 +1243,17 @@ void render_context::ctrl(bool change_res) {
     }*/
 
     if (screen_res_change) {
-        screen_buffer.Init(screen_width, screen_height, 0, GL_RGBA8, 0);
-        screen_overlay_buffer.Init(screen_width, screen_height, 0, GL_RGBA8, 0);
+        screen_buffer.create_texture(screen_width, screen_height, 0, GL_RGBA8, 0);
+        screen_overlay_buffer.create_texture(screen_width, screen_height, 0, GL_RGBA8, 0);
     }
 }
 
 void render_context::free() {
-    shadow_buffer.Free();
-    screen_overlay_buffer.Free();
-    screen_buffer.Free();
-    render_buffer.Free();
-    reflect_buffer.Free();
+    shadow_buffer.destroy();
+    screen_overlay_buffer.destroy();
+    screen_buffer.destroy();
+    render_buffer.destroy();
+    reflect_buffer.destroy();
 
     texture_release(empty_texture_cube_map);
     texture_release(empty_texture_2d);
@@ -1286,9 +1286,9 @@ void render_context::init() {
     ctrl(false);
 
     auto init_copy_buffer = [&](RenderTexture& src, RenderTexture& dst) {
-        dst.Init(src.GetWidth(),
-            src.GetHeight(), 0, src.color_texture->internal_format,
-            src.depth_texture ? src.depth_texture->internal_format : GL_ZERO);
+        dst.create_texture(src.get_width(),
+            src.get_height(), 0, src.m_txhd_color->internal_format,
+            src.m_txhd_depth ? src.m_txhd_depth->internal_format : GL_ZERO);
     };
 
     RenderTexture& render_buffer = render_get()->rend_texture[0];
@@ -1298,8 +1298,8 @@ void render_context::init() {
     init_copy_buffer(render_buffer, this->render_buffer);
     init_copy_buffer(shadow_buffer, this->shadow_buffer);
 
-    screen_buffer.Init(screen_width, screen_height, 0, GL_RGBA8, 0);
-    screen_overlay_buffer.Init(screen_width, screen_height, 0, GL_RGBA8, 0);
+    screen_buffer.create_texture(screen_width, screen_height, 0, GL_RGBA8, 0);
+    screen_overlay_buffer.create_texture(screen_width, screen_height, 0, GL_RGBA8, 0);
 }
 
 void render_context::add_shared_storage_uniform_buffer_data(size_t index,

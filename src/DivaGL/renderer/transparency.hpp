@@ -8,7 +8,7 @@
 #include "../../KKdLib/default.hpp"
 #include "fbo.hpp"
 
-struct RenderTexture;
+class RenderTexture;
 struct render_data_context;
 
 namespace renderer {

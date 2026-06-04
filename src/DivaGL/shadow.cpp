@@ -170,20 +170,20 @@ void Shadow::calc_tex_mtx(const vec3* light_pos,
 int32_t Shadow::create() {
     const ShadowTexParam* param = shadow_tex_param_table;
     for (int32_t i = 0; i < 7; i++, param++)
-        if (rtex_table[i].Init(
+        if (rtex_table[i].create_texture(
             (int32_t)(float_t)param->width, (int32_t)(float_t)param->height,
             param->level, param->pixel_format, param->depth_format) < 0)
             return -1;
 
     for (int32_t i = 0; i < 3; i++) {
-        gl_state.bind_texture_2d(rtex_table[i].GetColorTex());
+        gl_state.bind_texture_2d(rtex_table[i].get_texture_glid());
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteriDLL(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         static const vec4 border_color = 1.0f;
         glTexParameterfvDLL(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
     }
 
-    gl_state.bind_texture_2d(rtex_table[0].GetDepthTex());
+    gl_state.bind_texture_2d(rtex_table[0].get_depth_texture_glid());
     GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
     gl_state.bind_texture_2d(0);
@@ -194,7 +194,7 @@ int32_t Shadow::create() {
 // 0x1405E8350
 void Shadow::destroy() {
     for (RenderTexture& i : rtex_table)
-        i.Free();
+        i.destroy();
 
     init_members();
 }
@@ -236,8 +236,8 @@ void Shadow::end_make_shadow_textures(p_gl_rend_state& p_gl_rend_st) {
 // 0x1405E5AD0
 void Shadow::begin_make_silhouette_map(render_data_context& rend_data_ctx,
     struct cam_data& cam, int32_t group, int32_t index) {
-    rtex_shadowmap->Bind(rend_data_ctx.state);
-    texture* tex = rtex_shadowmap->color_texture;
+    rtex_shadowmap->begin_render(rend_data_ctx.state);
+    texture* tex = rtex_shadowmap->m_txhd_color;
     rend_data_ctx.state.set_viewport(1, 1, tex->width - 2, tex->width - 2);
     rend_data_ctx.state.enable_depth_test();
     rend_data_ctx.state.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
@@ -289,26 +289,26 @@ void Shadow::end_make_silhouette_map(render_data_context& rend_data_ctx, int32_t
     RenderTexture* rend_tex = rtex_soft[group];
     RenderTexture& rend_buf_tex = rctx->shadow_buffer;
 
-    image_filter_scale(rend_data_ctx, rend_tex, rtex_shadowmap->color_texture);
+    image_filter_scale(rend_data_ctx, rend_tex, rtex_shadowmap->get_texture());
 
     if (m_enable[group]) {
         for (int32_t i = m_proj_near_repeat, j = 0; i > 0; i--, j++) {
             apply_blur_filter_sub(rend_data_ctx, &rend_buf_tex, rend_tex,
                 m_proj_near_sampl, 1.0f, 1.0f, 0.0f);
-            image_filter_scale(rend_data_ctx, rend_tex, rend_buf_tex.color_texture);
+            image_filter_scale(rend_data_ctx, rend_tex, rend_buf_tex.get_texture());
         }
     }
     else {
-        rend_buf_tex.Bind(rend_data_ctx.state);
+        rend_buf_tex.begin_render(rend_data_ctx.state);
         rend_data_ctx.state.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
         rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
     }
-    rend_data_ctx.state.bind_framebuffer(0);
+    rend_buf_tex.end_render(rend_data_ctx.state);
 
     if (DIVA_GL_VERSION_4_5)
-        rend_data_ctx.state.generate_texture_mipmap(rend_tex->GetColorTex());
+        rend_data_ctx.state.generate_texture_mipmap(rend_tex->get_texture_glid());
     else {
-        rend_data_ctx.state.bind_texture_2d(rend_tex->GetColorTex());
+        rend_data_ctx.state.bind_texture_2d(rend_tex->get_texture_glid());
         rend_data_ctx.state.generate_mipmap(GL_TEXTURE_2D);
         rend_data_ctx.state.bind_texture_2d(0);
     }
@@ -318,8 +318,8 @@ void Shadow::end_make_silhouette_map(render_data_context& rend_data_ctx, int32_t
 void Shadow::bind_shadow(render_data_context& rend_data_ctx) {
     float_t esm_param;
     if (m_enable_self_shadow && m_num_group > 0) {
-        rend_data_ctx.state.active_bind_texture_2d(19, get_rtex(3).GetColorTex());
-        rend_data_ctx.state.active_bind_texture_2d(20, get_rtex(5).GetColorTex());
+        rend_data_ctx.state.active_bind_texture_2d(19, get_rtex(3).get_texture_glid());
+        rend_data_ctx.state.active_bind_texture_2d(20, get_rtex(5).get_texture_glid());
         rend_data_ctx.state.active_texture(0);
         esm_param = (m_esm_exponent * m_shadow_depth_range * 2.0f) * 1.442695f;
         rend_data_ctx.set_self_shadow(true);
@@ -367,7 +367,7 @@ void Shadow::bind_shadow(render_data_context& rend_data_ctx) {
         int32_t index = 0;
         for (int32_t i = 0; i < 2; i++)
             if (m_enable_group[i]) {
-                rend_data_ctx.state.active_bind_texture_2d(6 + index, rtex_soft[i]->GetColorTex());
+                rend_data_ctx.state.active_bind_texture_2d(6 + index, rtex_soft[i]->get_texture_glid());
                 index++;
             }
 
@@ -391,7 +391,7 @@ void Shadow::bind_shadow(render_data_context& rend_data_ctx) {
         rctx->draw_state_rend_data[rend_data_ctx.index].shadow = false;
 
         for (int32_t i = 0; i < 2; i++)
-            rend_data_ctx.state.active_bind_texture_2d(6 + i, rtex_soft[i]->GetColorTex());
+            rend_data_ctx.state.active_bind_texture_2d(6 + i, rtex_soft[i]->get_texture_glid());
         rend_data_ctx.state.active_texture(0);
 
         shadow_ambient = 1.0f;
@@ -416,7 +416,7 @@ void Shadow::unbind_shadow(render_data_context& rend_data_ctx) {
 void Shadow::clear(p_gl_rend_state& p_gl_rend_st) {
     for (int32_t i = 0; i < 2; i++)
         for (int32_t j = 0; j < 4; j++) {
-            rtex_soft[i]->Bind(p_gl_rend_st, j);
+            rtex_soft[i]->begin_render(p_gl_rend_st, j);
             p_gl_rend_st.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
             p_gl_rend_st.clear(GL_COLOR_BUFFER_BIT);
         }

@@ -42,7 +42,7 @@ struct dof_pv {
 
 static_assert(sizeof(dof_pv) == 0x14, "\"dof_pv\" struct should have a size of 0x14");
 
-struct RenderTexture;
+class RenderTexture;
 struct render_data_context;
 
 namespace renderer {

@@ -183,7 +183,8 @@ namespace rndr {
 
         void apply_post_process(render_data_context& rend_data_ctx,
             const cam_data& cam, texture* light_proj_tex, int32_t npr_param);
-        void bind_render_texture(p_gl_rend_state& p_gl_rend_st, bool composite_back = false);
+        void begin_render(p_gl_rend_state& p_gl_rend_st, bool composite_back = false);
+        void end_render(p_gl_rend_state& p_gl_rend_st);
         void calc_exposure_chara_data(render_data_context& rend_data_ctx, const cam_data& cam);
         void draw_lens_flare(render_data_context& rend_data_ctx, const cam_data& cam);
         void draw_quad(render_data_context& rend_data_ctx,
