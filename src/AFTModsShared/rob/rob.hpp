@@ -1240,10 +1240,10 @@ struct CLOTH_WEIGHTED_ROOT {
     vec3 normal;
     vec4 tangent;
     const bone_node* node[4];
-    const mat4* node_mat[4];
-    const mat4* bone_mat[4];
+    const mat4* robmat[4];
+    const mat4* orgmat[4];
     float_t weight[4];
-    mat4 mat;
+    mat4 root_mat;
     mat4 mat_pos;
     mat4 inv_mat_pos;
 };
