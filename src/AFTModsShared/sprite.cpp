@@ -125,31 +125,9 @@ namespace spr {
         next->kind = SPR_KIND_CHILD;
     }
 
-    vec2 proj_sprite_3d_line(vec3 vec, bool offset) {
-        mat4 view;
-        mat4_transpose(&camera_data.view, &view);
-
-        mat4_transform_point(&view, &vec, &vec);
-        if (fabsf(vec.z) < 1.0e-10f)
-            return 0.0f;
-
-        vec2 sc_vec = camera_data.depth * *(vec2*)&vec.x * (1.0f / vec.z);
-
-        resolution_struct* res_wind_int = res_window_internal_get();
-        sc_vec.x = (float_t)res_wind_int->width * 0.5f - sc_vec.x;
-        sc_vec.y = (float_t)res_wind_int->height * 0.5f + sc_vec.y;
-        if (offset) {
-            resolution_struct* res_wind = res_window_get();
-            sc_vec.x = (float_t)res_wind_int->x_offset + sc_vec.x;
-            sc_vec.y = (float_t)(res_wind->height
-                - res_wind_int->y_offset - res_wind_int->height) + sc_vec.y;
-        }
-        return sc_vec;
-    }
-
     void put_sprite_3d_line(vec3 p1, vec3 p2, color4u8 color) {
-        vec2 sc_p1 = proj_sprite_3d_line(p1, true);
-        vec2 sc_p2 = proj_sprite_3d_line(p2, true);
+        vec2 sc_p1 = calc_screen_pos2d(&p1, true);
+        vec2 sc_p2 = calc_screen_pos2d(&p2, true);
         spr::put_sprite_line(sc_p1, sc_p2, RESOLUTION_MODE_MAX, SPR_PRIO_DEBUG, color, 0);
     }
 

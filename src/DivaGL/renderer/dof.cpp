@@ -52,6 +52,9 @@ namespace renderer {
     void DOF3::apply(render_data_context& rend_data_ctx, RenderTexture* rt, RenderTexture* buf_rt) {
         if (dof_debug_data->flags & DOF_DEBUG_USE_UI_PARAMS) {
             if (dof_debug_data->flags & DOF_DEBUG_ENABLE_DOF) {
+                const float_t min_distance = get_camera_near_clip();
+                const float_t max_distance = get_camera_far_clip();
+                const float_t fov = get_camera_pers() * DEG_TO_RAD_FLOAT;
                 if (dof_debug_data->flags & DOF_DEBUG_ENABLE_PHYS_DOF) {
                     float_t focus = dof_debug_data->focus;
                     if (dof_debug_data->flags & DOF_DEBUG_AUTO_FOCUS) {
@@ -69,32 +72,34 @@ namespace renderer {
                             vec3 chara_trans = 0.0f;
                             mat4_get_translation(&mat, &chara_trans);
 
-                            mat4 view = camera_data.view;
-                            focus = -vec3::dot(*(vec3*)&view.row2, chara_trans) - view.row2.w - 0.1f;
+                            mat4 cmat;
+                            get_camera_matrix(&cmat, 0, 0);
+                            const vec3 z_axis = *(vec3*)&cmat.row2;
+                            focus = -vec3::dot(z_axis, chara_trans) - cmat.row2.w - 0.1f;
                             break;
                         }
                     }
 
-                    focus = max_def(focus, camera_data.min_distance);
+                    focus = max_def(focus, min_distance);
                     apply(rend_data_ctx, rt, buf_rt, rt->get_texture_glid(), rt->get_depth_texture_glid(),
-                        camera_data.min_distance, camera_data.max_distance, focus,
-                        dof_debug_data->focal_length, camera_data.fov * DEG_TO_RAD_FLOAT, dof_debug_data->f_number);
+                        min_distance, max_distance, focus,
+                        dof_debug_data->focal_length, fov, dof_debug_data->f_number);
                 }
                 else {
                     float_t fuzzing_range = max_def(dof_debug_data->f2.fuzzing_range, 0.01f);
                     apply_f2(rend_data_ctx, rt, buf_rt, rt->get_texture_glid(), rt->get_depth_texture_glid(),
-                        camera_data.min_distance, camera_data.max_distance, camera_data.fov * DEG_TO_RAD_FLOAT,
-                        dof_debug_data->f2.focus, dof_debug_data->f2.focus_range,
+                        min_distance, max_distance, fov, dof_debug_data->f2.focus, dof_debug_data->f2.focus_range,
                         fuzzing_range, dof_debug_data->f2.ratio);
                 }
             }
         }
         else if (dof_pv_data->enable && dof_pv_data->f2.ratio > 0.0f) {
-            float_t fuzzing_range = max_def(dof_pv_data->f2.fuzzing_range, 0.01f);
+            const float_t min_distance = get_camera_near_clip();
+            const float_t max_distance = get_camera_far_clip();
+            const float_t fuzzing_range = max_def(dof_pv_data->f2.fuzzing_range, 0.01f);
+            const float_t fov = get_camera_pers() * DEG_TO_RAD_FLOAT;
             apply_f2(rend_data_ctx, rt, buf_rt, rt->get_texture_glid(), rt->get_depth_texture_glid(),
-                camera_data.min_distance, camera_data.max_distance,
-                camera_data.fov * DEG_TO_RAD_FLOAT,
-                dof_pv_data->f2.focus, dof_pv_data->f2.focus_range,
+                min_distance, max_distance, fov, dof_pv_data->f2.focus, dof_pv_data->f2.focus_range,
                 fuzzing_range, dof_pv_data->f2.ratio);
             enum_or(dof_debug_data->flags, DOF_DEBUG_ENABLE_DOF);
             dof_debug_data->f2 = dof_pv_data->f2;

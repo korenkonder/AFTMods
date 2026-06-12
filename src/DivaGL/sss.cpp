@@ -109,8 +109,8 @@ void sss_data::pre_proc(const struct cam_data& cam) {
     if (!init_data || !enable)
         return;
 
-    vec3 interest = camera_data.interest;
-    vec3 view_point = camera_data.view_point;
+    vec3 interest = get_camera_intr();
+    vec3 view_point = get_camera_pos();
 
     vec3 chara_position[2];
     chara_position[0] = 0.0f;
@@ -143,7 +143,7 @@ void sss_data::pre_proc(const struct cam_data& cam) {
         interest = chara_position[0];
 
     float_t distance_to_interest = max_def(vec3::distance(view_point, interest), 0.25f);
-    float_t fov_scale = max_def(tanf(camera_data.fov * 0.5f * DEG_TO_RAD_FLOAT) * 5.0f, 0.25f);
+    float_t fov_scale = max_def(tanf(get_camera_pers() * 0.5f * DEG_TO_RAD_FLOAT) * 5.0f, 0.25f);
     float_t sss_strength = 0.6f;
     float_t inverse_scale = (float_t)(1.0 / clamp_def(fov_scale * distance_to_interest, 0.25f, 100.0f));
     if (inverse_scale < 0.145f)

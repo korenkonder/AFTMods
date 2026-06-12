@@ -15,7 +15,7 @@
 #include "GL/shader_storage_buffer.hpp"
 #include "GL/uniform_buffer.hpp"
 #include "mdl/disp_manager.hpp"
-#include "camera.hpp"
+#include "camera_render.hpp"
 #include "render.hpp"
 #include "render_manager.hpp"
 #include "render_texture.hpp"

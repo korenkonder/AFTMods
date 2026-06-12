@@ -9,6 +9,7 @@
 #include "../../AFTModsShared/uniform.hpp"
 #include "../Glitter/glitter.hpp"
 #include "../rob/rob.hpp"
+#include "../camera.hpp"
 #include "../gl_rend_state.hpp"
 #include "../gl_state.hpp"
 #include "../object.hpp"
@@ -2144,33 +2145,35 @@ namespace mdl {
     }
 
     static int32_t obj_bounding_sphere_check_visibility_default(const vec3& center, float_t radius) {
-        mat4 view_mat;
-        mat4_transpose(&camera_data.view, &view_mat);
+        mat4 cmat;
+        get_camera_matrix(&cmat, 0, 0);
+        mat4_transpose(&cmat, &cmat);
+
         vec3 _center;
-        mat4_transform_point(&view_mat, &center, &_center);
+        mat4_transform_point(&cmat, &center, &_center);
 
         double_t min_depth = (double_t)_center.z - (double_t)radius;
         double_t max_depth = (double_t)_center.z + (double_t)radius;
-        if (-camera_data.min_distance < min_depth || -camera_data.max_distance > max_depth)
+        if (-camera_info.data.clip_near < min_depth || -camera_info.data.clip_far > max_depth)
             return 0;
 
-        float_t v5 = vec3::dot(camera_data.field_1E4, _center);
+        float_t v5 = vec3::dot(camera_info.data.fpn_left, _center);
         if (v5 < -radius)
             return 0;
 
-        float_t v6 = vec3::dot(camera_data.field_1F0, _center);
+        float_t v6 = vec3::dot(camera_info.data.fpn_right, _center);
         if (v6 < -radius)
             return 0;
 
-        float_t v7 = vec3::dot(camera_data.field_1FC, _center);
+        float_t v7 = vec3::dot(camera_info.data.fpn_bottom, _center);
         if (v7 < -radius)
             return 0;
 
-        float_t v8 = vec3::dot(camera_data.field_208, _center);
+        float_t v8 = vec3::dot(camera_info.data.fpn_top, _center);
         if (v8 < -radius)
             return 0;
 
-        if (-camera_data.min_distance >= max_depth && -camera_data.max_distance <= min_depth
+        if (-camera_info.data.clip_near >= max_depth && -camera_info.data.clip_far <= min_depth
             && v5 >= radius && v6 >= radius && v7 >= radius && v8 >= radius)
             return 1;
         return 2;
@@ -2187,56 +2190,11 @@ namespace mdl {
         return obj_bounding_sphere_check_visibility_default(center, mat4_get_max_scale(&_mat) * bsphere.radius);
     }
 
-    static int32_t obj_axis_aligned_bounding_box_check_visibility_default(
-        const AABB* aabb, const mat4& mat) {
-        vec3 points[8];
-        points[0] = aabb->center + (aabb->r ^ vec3( 0.0f,  0.0f,  0.0f));
-        points[1] = aabb->center + (aabb->r ^ vec3(-0.0f, -0.0f, -0.0f));
-        points[2] = aabb->center + (aabb->r ^ vec3(-0.0f,  0.0f,  0.0f));
-        points[3] = aabb->center + (aabb->r ^ vec3( 0.0f, -0.0f, -0.0f));
-        points[4] = aabb->center + (aabb->r ^ vec3( 0.0f, -0.0f,  0.0f));
-        points[5] = aabb->center + (aabb->r ^ vec3(-0.0f,  0.0f, -0.0f));
-        points[6] = aabb->center + (aabb->r ^ vec3( 0.0f,  0.0f, -0.0f));
-        points[7] = aabb->center + (aabb->r ^ vec3(-0.0f, -0.0f,  0.0f));
-
-        mat4 view_mat;
-        mat4_mul(&camera_data.view, &mat, &view_mat);
-        mat4_transpose(&view_mat, &view_mat);
-
-        for (int32_t i = 0; i < 8; i++)
-            mat4_transform_point(&view_mat, &points[i], &points[i]);
-
-        vec4 v2[6];
-        *(vec3*)&v2[0] = { 0.0f, 0.0f, -1.0f };
-        v2[0].w = -camera_data.min_distance;
-        *(vec3*)&v2[1] = camera_data.field_1E4;
-        v2[1].w = 0.0f;
-        *(vec3*)&v2[2] = camera_data.field_1F0;
-        v2[2].w = 0.0f;
-        *(vec3*)&v2[3] = camera_data.field_1FC;
-        v2[3].w = 0.0f;
-        *(vec3*)&v2[4] = camera_data.field_208;
-        v2[4].w = 0.0f;
-        *(vec3*)&v2[5] = { 0.0f, 0.0f, 1.0f };
-        v2[5].w = camera_data.max_distance;
-
-        for (int32_t i = 0; i < 6; i++)
-            for (int32_t j = 0; j < 8; j++) {
-                float_t v34 = vec3::dot(*(vec3*)&v2[i], points[j]) + v2[i].w;
-                if (v34 > 0.0f)
-                    break;
-
-                if (j == 7)
-                    return 0;
-            }
-        return 1;
-    }
-
-    static int32_t obj_axis_aligned_bounding_box_check_visibility(
-        const AABB* aabb, const mat4& mat) {
+    // 0x140436F80
+    static int32_t check_culling_aabb(const AABB* aabb, const mat4* mat) {
         if (disp_manager->culling_func)
             return 1;
-        return obj_axis_aligned_bounding_box_check_visibility_default(aabb, mat);
+        return check_screen_aabb(aabb, mat);
     }
 
     bool DispManager::entry_obj(const ::obj* obj, const mat4& mat, VertexBufferDivaGL* vbhn_array,
@@ -2296,7 +2254,7 @@ namespace mdl {
                     if (v32 != 2 || (!mesh->attrib.m.billboard_view && !mesh->attrib.m.billboard
                         && !mesh->attrib.m.disable_aabb_culling)) {
                         if (v32 == 2)
-                            v32 = obj_axis_aligned_bounding_box_check_visibility(sub_mesh->aabb, mat);
+                            v32 = check_culling_aabb(sub_mesh->aabb, &mat);
 
                         if (!v32) {
                             if (!mesh_morph || j >= mesh_morph->num_submesh) {
@@ -2312,7 +2270,7 @@ namespace mdl {
 
                             int32_t v32 = obj_bounding_sphere_check_visibility(sub_mesh_morph->bsphere, mat);
                             if (v32 == 2)
-                                v32 = obj_axis_aligned_bounding_box_check_visibility(sub_mesh_morph->aabb, mat);
+                                v32 = check_culling_aabb(sub_mesh_morph->aabb, &mat);
 
                             if (!v32) {
                                 culling.culled.sub_meshes++;
@@ -2602,7 +2560,7 @@ namespace mdl {
         mat4_mul(&_mat, &reflect_mat, &_mat);
         mat4_transpose(&_mat, &_mat);
 
-        bool camera_front = vec3::normalize(camera_data.view_point - camera_data.interest).z >= 0.0f;
+        bool camera_front = vec3::normalize(get_camera_pos() - get_camera_intr()).z >= 0.0f;
 
         for (int32_t i = 0; i < obj->num_mesh; i++) {
             const obj_mesh* mesh = &obj->mesh_array[i];
@@ -2644,7 +2602,7 @@ namespace mdl {
                     if (v32 != 2 || (!mesh->attrib.m.billboard_view && !mesh->attrib.m.billboard
                         && !mesh->attrib.m.disable_aabb_culling)) {
                         if (v32 == 2)
-                            v32 = obj_axis_aligned_bounding_box_check_visibility(sub_mesh->aabb, _mat);
+                            v32 = check_culling_aabb(sub_mesh->aabb, &_mat);
 
                         if (!v32) {
                             if (!mesh_morph || j >= mesh_morph->num_submesh) {
@@ -2660,7 +2618,7 @@ namespace mdl {
 
                             int32_t v32 = obj_bounding_sphere_check_visibility(sub_mesh_morph->bsphere, _mat);
                             if (v32 == 2)
-                                v32 = obj_axis_aligned_bounding_box_check_visibility(sub_mesh_morph->aabb, mat);
+                                v32 = check_culling_aabb(sub_mesh_morph->aabb, &_mat);
 
                             if (!v32) {
                                 culling.culled.sub_meshes++;

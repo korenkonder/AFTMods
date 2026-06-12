@@ -4,6 +4,7 @@
 */
 
 #include "glitter.hpp"
+#include "../camera.hpp"
 #include "../gl_rend_state.hpp"
 #include "../gl_state.hpp"
 #include "../render_context.hpp"
@@ -383,8 +384,8 @@ namespace Glitter {
 
         mat4 cam_view;
         mat4 cam_inv_view;
-        mat4_transpose(&camera_data.view, &cam_view);
-        mat4_transpose(&camera_data.inv_view, &cam_inv_view);
+        mat4_transpose(&camera_info.data.cmat, &cam_view);
+        mat4_transpose(&camera_info.data.imat, &cam_inv_view);
 
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
         if (rend_group->flags & PARTICLE_SCREEN) {
@@ -526,8 +527,8 @@ namespace Glitter {
 
         mat4 cam_view;
         mat4 cam_inv_view;
-        mat4_transpose(&camera_data.view, &cam_view);
-        mat4_transpose(&camera_data.inv_view, &cam_inv_view);
+        mat4_transpose(&camera_info.data.cmat, &cam_view);
+        mat4_transpose(&camera_info.data.imat, &cam_inv_view);
 
         mat4 model_mat;
         mat4 view_mat;
@@ -586,7 +587,7 @@ namespace Glitter {
             mat4_rotate_z((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(camera_data.rotation.y, &dir_mat);
+            mat4_rotate_y(get_camera_rot_y_deg() * DEG_TO_RAD_FLOAT, &dir_mat);
             break;
         default:
             dir_mat = mat4_identity;
@@ -732,7 +733,7 @@ namespace Glitter {
         if (fabsf(rend_group->z_offset) > 0.000001f) {
             use_z_offset = true;
             mat4_get_translation(model_mat, &dist_to_cam);
-            dist_to_cam = camera_data.view_point - dist_to_cam;
+            dist_to_cam = get_camera_pos() - dist_to_cam;
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
                 mat4_normalize_rotation(model_mat, &z_offset_inv_mat);
                 mat4_invert(&z_offset_inv_mat, &z_offset_inv_mat);
@@ -1213,8 +1214,8 @@ namespace Glitter {
 
         mat4 cam_view;
         mat4 cam_inv_view;
-        mat4_transpose(&camera_data.view, &cam_view);
-        mat4_transpose(&camera_data.inv_view, &cam_inv_view);
+        mat4_transpose(&camera_info.data.cmat, &cam_view);
+        mat4_transpose(&camera_info.data.imat, &cam_inv_view);
 
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
         if (rend_group->flags & PARTICLE_SCREEN) {
@@ -1354,8 +1355,8 @@ namespace Glitter {
 
         mat4 cam_view;
         mat4 cam_inv_view;
-        mat4_transpose(&camera_data.view, &cam_view);
-        mat4_transpose(&camera_data.inv_view, &cam_inv_view);
+        mat4_transpose(&camera_info.data.cmat, &cam_view);
+        mat4_transpose(&camera_info.data.imat, &cam_inv_view);
 
         mat4 model_mat;
         mat4 view_mat;
@@ -1403,7 +1404,7 @@ namespace Glitter {
             mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(camera_data.rotation.y, &dir_mat);
+            mat4_rotate_y(get_camera_rot_y_deg() * DEG_TO_RAD_FLOAT, &dir_mat);
             break;
         default:
             dir_mat = mat4_identity;
@@ -1548,7 +1549,7 @@ namespace Glitter {
         if (fabsf(rend_group->z_offset) > 0.000001f) {
             use_z_offset = true;
             mat4_get_translation(model_mat, &dist_to_cam);
-            dist_to_cam = camera_data.view_point - dist_to_cam;
+            dist_to_cam = get_camera_pos() - dist_to_cam;
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
                 mat4_normalize_rotation(model_mat, &z_offset_inv_mat);
                 mat4_invert(&z_offset_inv_mat, &z_offset_inv_mat);
@@ -2008,8 +2009,8 @@ namespace Glitter {
 
         mat4 cam_view;
         mat4 cam_inv_view;
-        mat4_transpose(&camera_data.view, &cam_view);
-        mat4_transpose(&camera_data.inv_view, &cam_inv_view);
+        mat4_transpose(&camera_info.data.cmat, &cam_view);
+        mat4_transpose(&camera_info.data.imat, &cam_inv_view);
 
         bool has_scale = false;
         bool emitter_local = false;
@@ -2073,7 +2074,7 @@ namespace Glitter {
             mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(camera_data.rotation.y, &dir_mat);
+            mat4_rotate_y(get_camera_rot_y_deg() * DEG_TO_RAD_FLOAT, &dir_mat);
             break;
         case DIRECTION_EMITTER_ROTATION:
             emitter_rotation = true;

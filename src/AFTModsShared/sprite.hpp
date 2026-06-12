@@ -267,8 +267,6 @@ namespace spr {
     extern void(FASTCALL* put_rgb_cross)(const mat4& mat);
     extern spr::SprArgs* (FASTCALL* put_sprite)(const spr::SprArgs& args);
 
-    vec2 proj_sprite_3d_line(vec3 vec, bool offset);
-
     void put_sprite_3d_line(vec3 p1, vec3 p2, color4u8 color);
     void put_sprite_line(vec2 p1, vec2 p2, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
     void put_sprite_poly_line(vec2* points, size_t count, resolution_mode mode,

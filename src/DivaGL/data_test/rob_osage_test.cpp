@@ -9,6 +9,7 @@
 #include "../../KKdLib/prj/algorithm.hpp"
 #include "../../KKdLib/key_val.hpp"
 #include "../../AFTModsShared/bone_database.hpp"
+#include "../../AFTModsShared/camera.hpp"
 #include "../../AFTModsShared/canonical_properties.hpp"
 #include "../../AFTModsShared/dw.hpp"
 #include "../../AFTModsShared/resolution_mode.hpp"
@@ -1205,9 +1206,12 @@ void RobOsageTest::disp_line() {
         for (const RobOsageNode* j = j_begin; j != j_end; j++)
             spr::put_sprite_3d_line(j[-1].pos, j[0].pos, line_color);
 
-        for (const RobOsageNode* j = j_begin; j != j_end; j++)
-            spr::put_sprite_rect_fill({ spr::proj_sprite_3d_line(j->pos, true) - 2.0f, 4.0f },
+        for (const RobOsageNode* j = j_begin; j != j_end; j++) {
+            vec2 pos2d;
+            project_screen(&pos2d, &j->pos, true);
+            spr::put_sprite_rect_fill({ pos2d - 2.0f, 4.0f },
                 RESOLUTION_MODE_MAX, spr::SPR_PRIO_DEBUG, rect_color, 0);
+        }
 
         mat4_transpose(i->rob.end_node.bone_node_mat, &mat);
         mat4_scale_rot(&mat, 0.05f, &mat);
@@ -1294,7 +1298,9 @@ void RobOsageTest::disp_line_cls_param(const mat4& transform, const vec3& pos) {
     mat4_get_translation(&transform, &p_node);
     spr::put_sprite_3d_line(p, p_node, color_grey);
 
-    spr::put_sprite_rect_fill({ spr::proj_sprite_3d_line(p, true) - 1.0f, 2.0f },
+    vec2 pos2d;
+    project_screen(&pos2d, &p, true);
+    spr::put_sprite_rect_fill({ pos2d - 1.0f, 2.0f },
         RESOLUTION_MODE_MAX, spr::SPR_PRIO_DEBUG, color_yellow, 0);
 }
 

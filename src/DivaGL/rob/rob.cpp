@@ -6,6 +6,7 @@
 #include "rob.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../mdl/disp_manager.hpp"
+#include "../camera.hpp"
 #include "../gl_state.hpp"
 #include "../object.hpp"
 #include "../render_manager.hpp"
@@ -43,7 +44,7 @@ struct rob_chara_age_age_object {
     bool field_C3C;
 
     void disp(size_t chara_index,
-        bool npr, bool reflect, const vec3& a5, bool chara_color);
+        bool npr, bool reflect, const vec3& z_axis, bool chara_color);
     ::obj* get_obj_set_obj();
     bool get_objset_info_obj_index(uint32_t obj_info);
     void load(uint32_t obj_info, int32_t count);
@@ -87,7 +88,7 @@ struct rob_chara_age_age {
     bool step_full;
 
     void disp(size_t chara_id,
-        bool npr, bool reflect, const vec3& a5, bool chara_color);
+        bool npr, bool reflect, const vec3& z_axis, bool chara_color);
 };
 
 static_assert(sizeof(rob_chara_age_age) == 0x1658, "\"rob_chara_age_age\" struct should have a size of 0x1658");
@@ -767,7 +768,7 @@ void rob_patch() {
 }
 
 void rob_chara_age_age_object::disp(size_t chara_index,
-    bool npr, bool reflect, const vec3& a5, bool chara_color) {
+    bool npr, bool reflect, const vec3& z_axis, bool chara_color) {
     int32_t disp_count = this->disp_count;
     if (!objset_info || !disp_count)
         return;
@@ -776,7 +777,7 @@ void rob_chara_age_age_object::disp(size_t chara_index,
 
     prj::pair<float_t, int32_t> v44[10];
     for (int32_t i = 0; i < disp_count; i++) {
-        v44[i].first = vec3::dot(pos[i], a5);
+        v44[i].first = vec3::dot(pos[i], z_axis);
         v44[i].second = i;
     }
 
@@ -978,9 +979,9 @@ void rob_chara_age_age_object::load(uint32_t obj_info, int32_t count) {
 }
 
 void rob_chara_age_age::disp(size_t chara_id,
-    bool npr, bool reflect, const vec3& a5, bool chara_color) {
+    bool npr, bool reflect, const vec3& z_axis, bool chara_color) {
     if (alpha >= 0.1f && this->visible)
-        object.disp(chara_id, npr || this->npr, reflect, a5, chara_color);
+        object.disp(chara_id, npr || this->npr, reflect, z_axis, chara_color);
 }
 
 rob_chara_item_adjust_x::rob_chara_item_adjust_x() : scale() {
@@ -1009,11 +1010,12 @@ void rob_chara_arm_adjust_x::reset() {
 static void rob_chara_age_age_disp(rob_chara_age_age* arr,
     int32_t chara_id, bool reflect, bool chara_color) {
     bool npr = !!render_manager.npr_param;
-    mat4& view = camera_data.view;
-    vec3 v11 = *(vec3*)&view.row2;
-    arr[chara_id * 3 + 0].disp(chara_id, npr, reflect, v11, chara_color);
-    arr[chara_id * 3 + 1].disp(chara_id, npr, reflect, v11, chara_color);
-    arr[chara_id * 3 + 2].disp(chara_id, npr, reflect, v11, chara_color);
+    mat4 cmat;
+    get_camera_matrix(&cmat, 0, 0);
+    const vec3 z_axis(cmat.row2.x, cmat.row2.y, cmat.row2.z);
+    arr[chara_id * 3 + 0].disp(chara_id, npr, reflect, z_axis, chara_color);
+    arr[chara_id * 3 + 1].disp(chara_id, npr, reflect, z_axis, chara_color);
+    arr[chara_id * 3 + 2].disp(chara_id, npr, reflect, z_axis, chara_color);
 }
 
 static void rob_chara_age_age_array_disp(int32_t chara_id, bool reflect, bool chara_color) {

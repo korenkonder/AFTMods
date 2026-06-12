@@ -5,192 +5,133 @@
 
 #include "camera.hpp"
 #include "../AFTModsShared/resolution_mode.hpp"
+#include "object.hpp"
 #include "render.hpp"
 #include "render_context.hpp"
 #include <Helpers.h>
 
-cam_data::cam_data() : view_point(0.0f, 0.0f, 1.0f), interest(), up(0.0f, 1.0f, 0.0f),
-fov(30.0f * DEG_TO_RAD_FLOAT), aspect(4.0f / 3.0f), min_distance(1.0f), max_distance(200.0f),
-view_mat(), proj_mat(), view_proj_mat(), persp_scale(), persp_offset() {
+HOOK(void, FASTCALL, init_projection_matrix, 0x00000001401F8E90) {
+    const resolution_struct* res_wind = res_window_get();
+    const resolution_struct* res_wind_int = res_window_internal_get();
 
-}
+    const float_t half_width = (float_t)res_wind->width * 0.5f;
+    const float_t half_height = (float_t)res_wind->height * 0.5f;
+    const float_t render_half_width = (float_t)res_wind_int->width * 0.5f;
+    const float_t render_half_height = (float_t)res_wind_int->height * 0.5f;
 
-void cam_data::calc_ortho_proj_mat(float_t left, float_t right,
-    float_t bottom, float_t top, const vec2& scale, const vec2& offset) {
-    mat4_ortho_offset(left, right, bottom, top, min_distance, max_distance, &scale, &offset, &proj_mat);
-}
+    const float_t fv_2d = camera_info.data.fv_2d;
 
-void cam_data::calc_persp_proj_mat() {
-    mat4_persp(fov, aspect, min_distance, max_distance, &proj_mat);
-    persp_scale = 1.0f;
-    persp_offset = 0.0f;
-}
+    const float_t clip_near_2d = camera_info.data.clip_near;
+    const float_t clip_far_2d = 3000.0f;
 
-void cam_data::calc_persp_proj_mat_offset(const vec2& persp_scale, const vec2& persp_offset) {
-    mat4_persp_offset(fov, aspect, min_distance, max_distance, &persp_scale, &persp_offset, &proj_mat);
-    this->persp_scale = persp_scale;
-    this->persp_offset = persp_offset;
-}
+    const float_t range_2d = clip_near_2d / fv_2d;
+    const float_t range_x_2d = range_2d * half_width;
+    const float_t range_y_2d = range_2d * half_height;
 
-void cam_data::calc_view_mat() {
-    mat4_look_at(&view_point, &interest, &up, &view_mat);
-}
+    mat4 pmat_2d;
+    mat4_frustum(-range_x_2d, range_x_2d, range_y_2d, -range_y_2d,
+        clip_near_2d, clip_far_2d, &pmat_2d);
 
-void cam_data::calc_view_proj_mat() {
-    mat4_mul(&view_mat, &proj_mat, &view_proj_mat);
-}
+    const vec3 pos_2d(half_width, half_height, fv_2d);
+    const vec3 intr_2d(half_width, half_height, 0.0f);
+    const vec3 up_2d(0.0f, 1.0f, 0.0f);
+    mat4 vmat_2d;
+    mat4_look_at(&pos_2d, &intr_2d, &up_2d, &vmat_2d);
 
-void cam_data::get() {
-    view_point = camera_data.view_point;
-    interest = camera_data.interest;
-    up = camera_data.up;
-    fov = camera_data.fov * DEG_TO_RAD_FLOAT;
-    aspect = (float_t)camera_data.aspect;
-    min_distance = camera_data.min_distance;
-    max_distance = camera_data.max_distance;
-    mat4_transpose(&camera_data.view, &view_mat);
-    mat4_transpose(&camera_data.projection, &proj_mat);
-    mat4_transpose(&camera_data.view_projection, &view_proj_mat);
-    persp_scale = 1.0f;
-    persp_offset = 0.0f;
-}
+    mat4_mul(&vmat_2d, &pmat_2d, &pmat_2d);
+    mat4_transpose(&pmat_2d, &camera_info.data.vpmat_2d);
 
-float_t cam_data::get_aspect() const {
-    return aspect;
-}
+    const float_t fv_pre2d = render_half_height / tanf(camera_info.data.pers_2d * 0.5f * DEG_TO_RAD_FLOAT);
 
-float_t cam_data::get_fov() const {
-    return fov;
-}
+    const float_t range_pre2d = clip_near_2d / fv_pre2d;
+    const float_t range_x_pre2d = range_pre2d * render_half_width;
+    const float_t range_y_pre2d = range_pre2d * render_half_height;
 
-const vec3& cam_data::get_interest() const {
-    return interest;
-}
+    mat4 pmat_pre2d;
+    mat4_frustum(-range_x_pre2d, range_x_pre2d, range_y_pre2d, -range_y_pre2d,
+        clip_near_2d, clip_far_2d, &pmat_pre2d);
 
-float_t cam_data::get_min_distance() const {
-    return min_distance;
-}
+    const vec3 pos_pre2d(render_half_width, render_half_height, fv_pre2d);
+    const vec3 intr_pre2d(render_half_width, render_half_height, 0.0f);
+    const vec3 up_pre2d(0.0f, 1.0f, 0.0f);
+    mat4 vmat_pre2d;
+    mat4_look_at(&pos_pre2d, &intr_pre2d, &up_pre2d, &vmat_pre2d);
 
-float_t cam_data::get_max_distance() const {
-    return max_distance;
-}
-
-const mat4& cam_data::get_proj_mat() const {
-    return proj_mat;
-}
-
-const mat4& cam_data::get_view_mat() const {
-    return view_mat;
-}
-
-const vec3& cam_data::get_view_point() const {
-    return view_point;
-}
-
-const mat4& cam_data::get_view_proj_mat() const {
-    return view_proj_mat;
-}
-
-void cam_data::set_aspect(float_t value) {
-    aspect = value;
-}
-
-void cam_data::set_fov(float_t value) {
-    fov = value;
-}
-
-void cam_data::set_interest(const vec3& value) {
-    interest = value;
-}
-
-void cam_data::set_min_distance(float_t value) {
-    min_distance = value;
-}
-
-void cam_data::set_max_distance(float_t value) {
-    max_distance = value;
-}
-
-void cam_data::set_up(const vec3& value) {
-    up = value;
-}
-
-void cam_data::set_view_point(const vec3& value) {
-    view_point = value;
-}
-
-static void (FASTCALL* camera_struct__update_view)(camera_struct& cam)
-    = (void (FASTCALL*)(camera_struct & cam))0x00000001401F7690;
-
-HOOK(void, FASTCALL, camera_data_update_projection, 0x00000001401F8E90) {
-    resolution_struct* res_wind = res_window_get();
-    resolution_struct* res_wind_int = res_window_internal_get();
-
-    float_t sprite_half_width = (float_t)res_wind->width * 0.5f;
-    float_t sprite_half_height = (float_t)res_wind->height * 0.5f;
-    float_t render_half_width = (float_t)res_wind_int->width * 0.5f;
-    float_t render_half_height = (float_t)res_wind_int->height * 0.5f;
-
-    float_t aet_depth = camera_data.aet_depth;
-
-    float_t spr_2d_range = camera_data.min_distance / aet_depth;
-    float_t spr_2d_range_x = spr_2d_range * sprite_half_width;
-    float_t spr_2d_range_y = spr_2d_range * sprite_half_height;
-
-    mat4 spr_2d_proj;
-    mat4_frustrum(-spr_2d_range_x, spr_2d_range_x, spr_2d_range_y, -spr_2d_range_y,
-        camera_data.min_distance, 3000.0f, &spr_2d_proj);
-
-    vec3 spr_2d_viewpoint = { sprite_half_width, sprite_half_height, aet_depth };
-    vec3 spr_2d_interest = { sprite_half_width, sprite_half_height, 0.0f };
-    vec3 spr_2d_up = { 0.0f, 1.0f, 0.0f };
-    mat4 spr_2d_view;
-    mat4_look_at(&spr_2d_viewpoint, &spr_2d_interest, &spr_2d_up, &spr_2d_view);
-
-    mat4_mul(&spr_2d_view, &spr_2d_proj, &spr_2d_proj);
-    mat4_transpose(&spr_2d_proj, &camera_data.view_projection_aet_2d);
-
-    float_t aet_3d_depth = render_half_height / tanf(camera_data.aet_fov * 0.5f * DEG_TO_RAD_FLOAT);
-
-    float_t spr_3d_range = camera_data.min_distance / aet_3d_depth;
-    float_t spr_3d_range_x = spr_3d_range * render_half_width;
-    float_t spr_3d_range_y = spr_3d_range * render_half_height;
-
-    mat4 spr_3d_proj;
-    mat4_frustrum(-spr_3d_range_x, spr_3d_range_x, spr_3d_range_y, -spr_3d_range_y,
-        camera_data.min_distance, 3000.0f, &spr_3d_proj);
-
-    vec3 spr_3d_viewpoint = { render_half_width, render_half_height, aet_3d_depth };
-    vec3 spr_3d_interest = { render_half_width, render_half_height, 0.0f };
-    vec3 spr_3d_up = { 0.0f, 1.0f, 0.0f };
-    mat4 spr_3d_view;
-    mat4_look_at(&spr_3d_viewpoint, &spr_3d_interest, &spr_3d_up, &spr_3d_view);
-
-    mat4_mul(&spr_3d_view, &spr_3d_proj, &spr_3d_proj);
-    mat4_transpose(&spr_3d_proj, &camera_data.view_projection_aet_3d);
+    mat4_mul(&vmat_pre2d, &pmat_pre2d, &pmat_pre2d);
+    mat4_transpose(&pmat_pre2d, &camera_info.data.vpmat_pre2d);
 
     vec2 persp_scale = 1.0f;
     vec2 persp_offset = render_get()->get_taa_offset();
     mat4 proj;
-    mat4_persp_offset(camera_data.fov * DEG_TO_RAD_FLOAT, (float_t)camera_data.aspect,
-        camera_data.min_distance, camera_data.max_distance, &persp_scale, &persp_offset, &proj);
-    mat4_transpose(&proj, &camera_data.projection);
+    mat4_persp_offset(camera_info.data.pers * DEG_TO_RAD_FLOAT, (float_t)camera_info.data.aspect,
+        camera_info.data.clip_near, camera_info.data.clip_far, &persp_scale, &persp_offset, &proj);
+    mat4_transpose(&proj, &camera_info.data.pmat);
 
-    camera_data.fov_horizontal_rad = tanf(camera_data.fov * 0.5f * DEG_TO_RAD_FLOAT);
+    camera_info.data.pers_tan = tanf(camera_info.data.pers * 0.5f * DEG_TO_RAD_FLOAT);
 }
 
-HOOK(void, FASTCALL, camera_update, 0x00000001401F8970) {
-    implOfcamera_data_update_projection();
-    camera_struct__update_view(camera_data);
-    camera_data.fast_change_hist1 = camera_data.fast_change_hist0;
-    camera_data.fast_change_hist0 = camera_data.fast_change;
-    camera_data.fast_change = false;
+HOOK(void, FASTCALL, ctrl_camera, 0x00000001401F8970) {
+    implOfinit_projection_matrix();
+    calc_camera_matrix(&camera_info.data);
+
+    camera_info.data.discontinuity3 = camera_info.data.discontinuity2;
+    camera_info.data.discontinuity2 = camera_info.data.discontinuity;
+    camera_info.data.discontinuity = false;
 
     extern render_context* rctx;
     rctx->render_manager_cam.get();
 }
 
 void camera_patch() {
-    INSTALL_HOOK(camera_data_update_projection);
-    INSTALL_HOOK(camera_update);
+    INSTALL_HOOK(init_projection_matrix);
+    INSTALL_HOOK(ctrl_camera);
+}
+
+// 0x1401F8130
+int32_t check_screen_aabb(const AABB* aabb, const mat4* mat) {
+    vec3 points[8];
+    points[0] = aabb->center + (aabb->r ^ vec3( 0.0f,  0.0f,  0.0f));
+    points[1] = aabb->center + (aabb->r ^ vec3(-0.0f, -0.0f, -0.0f));
+    points[2] = aabb->center + (aabb->r ^ vec3(-0.0f,  0.0f,  0.0f));
+    points[3] = aabb->center + (aabb->r ^ vec3( 0.0f, -0.0f, -0.0f));
+    points[4] = aabb->center + (aabb->r ^ vec3( 0.0f, -0.0f,  0.0f));
+    points[5] = aabb->center + (aabb->r ^ vec3(-0.0f,  0.0f, -0.0f));
+    points[6] = aabb->center + (aabb->r ^ vec3( 0.0f,  0.0f, -0.0f));
+    points[7] = aabb->center + (aabb->r ^ vec3(-0.0f, -0.0f,  0.0f));
+
+    mat4 view_mat;
+    mat4_mul(&camera_info.data.cmat, mat, &view_mat);
+    mat4_transpose(&view_mat, &view_mat);
+
+    vec4 vtx[8];
+    for (int32_t i = 0; i < 8; i++) {
+        mat4_transform_point(&view_mat, &points[i], (vec3*)&vtx[i]);
+        vtx[i].w = 1.0f;
+    }
+
+    vec4 plane[6];
+    *(vec3*)&plane[0] = { 0.0f, 0.0f, -1.0f };
+    plane[0].w = -camera_info.data.clip_near;
+    *(vec3*)&plane[1] = camera_info.data.fpn_left;
+    plane[1].w = 0.0f;
+    *(vec3*)&plane[2] = camera_info.data.fpn_right;
+    plane[2].w = 0.0f;
+    *(vec3*)&plane[3] = camera_info.data.fpn_bottom;
+    plane[3].w = 0.0f;
+    *(vec3*)&plane[4] = camera_info.data.fpn_top;
+    plane[4].w = 0.0f;
+    *(vec3*)&plane[5] = { 0.0f, 0.0f, 1.0f };
+    plane[5].w = camera_info.data.clip_far;
+
+    for (int32_t i = 0; i < 6; i++)
+        if (!frustum_plane_check(&plane[i], vtx, 8))
+            return 0;
+    return 1;
+}
+
+// 0x1401F9590
+const mat4& set_projection_matrix_2d(bool is_pre2d) {
+    if (is_pre2d)
+        return camera_info.data.vpmat_pre2d;
+    return camera_info.data.vpmat_2d;
 }

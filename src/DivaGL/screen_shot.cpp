@@ -4,6 +4,7 @@
 */
 
 #include "screen_shot.hpp"
+#include "camera.hpp"
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
 #include "render_context.hpp"
@@ -160,12 +161,13 @@ HOOK(void, FASTCALL, ScreenShotData__get_data, 0x0000000140557BE0, ScreenShotDat
         sprite_manager_sub_14063F140(i, v19.first, v19.second);
     }
 
-    sprite_manager_set_view_projection(0);
     rend_data_ctx.state.disable_depth_test();
     rend_data_ctx.state.enable_blend();
     rend_data_ctx.state.disable_cull_face();
-    sprite_manager_draw(rend_data_ctx, 0, 0, rend->temp_buffer.get_texture());
-    sprite_manager_draw(rend_data_ctx, 3, 0, rend->temp_buffer.get_texture());
+    sprite_manager_draw(rend_data_ctx, 0, 0,
+        rend->temp_buffer.get_texture(), set_projection_matrix_2d(false));
+    sprite_manager_draw(rend_data_ctx, 3, 0,
+        rend->temp_buffer.get_texture(), set_projection_matrix_2d(false));
 
     vec2 v17 = 0.0f;
     resolution_mode_scale_pos(v17, v20[1].first,

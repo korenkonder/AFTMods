@@ -4,6 +4,7 @@
 */
 
 #include "sprite.hpp"
+#include "camera.hpp"
 #include "gl_state.hpp"
 #include "render_context.hpp"
 #include "shader_ft.hpp"
@@ -125,7 +126,7 @@ namespace spr {
         resolution_mode resolution_mode;
 
         void Draw(render_data_context& rend_data_ctx,
-            int32_t index, bool font, texture* overlay_tex);
+            int32_t index, bool font, texture* overlay_tex, const mat4& vp);
         void PostDraw();
         void PreDraw();
     };
@@ -154,8 +155,6 @@ namespace spr {
 }
 
 spr::SpriteManager* sprite_manager = (spr::SpriteManager*)0x000000014CC611C0;
-
-static mat4 view_projection_aet;
 
 extern bool sprite_break_sprite_vertex_limit;
 
@@ -338,7 +337,7 @@ namespace spr {
     }
 
     void SpriteManager::Draw(render_data_context& rend_data_ctx,
-        int32_t index, bool font, texture* overlay_tex) {
+        int32_t index, bool font, texture* overlay_tex, const mat4& vp) {
         draw_sprite_begin(rend_data_ctx);
 
         ::resolution_mode mode = res_window_get()->resolution_mode;
@@ -362,25 +361,29 @@ namespace spr {
             int32_t x_max;
             int32_t y_max;
             if (index == 0 || index == 3) {
-                float_t sprite_half_width = (float_t)res_window_get()->width * 0.5f;
-                float_t sprite_half_height = (float_t)res_window_get()->height * 0.5f;
+                const resolution_struct* res_wind = res_window_get();
 
-                float_t aet_depth = camera_data.aet_depth;
-                float_t aet_depth_1 = 1.0f / aet_depth;
+                const float_t half_width = (float_t)res_wind->width * 0.5f;
+                const float_t half_height = (float_t)res_wind->height * 0.5f;
 
-                float_t v15a = sprite_half_height * aspect[i] * 0.2f * aet_depth_1;
-                float_t v15b = sprite_half_height * 0.2f * aet_depth_1;
+                const float_t fv_2d = get_camera_fv_2d();
 
-                mat4 proj;
-                mat4_frustrum(-v15a, v15a, v15b, -v15b, 0.2f, 3000.0f, &proj);
+                const float_t clip_near_2d = 0.2f;
+                const float_t clip_far_2d = 3000.0f;
 
-                vec3 eye = { sprite_half_width, sprite_half_height, aet_depth };
-                vec3 target = { sprite_half_width, sprite_half_height, 0.0f };
+                const float_t range_x_2d = clip_near_2d * (half_height * aspect[i]) * (1.0f / fv_2d);
+                const float_t range_y_2d = clip_near_2d * half_height * (1.0f / fv_2d);
+
+                mat4 pmat_2d;
+                mat4_frustum(-range_x_2d, range_x_2d, range_y_2d, -range_y_2d, clip_near_2d, clip_far_2d, &pmat_2d);
+
+                vec3 pos = { half_width, half_height, fv_2d };
+                vec3 intr = { half_width, half_height, 0.0f };
                 vec3 up = { 0.0f, 1.0f, 0.0f };
+                mat4 vmat_2d;
+                mat4_look_at(&pos, &intr, &up, &vmat_2d);
 
-                mat4 view;
-                mat4_look_at(&eye, &target, &up, &view);
-                mat4_mul(&view, &proj, &view_projection);
+                mat4_mul(&vmat_2d, &pmat_2d, &view_projection);
                 mat4_transpose(&view_projection, &view_projection);
 
                 vec2 min;
@@ -395,7 +398,7 @@ namespace spr {
                 rend_data_ctx.state.set_viewport(x_min, y_min, x_max, y_max);
             }
             else {
-                view_projection = view_projection_aet;
+                view_projection = vp;
 
                 x_min = viewport_rect.x;
                 y_min = viewport_rect.y;
@@ -1384,8 +1387,8 @@ void sprite_manager_init() {
 }
 
 void sprite_manager_draw(render_data_context& rend_data_ctx,
-    int32_t index, bool font, texture* overlay_tex) {
-    sprite_manager->Draw(rend_data_ctx, index, font, overlay_tex);
+    int32_t index, bool font, texture* overlay_tex, const mat4& vp) {
+    sprite_manager->Draw(rend_data_ctx, index, font, overlay_tex, vp);
 }
 
 void sprite_manager_post_draw() {
@@ -1403,12 +1406,6 @@ void sprite_manager_set_res(double_t aspect, int32_t width, int32_t height) {
     sprite_manager->field_1018[1].second = { { 0.0f, 0.0f }, { (float_t)width, (float_t)height } };
 }
 
-void sprite_manager_set_view_projection(bool aet_3d) {
-    view_projection_aet = aet_3d
-        ? camera_data.view_projection_aet_3d
-        : camera_data.view_projection_aet_2d;
-}
-
 void sprite_manager_free() {
     if (sprite_manager_render_data) {
         delete sprite_manager_render_data;
@@ -1416,22 +1413,11 @@ void sprite_manager_free() {
     }
 }
 
-HOOK(void, FASTCALL, sprite_manager_set_view_projection, 0x00000001401F9590, bool aet_3d) {
-    sprite_manager_set_view_projection(aet_3d);
-}
-
 HOOK(void, FASTCALL, spr__SprArgs__Reset, 0x000000014063CA10, spr::SprArgs* This) {
     originalspr__SprArgs__Reset(This);
     This->sprite_draw_param_index = -1;
 }
 
-HOOK(void, FASTCALL, sprite_manager_draw, 0x000000014063F870, int32_t index, bool font, texture* tex) {
-    render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
-    sprite_manager_draw(rend_data_ctx, index, font, tex);
-}
-
 void sprite_patch() {
-    INSTALL_HOOK(sprite_manager_set_view_projection);
     INSTALL_HOOK(spr__SprArgs__Reset);
-    INSTALL_HOOK(sprite_manager_draw);
 }

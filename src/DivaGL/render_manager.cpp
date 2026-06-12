@@ -11,6 +11,7 @@
 #include "mdl/disp_manager.hpp"
 #include "mdl/draw_object.hpp"
 #include "rob/rob.hpp"
+#include "camera.hpp"
 #include "clear_color.hpp"
 #include "effect.hpp"
 #include "gl_state.hpp"
@@ -769,13 +770,12 @@ namespace rndr {
         rend->begin_render(rend_data_ctx.state, true);
         rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
         rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
-        sprite_manager_set_view_projection(true);
         rend_data_ctx.state.set_depth_mask(GL_FALSE);
         rend_data_ctx.state.disable_depth_test();
         rend_data_ctx.state.enable_blend();
         rend_data_ctx.state.disable_cull_face();
         sprite_manager_draw(rend_data_ctx, 2, true,
-            rend->temp_buffer.get_texture());
+            rend->temp_buffer.get_texture(), set_projection_matrix_2d(true));
         rend_data_ctx.state.enable_cull_face();
         rend_data_ctx.state.disable_blend();
         rend_data_ctx.state.enable_depth_test();
@@ -1021,14 +1021,13 @@ namespace rndr {
             else
                 rctx->screen_buffer.begin_render(rend_data_ctx.state);
 
-            sprite_manager_set_view_projection(false);
             rend_data_ctx.state.disable_depth_test();
             rend_data_ctx.state.enable_blend();
             rend_data_ctx.state.disable_cull_face();
             sprite_manager_set_res((double_t)rctx->screen_width / (double_t)rctx->screen_height,
                 rctx->screen_width, rctx->screen_height);
             sprite_manager_draw(rend_data_ctx, 0, true,
-                rctx->screen_overlay_buffer.get_texture());
+                rctx->screen_overlay_buffer.get_texture(), set_projection_matrix_2d(false));
             rend_data_ctx.state.enable_cull_face();
             rend_data_ctx.state.disable_blend();
             rend_data_ctx.state.enable_depth_test();
@@ -1119,14 +1118,13 @@ namespace rndr {
 
         rndr::Render* rend = render;
 
-        sprite_manager_set_view_projection(false);
         rend_data_ctx.state.set_depth_mask(GL_FALSE);
         rend_data_ctx.state.disable_depth_test();
         rend_data_ctx.state.disable_depth_test();
         rend_data_ctx.state.enable_blend();
         rend_data_ctx.state.disable_cull_face();
         sprite_manager_draw(rend_data_ctx, 1, true,
-            rend->temp_buffer.get_texture());
+            rend->temp_buffer.get_texture(), set_projection_matrix_2d(false));
     }
 }
 

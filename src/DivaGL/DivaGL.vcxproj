@@ -122,6 +122,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="camera_render.cpp" />
     <ClCompile Include="GL\array_buffer.cpp" />
     <ClCompile Include="GL\element_array_buffer.cpp" />
     <ClCompile Include="GL\shader_storage_buffer.cpp" />
@@ -196,6 +197,7 @@
     <ResourceCompile Include="DivaGL.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="camera_render.hpp" />
     <ClInclude Include="config.hpp" />
     <ClInclude Include="GL\array_buffer.hpp" />
     <ClInclude Include="GL\buffer.hpp" />

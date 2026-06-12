@@ -6,6 +6,7 @@
 #include "shadow.hpp"
 #include "../AFTModsShared/light_param/light.hpp"
 #include "../AFTModsShared/object.hpp"
+#include "camera.hpp"
 #include "gl_state.hpp"
 #include "render_context.hpp"
 #include "shader_ft.hpp"
@@ -103,11 +104,12 @@ bool Shadow::check_culling1(const BSphere* bsphere) {
 
 // 0x1405E7960
 bool Shadow::check_culling_sub(const BSphere* bsphere, const mat4* lview) {
-    mat4 view;
-    mat4_transpose(&camera_data.view, &view);
+    mat4 cmat;
+    get_camera_matrix(&cmat, 0, 0);
+    mat4_transpose(&cmat, &cmat);
 
     vec3 center;
-    mat4_transform_point(&view, &bsphere->center, &center);
+    mat4_transform_point(&cmat, &bsphere->center, &center);
     mat4_transform_point(lview, &center, &center);
     float_t radius = bsphere->radius;
 

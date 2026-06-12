@@ -6,9 +6,9 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/mat.hpp"
 #include "../KKdLib/vec.hpp"
 #include "GL/uniform_buffer.hpp"
-#include "camera.hpp"
 #include "render_texture.hpp"
 
 enum tone_map_method {

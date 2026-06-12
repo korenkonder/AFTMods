@@ -7,6 +7,7 @@
 #include "renderer/dof.hpp"
 #include "renderer/transparency.hpp"
 #include "rob/rob.hpp"
+#include "camera.hpp"
 #include "gl_rend_state.hpp"
 #include "gl_state.hpp"
 #include "reflect_full.hpp"
@@ -936,7 +937,7 @@ namespace rndr {
         cam_view_projection_prev = cam_view_projection;
         cam_view_projection = cam.get_view_proj_mat();
 
-        reset_exposure = camera_data.fast_change_hist1 && !camera_data.fast_change_hist0;
+        reset_exposure = check_camera_discontinuity_prev();
         if (reset_exposure) {
             float_t view_point_dist = vec3::distance(view_point, view_point_prev);
 
@@ -1555,7 +1556,7 @@ namespace rndr {
                     v17 = 0.0f;
 
                 float_t v18 = (float_t)height / (float_t)width;
-                float_t v20 = tanf(camera_data.fov * 0.5f * DEG_TO_RAD_FLOAT);
+                float_t v20 = tanf(get_camera_pers() * 0.5f * DEG_TO_RAD_FLOAT);
                 float_t v21 = 0.25f / sqrtf(powf(v20 * 3.4f, 2.0f) * (v41.z * v41.z));
                 float_t v22;
                 if (v21 < 0.055f)
