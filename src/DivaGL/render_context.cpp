@@ -257,13 +257,13 @@ void render_data::obj_skinning_data::reset() {
 }
 
 void render_data::init() {
-    buffer_shader.Create(gl_state, sizeof(obj_shader_data));
-    buffer_scene.Create(gl_state, sizeof(obj_scene_data));
-    buffer_batch.Create(gl_state, sizeof(obj_batch_data));
+    buffer_shader.Create(gl_state, sizeof(obj_shader_data), GL::BUFFER_USAGE_DYNAMIC);
+    buffer_scene.Create(gl_state, sizeof(obj_scene_data), GL::BUFFER_USAGE_DYNAMIC);
+    buffer_batch.Create(gl_state, sizeof(obj_batch_data), GL::BUFFER_USAGE_DYNAMIC);
     if (DIVA_GL_VERSION_4_3)
-        buffer_skinning.Create(gl_state, sizeof(obj_skinning_data));
+        buffer_skinning.Create(gl_state, sizeof(obj_skinning_data), GL::BUFFER_USAGE_DYNAMIC);
     else
-        buffer_skinning_ubo.Create(gl_state, sizeof(obj_skinning_data));
+        buffer_skinning_ubo.Create(gl_state, sizeof(obj_skinning_data), GL::BUFFER_USAGE_DYNAMIC);
 
     buffer_shader_data.reset();
     enum_or(flags, RENDER_DATA_SHADER_UPDATE);
@@ -777,7 +777,7 @@ void render_context::shared_storage_buffer::create(size_t size) {
     size = min_def(size, sv_max_storage_buffer_size);
     size = size / sv_min_storage_buffer_alignment * sv_min_storage_buffer_alignment;
 
-    buffer.Create(gl_state, size);
+    buffer.Create(gl_state, size, GL::BUFFER_USAGE_DYNAMIC);
     data = _operator_new(size);
     memset(data, 0, size);
     offset = 0;
@@ -815,7 +815,7 @@ void render_context::shared_uniform_buffer::create(size_t size) {
     size = min_def(size, sv_max_uniform_buffer_size);
     size = size / sv_min_uniform_buffer_alignment * sv_min_uniform_buffer_alignment;
 
-    buffer.Create(gl_state, size);
+    buffer.Create(gl_state, size, GL::BUFFER_USAGE_DYNAMIC);
     data = _operator_new(size);
     memset(data, 0, size);
     offset = 0;

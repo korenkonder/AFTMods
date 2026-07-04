@@ -178,8 +178,8 @@ namespace spr {
         static const GLsizei buffer_size_uv1 = sizeof(sprite_vertex_data_uv1);
         static const GLsizei buffer_size_uv2 = sizeof(sprite_vertex_data_uv2);
 
-        vbo.Create(gl_state, buffer_size_uv2 * vbo_vertex_count);
-        ebo.Create(gl_state, sizeof(uint32_t) * ebo_index_count);
+        vbo.Create(gl_state, buffer_size_uv2 * vbo_vertex_count, GL::BUFFER_USAGE_DYNAMIC);
+        ebo.Create(gl_state, sizeof(uint32_t) * ebo_index_count, GL::BUFFER_USAGE_DYNAMIC);
 
         glGenVertexArrays(3, vao);
         gl_state.bind_vertex_array(vao[0]);
@@ -266,7 +266,7 @@ namespace spr {
             while (vbo_vertex_count < vertex_buffer.size() / sizeof(sprite_vertex_data_uv2))
                 vbo_vertex_count *= 2;
 
-            vbo.Recreate(gl_state, buffer_size_uv2 * vbo_vertex_count);
+            vbo.Recreate(gl_state, buffer_size_uv2 * vbo_vertex_count, GL::BUFFER_USAGE_DYNAMIC);
 
             gl_state.bind_vertex_array(vao[0]);
             gl_state.bind_array_buffer(vbo, true);
@@ -317,7 +317,7 @@ namespace spr {
             while (ebo_index_count < index_buffer.size())
                 ebo_index_count *= 2;
 
-            ebo.Recreate(gl_state, sizeof(uint32_t) * ebo_index_count);
+            ebo.Recreate(gl_state, sizeof(uint32_t) * ebo_index_count, GL::BUFFER_USAGE_DYNAMIC);
 
             gl_state.bind_vertex_array(vao[0]);
             gl_state.bind_element_array_buffer(ebo, true);

@@ -10,9 +10,9 @@
 
 namespace GL {
     enum BufferUsage {
-        BUFFER_USAGE_STREAM = 0,
-        BUFFER_USAGE_STATIC,
-        BUFFER_USAGE_DYNAMIC,
+        BUFFER_USAGE_STREAM = 0, // Use a few times after update
+        BUFFER_USAGE_STATIC,     // Upload once
+        BUFFER_USAGE_DYNAMIC,    // Use many times after update
     };
 
     inline GLenum BufferUsageToGLenum(const BufferUsage usage) {
