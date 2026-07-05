@@ -110,7 +110,7 @@ namespace Glitter {
 
                 static const GLsizei buffer_size = sizeof(Buffer);
 
-                effect_group->vbo.Create(gl_state, buffer_size * max_count);
+                effect_group->vbo.Create(gl_state, buffer_size * max_count, GL::BUFFER_USAGE_DYNAMIC);
 
                 if (max_count_quad) {
                     size_t count = max_count_quad / 4 * 5;
